@@ -431,7 +431,7 @@ function glass(children, extra) {
 }
 
 function gaugeSvg(pct, color, w) {
-  const stroke = 11;
+  const stroke = strokeWidth || 9;
   const r = (w - stroke) / 2;
   const cx = w / 2;
   const cy = w / 2;
