@@ -1,5 +1,5 @@
 /**
- * 中国广电小组件 · Hark UI 测试版
+ * 中国广电小组件 · iOS 27 Liquid Glass
  *
  * 数据层沿用正式版，UI 参考：
  * zhaohantao1360-hash/Hark/china-mobile-hark-dash.js
@@ -19,16 +19,19 @@ const C = {
   other: '#64D2FF',
   txt: { light: '#000000', dark: '#FFFFFF' },
   sub: { light: '#3C3C4399', dark: '#EBEBF599' },
-  glass: { light: '#FFFFFF78', dark: '#FFFFFF16' },
+  // iOS 27 Ultra Clear：低不透明度 + 高光边缘 + 深色分离
+  glass: { light: '#FFFFFF52', dark: '#FFFFFF0F' },
+  glassBorder: { light: '#FFFFFFD6', dark: '#FFFFFF38' },
+  glassShadow: { light: '#64748B26', dark: '#00000052' },
 };
 
 function bg() {
   return {
     type: 'radial',
     colors: [
-      { light: '#EAF3FF', dark: '#0B1A33' },
-      { light: '#F4F0FF', dark: '#120B24' },
-      { light: '#E9FBF3', dark: '#03140F' },
+      { light: '#EEF6FF', dark: '#09172A' },
+      { light: '#F8F4FF', dark: '#140D25' },
+      { light: '#EEFCF6', dark: '#041711' },
     ],
     stops: [0, 0.55, 1],
     center: { x: 0.22, y: 0.12 },
@@ -409,6 +412,40 @@ function t(text, size, weight, color, extra) {
   }, extra || {});
 }
 
+function glassSpecular(radius, dark) {
+  const stops = dark
+    ? [
+        ['0%', '#FFFFFF2A'],
+        ['38%', '#FFFFFF0C'],
+        ['100%', '#FFFFFF00'],
+      ]
+    : [
+        ['0%', '#FFFFFFB8'],
+        ['38%', '#FFFFFF38'],
+        ['100%', '#FFFFFF00'],
+      ];
+
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 180'>
+    <defs>
+      <radialGradient id='s' cx='0%' cy='0%' r='100%'>
+        <stop offset='${stops[0][0]}' stop-color='${stops[0][1]}'/>
+        <stop offset='${stops[1][0]}' stop-color='${stops[1][1]}'/>
+        <stop offset='${stops[2][0]}' stop-color='${stops[2][1]}'/>
+      </radialGradient>
+      <linearGradient id='e' x1='0' y1='0' x2='1' y2='1'>
+        <stop offset='0' stop-color='${dark ? '#FFFFFF18' : '#FFFFFF55'}'/>
+        <stop offset='0.16' stop-color='${dark ? '#FFFFFF08' : '#FFFFFF18'}'/>
+        <stop offset='0.55' stop-color='#FFFFFF00'/>
+      </linearGradient>
+    </defs>
+    <rect width='360' height='180' rx='${radius}' fill='url(#s)'/>
+    <path d='M0 0H360' stroke='${dark ? '#FFFFFF22' : '#FFFFFFA8'}' stroke-width='2'/>
+    <path d='M0 0C80 18 180 8 360 0V42C210 28 100 44 0 28Z' fill='url(#e)'/>
+  </svg>`;
+
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
 function glass(children, extra) {
   return Object.assign({
     type: 'stack',
@@ -418,11 +455,12 @@ function glass(children, extra) {
     padding: 10,
     borderRadius: 18,
     backgroundColor: C.glass,
+    backgroundImage: glassSpecular(18, false),
     borderWidth: 1,
-    borderColor: { light: '#FFFFFFB8', dark: '#FFFFFF2E' },
-    shadowColor: { light: '#FFFFFF80', dark: '#00000055' },
-    shadowRadius: 12,
-    shadowOffset: { x: 0, y: 4 },
+    borderColor: C.glassBorder,
+    shadowColor: C.glassShadow,
+    shadowRadius: 8,
+    shadowOffset: { x: 0, y: 3 },
     children,
   }, extra || {});
 }
@@ -551,8 +589,14 @@ function heroFlowCard(ds) {
     width: 0,
     flex: 1,
     padding: [10, 12],
-    borderRadius: 18,
+    borderRadius: 20,
     gap: 5,
+    backgroundColor: { light: '#FFFFFF46', dark: '#FFFFFF0D' },
+    backgroundImage: glassSpecular(20, false),
+    borderColor: C.glassBorder,
+    shadowColor: C.glassShadow,
+    shadowRadius: 7,
+    shadowOffset: { x: 0, y: 3 },
   });
 }
 
@@ -620,7 +664,7 @@ function feeCard(ds) {
     flex: 1,
     alignItems: 'center',
     padding: [8, 10],
-    borderRadius: 16,
+    borderRadius: 18,
     height: 88,
     gap: 6,
   });
@@ -650,7 +694,7 @@ function dataCard(icon, color, title, value, unit) {
   ], {
     flex: 1,
     padding: [10, 10],
-    borderRadius: 16,
+    borderRadius: 18,
     height: 88,
   });
 }
@@ -702,7 +746,7 @@ function gaugeCard(icon, color, title, value, unit, percent) {
     alignItems: 'center',
     gap: 2,
     padding: [8, 6],
-    borderRadius: 16,
+    borderRadius: 18,
     height: 96,
   });
 }
@@ -713,6 +757,7 @@ function buildSmall(title, ds, fromCache) {
     padding: 12,
     gap: 6,
     backgroundGradient: bg(),
+    backgroundImage: glassSpecular(0, false),
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
       {
@@ -860,7 +905,7 @@ function buildMedium(title, ds, fromCache) {
         },
       ], {
         padding: [7, 10],
-        borderRadius: 14,
+        borderRadius: 16,
         gap: 0,
       }),
     ],
@@ -952,7 +997,7 @@ function buildLarge(title, ds, fromCache) {
       ], {
         gap: 6,
         padding: [10, 13],
-        borderRadius: 16,
+        borderRadius: 18,
       }),
       {
         type: 'stack',
@@ -969,7 +1014,7 @@ function buildLarge(title, ds, fromCache) {
           },
           t('自动刷新 30 分钟', 9, 'medium', C.sub),
           { type: 'spacer' },
-          t('Hark UI 测试版', 9, 'semibold', C.flow),
+          t('iOS 27 Liquid Glass', 9, 'semibold', C.flow),
         ],
       },
     ],
@@ -1028,7 +1073,7 @@ function buildLock(title, ds, family) {
       t(`流量 ${ds.flow.number}${ds.flow.unit} · 语音 ${ds.voice.number}分`, 'caption2', 'semibold', C.txt, {
         minScale: 0.6,
       }),
-      t('Hark UI 测试版', 'caption2', 'regular', C.sub),
+      t('iOS 27 Liquid Glass', 'caption2', 'regular', C.sub),
     ],
   };
 }
