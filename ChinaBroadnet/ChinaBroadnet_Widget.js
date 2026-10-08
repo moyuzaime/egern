@@ -1051,96 +1051,156 @@ function buildMainWidget(
   data
 ) {
 
-  const phone = formatPhone(data.phone);
-  const dashboard = buildUsageDashboard(data);
-
-  const children = [
-    headerRow(title, data),
-    ...(phone ? [{
-      type: 'text',
-      text: phone,
-      font: { size: 'caption2', weight: 'medium' },
-      textColor: COLORS.time,
-      maxLines: 1
-    }] : []),
-    buildHeroBalance(data),
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'center',
-      children: [
-        { type: 'spacer' },
-        {
-          type: 'stack',
-          height: 1,
-          flex: 1,
-          backgroundColor: COLORS.border,
-        },
-        { type: 'spacer' }
-      ]
-    }
-  ];
-
-  if (dashboard) children.push(dashboard);
-
-  children.push(
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'center',
-      gap: 8,
-      children: [
-        makeCapsule(data.flow.title, data.flow.value, data.flow.unit),
-        makeCapsule(data.voice.title, data.voice.value, data.voice.unit)
-      ]
-    },
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'center',
-      gap: 8,
-      children: [
-        makeCapsule(data.fee.title, data.fee.value, data.fee.unit),
-        {
-          type: 'stack',
-          direction: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flex: 1,
-          padding: [7, 8, 7, 8],
-          backgroundColor: COLORS.capsuleBg,
-          borderRadius: 14,
-          borderWidth: 1,
-          borderColor: COLORS.border,
-          children: [
-            {
-              type: 'text',
-              text: '最后更新',
-              font: { size: 'caption2', weight: 'medium' },
-              textColor: COLORS.title
-            },
-            {
-              type: 'text',
-              text: data.updateTime || '--:--',
-              font: { size: 'title3', weight: 'semibold' },
-              textColor: COLORS.value
-            }
-          ]
-        }
-      ]
-    }
-  );
-
   return {
     type: 'widget',
-    backgroundColor: COLORS.bg,
-    padding: [12, 14, 12, 14],
-    gap: 9,
-    refreshAfter: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
-    children
-  };
-}
 
+    backgroundColor:
+      COLORS.bg,
+
+    padding: [
+      12,
+      14,
+      12,
+      14,
+    ],
+
+    gap: 9,
+
+    refreshAfter:
+      new Date(
+        Date.now() +
+        20 * 60 * 1000
+      ).toISOString(),
+
+    children: [
+
+      headerRow(
+        title,
+        data
+      ),
+
+      {
+        type: 'stack',
+
+        direction: 'row',
+
+        alignItems: 'center',
+
+        gap: 8,
+
+        children: [
+
+          makeCapsule(
+            data.flow.title,
+            data.flow.value,
+            data.flow.unit
+          ),
+
+          makeCapsule(
+            data.voice.title,
+            data.voice.value,
+            data.voice.unit
+          ),
+
+        ],
+
+      },
+
+      {
+        type: 'stack',
+
+        direction: 'row',
+
+        alignItems: 'center',
+
+        gap: 8,
+
+        children: [
+
+          makeCapsule(
+            data.fee.title,
+            data.fee.value,
+            data.fee.unit
+          ),
+
+          {
+            type: 'stack',
+
+            direction: 'column',
+
+            alignItems: 'center',
+
+            justifyContent: 'center',
+
+            flex: 1,
+
+            padding: [
+              7,
+              8,
+              7,
+              8,
+            ],
+
+            backgroundColor:
+              COLORS.capsuleBg,
+
+            borderRadius: 14,
+
+            borderWidth: 1,
+
+            borderColor:
+              COLORS.border,
+
+            children: [
+
+              {
+                type: 'text',
+
+                text:
+                  '最后更新',
+
+                font: {
+                  size: 'caption2',
+                  weight: 'medium',
+                },
+
+                textColor:
+                  COLORS.title,
+
+                maxLines: 1,
+              },
+
+              {
+                type: 'text',
+
+                text:
+                  data.updateTime ||
+                  '--:--',
+
+                font: {
+                  size: 'title3',
+                  weight: 'semibold',
+                },
+
+                textColor:
+                  COLORS.value,
+
+                maxLines: 1,
+              },
+
+            ],
+
+          },
+
+        ],
+
+      },
+
+    ],
+
+  };
+
+}
 
 /* =========================================================
  * 小组件数据行
