@@ -510,27 +510,31 @@ function feeCard(ds) {
       type: 'stack',
       direction: 'row',
       alignItems: 'center',
-      gap: 3,
+      gap: 4,
       children: [
         {
           type: 'image',
           src: 'sf-symbol:yensign.circle.fill',
-          width: 10,
-          height: 10,
+          width: 11,
+          height: 11,
           color: low ? '#FF453A' : C.fee,
         },
-        t(low ? '话费不足' : '剩余话费', 9, 'medium', low ? '#FF453A' : C.sub),
+        t('剩余话费', 9, 'medium', C.sub),
+        { type: 'spacer' },
+        t(low ? '余额偏低' : '可用余额', 8, 'medium', low ? '#FF453A' : C.sub),
       ],
     },
-    { type: 'spacer' },
     {
       type: 'stack',
       direction: 'row',
       alignItems: 'end',
-      gap: 1,
+      gap: 3,
       children: [
-        t('¥', 11, 'semibold', low ? '#FF453A' : C.sub),
-        t(ds.fee.number, 22, 'bold', low ? '#FF453A' : C.txt),
+        t('¥', 12, 'semibold', low ? '#FF453A' : C.fee),
+        t(ds.fee.number, 24, 'bold', low ? '#FF453A' : C.txt, {
+          minScale: 0.7,
+        }),
+        t('元', 8, 'medium', C.sub),
       ],
     },
   ], {
@@ -538,9 +542,9 @@ function feeCard(ds) {
     padding: [8, 10],
     borderRadius: 16,
     height: 78,
+    gap: 5,
   });
 }
-
 function dataCard(icon, color, title, value, unit) {
   return glass([
     {
@@ -646,7 +650,7 @@ function buildSmall(title, ds, fromCache) {
           },
           t(title, 'caption1', 'semibold'),
           { type: 'spacer' },
-          t('¥' + ds.fee.number, 11, 'bold', C.fee),
+          t('话费 ¥' + ds.fee.number, 10, 'semibold', C.fee),
         ],
       },
       {
@@ -914,7 +918,7 @@ function buildLock(title, ds, family) {
     padding: [3, 5],
     gap: 2,
     children: [
-      t(`¥${ds.fee.number}`, 'footnote', 'bold', C.fee),
+      t(`话费 ¥${ds.fee.number}`, 'footnote', 'bold', C.fee),
       t(`流量 ${ds.flow.number}${ds.flow.unit} · 语音 ${ds.voice.number}分`, 'caption2', 'semibold', C.txt, {
         minScale: 0.6,
       }),
