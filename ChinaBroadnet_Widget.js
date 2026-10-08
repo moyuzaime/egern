@@ -300,6 +300,83 @@ function findValue(
 
 
 /* =========================================================
+ * Hark 风格增强解析
+ * ========================================================= */
+function normalizeKey(key) {
+  return String(key).replace(/[._\-\s]/g, '').toLowerCase();
+}
+
+function deepFindValue(obj, keys, maxDepth = 8) {
+  if (obj == null || typeof obj !== 'object' || maxDepth < 0) return null;
+  const wanted = new Set(keys.map(normalizeKey));
+  const seen = new Set();
+
+  function walk(value, depth) {
+    if (value == null || typeof value !== 'object' || depth > maxDepth) return null;
+    if (seen.has(value)) return null;
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = walk(item, depth + 1);
+        if (found != null) return found;
+      }
+      return null;
+    }
+
+    for (const key of Object.keys(value)) {
+      if (wanted.has(normalizeKey(key))) {
+        const v = value[key];
+        if (v !== undefined && v !== null && v !== '') return v;
+      }
+    }
+
+    for (const key of Object.keys(value)) {
+      const found = walk(value[key], depth + 1);
+      if (found != null) return found;
+    }
+    return null;
+  }
+
+  return walk(obj, 0);
+}
+
+function pickDeep(obj, directKeys, deepKeys) {
+  return findValue(obj, directKeys) ??
+    deepFindValue(obj, deepKeys);
+}
+
+function toFiniteNumber(value) {
+  if (value == null || value === '') return null;
+  const n = Number(String(value).replace(/,/g, '').trim());
+  return Number.isFinite(n) ? n : null;
+}
+
+function getRemainPercent(remain, total) {
+  const r = toFiniteNumber(remain);
+  const t = toFiniteNumber(total);
+  if (r == null || t == null || t <= 0 || r < 0) return null;
+  return Math.max(0, Math.min(100, Math.round(r / t * 100)));
+}
+
+function getEnv(ctx, key, fallback = '') {
+  try {
+    return ctx.env && ctx.env[key] != null ? String(ctx.env[key]) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function debugLog(ctx, message, value) {
+  if (getEnv(ctx, 'CB_DEBUG', 'false') !== 'true') return;
+  try {
+    console.log('[ChinaBroadnet][DEBUG] ' + message +
+      (value === undefined ? '' : ' ' + JSON.stringify(value)));
+  } catch (e) {}
+}
+
+
+/* =========================================================
  * 话费
  *
  * 中国广电接口：
@@ -455,38 +532,25 @@ async function loadData(ctx) {
       result.data;
 
 
-    const feeValue =
-      findValue(
-        user,
-        [
-          'fee',
-          'balance',
-          'money',
-          'remainFee',
-        ]
-      );
+    const feeValue = pickDeep(user,
+      ['fee','balance','money','remainFee'],
+      ['fee','balance','money','remainFee','remainMoney','availableBalance','accountBalance']);
 
+    const flowValue = pickDeep(user,
+      ['flow','remainFlow','flowRemain'],
+      ['flow','remainFlow','flowRemain','dataRemain','remainData','traffic','trafficRemain']);
 
-    const flowValue =
-      findValue(
-        user,
-        [
-          'flow',
-          'remainFlow',
-          'flowRemain',
-        ]
-      );
+    const voiceValue = pickDeep(user,
+      ['voice','remainVoice','voiceRemain'],
+      ['voice','remainVoice','voiceRemain','minute','remainMinute','minutes','voiceMinutes']);
 
+    const totalFlowValue = pickDeep(user,
+      ['totalFlow','flowTotal','dataTotal','totalData'],
+      ['totalFlow','flowTotal','dataTotal','totalData','trafficTotal','totalTraffic']);
 
-    const voiceValue =
-      findValue(
-        user,
-        [
-          'voice',
-          'remainVoice',
-          'voiceRemain',
-        ]
-      );
+    const totalVoiceValue = pickDeep(user,
+      ['totalVoice','voiceTotal','totalMinute','minuteTotal'],
+      ['totalVoice','voiceTotal','totalMinute','minuteTotal','minutesTotal']);
 
 
     const resultData = {
@@ -514,6 +578,9 @@ async function loadData(ctx) {
         ),
         unit: '分钟',
       },
+
+      flowPercent: getRemainPercent(flowValue, totalFlowValue),
+      voicePercent: getRemainPercent(voiceValue, totalVoiceValue),
 
       updateTime:
         new Date().toLocaleTimeString(
@@ -832,6 +899,57 @@ function makeCapsule(
  * 中号 / 大号
  * ========================================================= */
 
+function usageBar(title, percent, color) {
+  if (percent == null) return { type: 'stack', children: [] };
+  return {
+    type: 'stack',
+    direction: 'column',
+    gap: 4,
+    flex: 1,
+    children: [
+      {
+        type: 'stack',
+        direction: 'row',
+        alignItems: 'center',
+        children: [
+          { type: 'text', text: title, font: { size: 'caption2', weight: 'medium' }, textColor: COLORS.title },
+          { type: 'spacer' },
+          { type: 'text', text: percent + '%', font: { size: 'caption2', weight: 'semibold' }, textColor: color }
+        ]
+      },
+      {
+        type: 'stack',
+        height: 5,
+        borderRadius: 3,
+        backgroundColor: COLORS.border,
+        children: [{
+          type: 'stack',
+          width: Math.max(2, percent) + '%',
+          height: 5,
+          borderRadius: 3,
+          backgroundColor: color
+        }]
+      }
+    ]
+  };
+}
+
+function buildUsageDashboard(data) {
+  if (data.flowPercent == null && data.voicePercent == null) {
+    return { type: 'stack', children: [] };
+  }
+  return {
+    type: 'stack',
+    direction: 'row',
+    gap: 10,
+    children: [
+      usageBar('流量剩余', data.flowPercent, COLORS.accent),
+      usageBar('语音剩余', data.voicePercent, '#55C759')
+    ]
+  };
+}
+
+
 function buildMainWidget(
   title,
   data
@@ -856,7 +974,7 @@ function buildMainWidget(
     refreshAfter:
       new Date(
         Date.now() +
-        60 * 60 * 1000
+        20 * 60 * 1000
       ).toISOString(),
 
     children: [
@@ -866,6 +984,7 @@ function buildMainWidget(
         data
       ),
 
+      buildUsageDashboard(data),
 
       {
         type: 'stack',
@@ -1180,7 +1299,7 @@ function buildSmall(
     refreshAfter:
       new Date(
         Date.now() +
-        60 * 60 * 1000
+        20 * 60 * 1000
       ).toISOString(),
 
     children: [
@@ -1713,6 +1832,14 @@ export default async function(ctx) {
 
   }
 
+
+  if (getEnv(ctx, 'CB_KEEPALIVE', 'false') === 'true') {
+    const result = await loadData(ctx);
+    if (result.error) {
+      console.log('[ChinaBroadnet] 定时刷新失败: ' + result.error);
+    }
+    return;
+  }
 
   /*
    * Generic Widget
