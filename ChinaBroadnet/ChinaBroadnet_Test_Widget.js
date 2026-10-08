@@ -20,9 +20,9 @@ const C = {
   txt: { light: '#000000', dark: '#FFFFFF' },
   sub: { light: '#3C3C4399', dark: '#EBEBF599' },
   // iOS 27 Ultra Clear：低不透明度 + 高光边缘 + 深色分离
-  glass: { light: '#FFFFFF78', dark: '#FFFFFF22' },
-  glassBorder: { light: '#FFFFFFE0', dark: '#FFFFFF55' },
-  glassShadow: { light: '#64748B1F', dark: '#00000038' },
+  glass: { light: '#FFFFFF18', dark: '#FFFFFF0C' },
+  glassBorder: { light: '#FFFFFF68', dark: '#FFFFFF28' },
+  glassShadow: { light: '#64748B12', dark: '#00000022' },
 };
 
 function bg() {
@@ -455,7 +455,6 @@ function glass(children, extra) {
     padding: 10,
     borderRadius: 18,
     backgroundColor: C.glass,
-    backgroundImage: glassSpecular(18, false),
     borderWidth: 1,
     borderColor: C.glassBorder,
     shadowColor: C.glassShadow,
