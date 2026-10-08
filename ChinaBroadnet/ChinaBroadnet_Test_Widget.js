@@ -1114,6 +1114,8 @@ function buildLarge(title, ds, fromCache) {
           { maxLines: 2, minScale: 0.7 }
         ),
       ], {
+        width: 0,
+        flex: 1,
         gap: 6,
         padding: [10, 13],
         borderRadius: 18,
@@ -1123,6 +1125,8 @@ function buildLarge(title, ds, fromCache) {
         direction: 'row',
         alignItems: 'center',
         gap: 5,
+        width: 0,
+        flex: 1,
         children: [
           {
             type: 'image',
