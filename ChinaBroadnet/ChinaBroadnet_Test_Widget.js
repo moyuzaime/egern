@@ -860,7 +860,7 @@ function buildMedium(title, ds, fromCache) {
       {
         type: 'stack',
         direction: 'row',
-        alignItems: 'stretch',
+        alignItems: 'start',
         gap: 8,
         flex: 1,
         children: [
