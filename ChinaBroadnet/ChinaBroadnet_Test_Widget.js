@@ -556,9 +556,9 @@ function heroFlowCard(ds) {
     padding: [8, 10],
     borderRadius: 18,
     gap: 4,
-    backgroundColor: { light: '#FFFFFF28', dark: '#FFFFFF3A' },
-    borderColor: { light: '#FFFFFF78', dark: '#FFFFFF70' },
-    shadowColor: { light: '#64748B04', dark: '#00000000' },
+    backgroundColor: { light: '#FFFFFF32', dark: '#FFFFFF5C' },
+    borderColor: { light: '#FFFFFF8A', dark: '#FFFFFF88' },
+    shadowColor: { light: '#64748B03', dark: '#00000000' },
     shadowRadius: 2,
     shadowOffset: { x: 0, y: 1 },
   });
