@@ -149,11 +149,7 @@ async function handleCapture(ctx) {
     const body =
       await req.json();
 
-    if (
-      !access ||
-      !body ||
-      body.data == null
-    ) {
+    if (!access || !body) {
       return;
     }
 
@@ -180,9 +176,17 @@ async function handleCapture(ctx) {
      * 保存请求数据
      */
     ctx.storage.setJSON(
-      KEY + '.data',
-      body.data
+      KEY + '.requestBody',
+      body
     );
+
+    // 保留旧字段，兼容已有缓存
+    if (body.data != null) {
+      ctx.storage.setJSON(
+        KEY + '.data',
+        body.data
+      );
+    }
 
 
     /*
@@ -222,7 +226,8 @@ async function fetchData(
   ctx,
   access,
   data,
-  url
+  url,
+  requestBody
 ) {
 
   const resp =
@@ -238,9 +243,12 @@ async function fetchData(
             'application/json',
         },
 
-        body: {
-          data: data,
-        },
+        body:
+          requestBody != null
+            ? requestBody
+            : {
+                data: data,
+              },
 
       }
     );
@@ -484,6 +492,11 @@ async function loadData(ctx) {
       KEY + '.data'
     );
 
+  const requestBody =
+    ctx.storage.getJSON(
+      KEY + '.requestBody'
+    );
+
 
   /*
    * 尚未捕获
@@ -509,7 +522,8 @@ async function loadData(ctx) {
         ctx,
         access,
         data,
-        url
+        url,
+        requestBody
       );
 
 
