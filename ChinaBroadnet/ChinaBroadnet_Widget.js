@@ -423,6 +423,11 @@ async function loadData(ctx) {
       KEY + '.data'
     );
 
+  const requestBody =
+    ctx.storage.getJSON(
+      KEY + '.requestBody'
+    );
+
 
   /*
    * 尚未捕获
@@ -448,21 +453,27 @@ async function loadData(ctx) {
         ctx,
         access,
         data,
-        url
+        url,
+        requestBody
       );
 
 
     if (
-      !result ||
-      result.status !==
-      '000000' ||
       !result.data
     ) {
+      let detail = '';
+      try {
+        detail = JSON.stringify(result);
+      } catch (e) {
+        detail = String(result);
+      }
 
       throw new Error(
-        'API 返回异常'
+        'API 返回异常: ' +
+        (result.status != null ? 'status=' + result.status + ' ' : '') +
+        (result.code != null ? 'code=' + result.code + ' ' : '') +
+        detail.slice(0, 500)
       );
-
     }
 
 
