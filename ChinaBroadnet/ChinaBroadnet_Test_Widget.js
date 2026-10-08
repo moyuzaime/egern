@@ -868,7 +868,7 @@ function buildMedium(title, ds, fromCache) {
           {
             type: 'stack',
             direction: 'column',
-            alignItems: 'stretch',
+            alignItems: 'start',
             gap: 8,
             width: 108,
             children: [
@@ -935,14 +935,14 @@ function buildLarge(title, ds, fromCache) {
       {
         type: 'stack',
         direction: 'row',
-        alignItems: 'stretch',
+        alignItems: 'start',
         gap: 10,
         children: [
           heroFlowCard(ds),
           {
             type: 'stack',
             direction: 'column',
-            alignItems: 'stretch',
+            alignItems: 'start',
             gap: 10,
             width: 132,
             children: [
