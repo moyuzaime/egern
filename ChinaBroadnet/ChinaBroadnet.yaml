@@ -25,7 +25,7 @@ scriptings:
 
   - http_request:
       name: 中国广电 App 自动捕获
-      match: '^https://app\.10099\.com\.cn/contac[{{{cbCapture}}}]t-web/api/busi/qryUserInfo'
+      match: '^https://app\.10099\.com\.cn/contact-web/api/busi/qryUserInfo'
       script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Widget.js
       body_required: true
       max_size: 1048576
