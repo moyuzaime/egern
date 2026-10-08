@@ -541,8 +541,8 @@ function feeCard(ds) {
     alignItems: 'center',
     padding: [8, 10],
     borderRadius: 16,
-    height: 78,
-    gap: 5,
+    height: 88,
+    gap: 6,
   });
 }
 function dataCard(icon, color, title, value, unit) {
@@ -563,15 +563,15 @@ function dataCard(icon, color, title, value, unit) {
       alignItems: 'end',
       gap: 2,
       children: [
-        t(value, 18, 'bold', C.txt, { minScale: 0.55 }),
+        t(value, 21, 'bold', C.txt, { minScale: 0.55 }),
         t(unit, 9, 'semibold', C.sub),
       ],
     },
   ], {
     flex: 1,
-    padding: [8, 9],
+    padding: [10, 10],
     borderRadius: 16,
-    height: 78,
+    height: 88,
   });
 }
 
@@ -596,8 +596,8 @@ function gaugeCard(icon, color, title, value, unit, percent) {
         {
           type: 'image',
           src: gaugeSvg(percent, color, 64),
-          width: 48,
-          height: 29,
+          width: 54,
+          height: 31,
         },
         t(
           percent > 0 ? Math.round(percent * 100) + '%' : '—',
@@ -613,7 +613,7 @@ function gaugeCard(icon, color, title, value, unit, percent) {
       alignItems: 'end',
       gap: 2,
       children: [
-        t(value, 16, 'bold', C.txt, { minScale: 0.55 }),
+        t(value, 18, 'bold', C.txt, { minScale: 0.55 }),
         t(unit, 8, 'semibold', C.sub),
       ],
     },
@@ -621,9 +621,9 @@ function gaugeCard(icon, color, title, value, unit, percent) {
     flex: 1,
     alignItems: 'center',
     gap: 2,
-    padding: [7, 4],
+    padding: [8, 6],
     borderRadius: 16,
-    height: 88,
+    height: 96,
   });
 }
 
@@ -718,8 +718,8 @@ function buildSmall(title, ds, fromCache) {
 function buildMedium(title, ds, fromCache) {
   return {
     type: 'widget',
-    padding: [10, 11],
-    gap: 6,
+    padding: [11, 12],
+    gap: 8,
     backgroundColor: C.glass,
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
@@ -728,7 +728,7 @@ function buildMedium(title, ds, fromCache) {
         type: 'stack',
         direction: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 8,
         flex: 1,
         children: [
           feeCard(ds),
@@ -762,8 +762,8 @@ function buildMedium(title, ds, fromCache) {
           ],
         },
       ], {
-        padding: [6, 9],
-        borderRadius: 12,
+        padding: [7, 10],
+        borderRadius: 14,
         gap: 0,
       }),
     ],
@@ -784,8 +784,8 @@ function planText(ds) {
 function buildLarge(title, ds, fromCache) {
   return {
     type: 'widget',
-    padding: 14,
-    gap: 9,
+    padding: 15,
+    gap: 10,
     backgroundColor: C.glass,
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
@@ -794,7 +794,7 @@ function buildLarge(title, ds, fromCache) {
         type: 'stack',
         direction: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 10,
         children: [
           feeCard(ds),
           dataCard('wifi', C.flow, '剩余流量', ds.flow.number, ds.flow.unit),
@@ -831,7 +831,7 @@ function buildLarge(title, ds, fromCache) {
           type: 'image',
           src: historySvg(ds.history, C.flow, 290, 45),
           width: 290,
-          height: 45,
+          height: 48,
         },
         t(
           ds.plan && ds.plan.total != null
@@ -844,8 +844,8 @@ function buildLarge(title, ds, fromCache) {
           { maxLines: 2, minScale: 0.7 }
         ),
       ], {
-        gap: 5,
-        padding: [9, 12],
+        gap: 6,
+        padding: [10, 13],
         borderRadius: 16,
       }),
       {
