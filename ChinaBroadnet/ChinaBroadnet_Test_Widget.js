@@ -17,9 +17,47 @@ const C = {
   flow: '#0A84FF',
   voice: '#30D158',
   other: '#64D2FF',
-  txt: { light: '#1C1C1E', dark: '#FFFFFF' },
-  sub: { light: '#6E6E73', dark: '#98989F' },
-  glass: { light: '#F2F2F7CC', dark: '#2C2C2ECC' },
+  txt: { light: '#000000', dark: '#FFFFFF' },
+  sub: { light: '#3C3C4399', dark: '#EBEBF599' },
+  glass: { light: '#FFFFFFA6', dark: '#FFFFFF1A' },
+};
+
+function bg() {
+  return {
+    type: 'linear',
+    colors: [
+      { light: '#EAF3FF', dark: '#0B1A33' },
+      { light: '#F4F0FF', dark: '#120B24' },
+      { light: '#E9FBF3', dark: '#03140F' },
+    ],
+    stops: [0, 0.55, 1],
+    startPoint: { x: 0, y: 0 },
+    endPoint: { x: 1, y: 1 },
+  };
+}
+
+// 兼容不同 Egern 版本：部分环境对 request.json() 的容错不同
+function readRequestBody(ctx) {
+  const req = ctx.request || {};
+  return (async () => {
+    try {
+      if (typeof req.json === 'function') {
+        const body = await req.json();
+        if (body && body.data != null) return body;
+      }
+    } catch (e) {}
+    try {
+      const raw = req.body;
+      if (typeof raw === 'string' && raw) return JSON.parse(raw);
+      if (raw && typeof raw === 'object') return raw;
+    } catch (e) {}
+    try {
+      if (typeof $request !== 'undefined' && $request && $request.body) {
+        return typeof $request.body === 'string' ? JSON.parse($request.body) : $request.body;
+      }
+    } catch (e) {}
+    return null;
+  })();
 };
 
 function getHeader(headers, name) {
@@ -71,7 +109,7 @@ async function capture(ctx) {
 
   try {
     const access = String(getHeader(req.headers, 'access') || '').trim();
-    const body = await req.json();
+    const body = await readRequestBody(ctx);
     if (!access || !body || body.data == null) return;
 
     ctx.storage.set(KEY + '.url', url);
@@ -118,9 +156,13 @@ function saveHistory(ctx, flow) {
     const n = Number(flow);
     if (!Number.isFinite(n)) return old;
 
-    const item = { ts: Date.now(), flowKB: n };
-    const next = old.filter(x => Date.now() - Number(x.ts) < 7 * 86400000);
-    next.push(item);
+    const now = Date.now();
+    const next = old.filter(x => now - Number(x.ts) < 7 * 86400000);
+    const last = next[next.length - 1];
+    // 30 分钟刷新周期内不重复堆积相同快照
+    if (!last || now - Number(last.ts) >= 25 * 60 * 1000 || Number(last.flowKB) !== n) {
+      next.push({ ts: now, flowKB: n });
+    }
     const trimmed = next.slice(-24);
     ctx.storage.setJSON(KEY + '.history', trimmed);
     return trimmed;
@@ -154,6 +196,7 @@ async function loadData(ctx) {
     const history = saveHistory(ctx, flowRaw);
 
     const ds = {
+      stale: false,
       fee: {
         title: '剩余话费',
         number: formatFee(feeRaw),
@@ -180,7 +223,11 @@ async function loadData(ctx) {
     console.log('[ChinaBroadnet-Hark] query error: ' + e);
     return {
       configured: true,
-      data: ctx.storage.getJSON(KEY + '.datasource') || null,
+      data: (() => {
+        const cached = ctx.storage.getJSON(KEY + '.datasource') || null;
+        if (cached) cached.stale = true;
+        return cached;
+      })(),
       fromCache: true,
     };
   }
@@ -417,7 +464,7 @@ function buildSmall(title, ds, fromCache) {
     type: 'widget',
     padding: 12,
     gap: 6,
-    backgroundColor: C.glass,
+    backgroundGradient: bg(),
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
       {
@@ -586,7 +633,7 @@ function buildLarge(title, ds, fromCache) {
           width: 290,
           height: 45,
         },
-        t('说明：测试版暂未假设套餐总量，因此仪表百分比仅作 UI 占位，不代表真实使用比例。', 8, 'regular', C.sub, {
+        t('套餐总量暂未从广电接口确认，圆环仅用于展示风格，不代表真实使用比例。', 8, 'regular', C.sub, {
           maxLines: 2,
           minScale: 0.7,
         }),
@@ -679,7 +726,7 @@ function buildError(title, message) {
     type: 'widget',
     padding: 14,
     gap: 6,
-    backgroundColor: C.glass,
+    backgroundGradient: bg(),
     children: [
       t(title, 'footnote', 'semibold'),
       { type: 'spacer' },
