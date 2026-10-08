@@ -15,6 +15,9 @@
 const API_URL =
   'https://app.10099.com.cn/contact-web/api/busi/qryUserInfo';
 
+const ICON_URL =
+  'https://raw.githubusercontent.com/wuhuhuuuu/study/main/Scripts/ChinaBroadnet/ChinaBroadnet.png';
+
 const KEY = 'ChinaBroadnet';
 
 
@@ -146,11 +149,7 @@ async function handleCapture(ctx) {
     const body =
       await req.json();
 
-    if (
-      !access ||
-      !body ||
-      body.data == null
-    ) {
+    if (!access || !body) {
       return;
     }
 
@@ -177,9 +176,17 @@ async function handleCapture(ctx) {
      * 保存请求数据
      */
     ctx.storage.setJSON(
-      KEY + '.data',
-      body.data
+      KEY + '.requestBody',
+      body
     );
+
+    // 保留旧字段，兼容已有缓存
+    if (body.data != null) {
+      ctx.storage.setJSON(
+        KEY + '.data',
+        body.data
+      );
+    }
 
 
     /*
@@ -219,7 +226,8 @@ async function fetchData(
   ctx,
   access,
   data,
-  url
+  url,
+  requestBody
 ) {
 
   const resp =
@@ -235,9 +243,12 @@ async function fetchData(
             'application/json',
         },
 
-        body: {
-          data: data,
-        },
+        body:
+          requestBody != null
+            ? requestBody
+            : {
+                data: data,
+              },
 
       }
     );
@@ -297,6 +308,83 @@ function findValue(
 
 
 /* =========================================================
+ * Hark 风格增强解析
+ * ========================================================= */
+function normalizeKey(key) {
+  return String(key).replace(/[._\-\s]/g, '').toLowerCase();
+}
+
+function deepFindValue(obj, keys, maxDepth = 8) {
+  if (obj == null || typeof obj !== 'object' || maxDepth < 0) return null;
+  const wanted = new Set(keys.map(normalizeKey));
+  const seen = new Set();
+
+  function walk(value, depth) {
+    if (value == null || typeof value !== 'object' || depth > maxDepth) return null;
+    if (seen.has(value)) return null;
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = walk(item, depth + 1);
+        if (found != null) return found;
+      }
+      return null;
+    }
+
+    for (const key of Object.keys(value)) {
+      if (wanted.has(normalizeKey(key))) {
+        const v = value[key];
+        if (v !== undefined && v !== null && v !== '') return v;
+      }
+    }
+
+    for (const key of Object.keys(value)) {
+      const found = walk(value[key], depth + 1);
+      if (found != null) return found;
+    }
+    return null;
+  }
+
+  return walk(obj, 0);
+}
+
+function pickDeep(obj, directKeys, deepKeys) {
+  return findValue(obj, directKeys) ??
+    deepFindValue(obj, deepKeys);
+}
+
+function toFiniteNumber(value) {
+  if (value == null || value === '') return null;
+  const n = Number(String(value).replace(/,/g, '').trim());
+  return Number.isFinite(n) ? n : null;
+}
+
+function getRemainPercent(remain, total) {
+  const r = toFiniteNumber(remain);
+  const t = toFiniteNumber(total);
+  if (r == null || t == null || t <= 0 || r < 0) return null;
+  return Math.max(0, Math.min(100, Math.round(r / t * 100)));
+}
+
+function getEnv(ctx, key, fallback = '') {
+  try {
+    return ctx.env && ctx.env[key] != null ? String(ctx.env[key]) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function debugLog(ctx, message, value) {
+  if (getEnv(ctx, 'CB_DEBUG', 'false') !== 'true') return;
+  try {
+    console.log('[ChinaBroadnet][DEBUG] ' + message +
+      (value === undefined ? '' : ' ' + JSON.stringify(value)));
+  } catch (e) {}
+}
+
+
+/* =========================================================
  * 话费
  *
  * 中国广电接口：
@@ -346,36 +434,17 @@ function formatFlow(value) {
     return String(value);
   }
 
-
   /*
-   * 大于等于 1GB
+   * 中国广电接口流量单位为 KB
+   *
+   * 1024 × 1024 KB = 1 GB
+   *
+   * 例如：
+   * 374.65 GB → 392744960 KB
    */
-  if (
-    n >= 1024 * 1024
-  ) {
-
-    return (
-      n / 1024 / 1024
-    ).toFixed(2);
-
-  }
-
-
-  /*
-   * MB
-   */
-  if (
-    n >= 1024
-  ) {
-
-    return (
-      n / 1024
-    ).toFixed(2);
-
-  }
-
-
-  return n.toFixed(2);
+  return (
+    n / 1048576
+  ).toFixed(2);
 }
 
 
@@ -459,21 +528,16 @@ async function loadData(ctx) {
 
 
     if (
+      !result ||
+      result.status !==
+      '000000' ||
       !result.data
     ) {
-      let detail = '';
-      try {
-        detail = JSON.stringify(result);
-      } catch (e) {
-        detail = String(result);
-      }
 
       throw new Error(
-        'API 返回异常: ' +
-        (result.status != null ? 'status=' + result.status + ' ' : '') +
-        (result.code != null ? 'code=' + result.code + ' ' : '') +
-        detail.slice(0, 500)
+        'API 返回异常'
       );
+
     }
 
 
@@ -482,38 +546,29 @@ async function loadData(ctx) {
       result.data;
 
 
-    const feeValue =
-      findValue(
-        user,
-        [
-          'fee',
-          'balance',
-          'money',
-          'remainFee',
-        ]
-      );
+    const feeValue = pickDeep(user,
+      ['fee','balance','money','remainFee'],
+      ['fee','balance','money','remainFee','remainMoney','availableBalance','accountBalance']);
 
+    const flowValue = pickDeep(user,
+      ['flow','remainFlow','flowRemain'],
+      ['flow','remainFlow','flowRemain','dataRemain','remainData','traffic','trafficRemain']);
 
-    const flowValue =
-      findValue(
-        user,
-        [
-          'flow',
-          'remainFlow',
-          'flowRemain',
-        ]
-      );
+    const voiceValue = pickDeep(user,
+      ['voice','remainVoice','voiceRemain'],
+      ['voice','remainVoice','voiceRemain','minute','remainMinute','minutes','voiceMinutes']);
 
+    const totalFlowValue = pickDeep(user,
+      ['totalFlow','flowTotal','dataTotal','totalData'],
+      ['totalFlow','flowTotal','dataTotal','totalData','trafficTotal','totalTraffic']);
 
-    const voiceValue =
-      findValue(
-        user,
-        [
-          'voice',
-          'remainVoice',
-          'voiceRemain',
-        ]
-      );
+    const totalVoiceValue = pickDeep(user,
+      ['totalVoice','voiceTotal','totalMinute','minuteTotal'],
+      ['totalVoice','voiceTotal','totalMinute','minuteTotal','minutesTotal']);
+
+    const phoneValue = pickDeep(user,
+      ['phone','mobile','mobileNo','phoneNumber'],
+      ['phone','mobile','mobileNo','phoneNumber','userPhone','contactPhone']);
 
 
     const resultData = {
@@ -531,7 +586,7 @@ async function loadData(ctx) {
         value: formatFlow(
           flowValue
         ),
-        unit: 'MB',
+        unit: 'GB',
       },
 
       voice: {
@@ -541,6 +596,13 @@ async function loadData(ctx) {
         ),
         unit: '分钟',
       },
+
+      flowPercent: getRemainPercent(flowValue, totalFlowValue),
+      voicePercent: getRemainPercent(voiceValue, totalVoiceValue),
+
+      phone: phoneValue ? String(phoneValue) : '',
+      totalFlow: totalFlowValue,
+      totalVoice: totalVoiceValue,
 
       updateTime:
         new Date().toLocaleTimeString(
@@ -607,12 +669,16 @@ async function loadData(ctx) {
  * ========================================================= */
 
 function headerRow(
-  title,
-  data
-) {
+        title,
+        data
+      ) {
+
+  const updateTime =
+    data?.updateTime ||
+    '--:--';
+
 
   return {
-
     type: 'stack',
 
     direction: 'row',
@@ -636,21 +702,17 @@ function headerRow(
             type: 'image',
 
             src:
-              'sf-symbol:simcard.fill',
+              ICON_URL,
 
-            color:
-              COLORS.accent,
+            width: 24,
 
-            width: 17,
-
-            height: 17,
+            height: 24,
           },
 
           {
             type: 'text',
 
-            text:
-              title,
+            text: title,
 
             font: {
               size: 'headline',
@@ -666,7 +728,6 @@ function headerRow(
           },
 
         ],
-
       },
 
 
@@ -703,9 +764,7 @@ function headerRow(
           {
             type: 'text',
 
-            text:
-              data.updateTime ||
-              '--:--',
+            text: updateTime,
 
             font: {
               size: 'caption2',
@@ -718,18 +777,15 @@ function headerRow(
           },
 
         ],
-
       },
 
     ],
-
   };
-
 }
 
 
 /* =========================================================
- * 数据胶囊
+ * 通用数据胶囊
  * ========================================================= */
 
 function makeCapsule(
@@ -739,7 +795,6 @@ function makeCapsule(
 ) {
 
   return {
-
     type: 'stack',
 
     direction: 'column',
@@ -772,8 +827,7 @@ function makeCapsule(
       {
         type: 'text',
 
-        text:
-          title,
+        text: title,
 
         font: {
           size: 'caption2',
@@ -783,8 +837,7 @@ function makeCapsule(
         textColor:
           COLORS.title,
 
-        textAlign:
-          'center',
+        textAlign: 'center',
 
         maxLines: 1,
 
@@ -808,8 +861,7 @@ function makeCapsule(
           {
             type: 'text',
 
-            text:
-              String(value),
+            text: String(value),
 
             font: {
               size: 'title2',
@@ -819,8 +871,7 @@ function makeCapsule(
             textColor:
               COLORS.value,
 
-            textAlign:
-              'center',
+            textAlign: 'center',
 
             maxLines: 1,
 
@@ -831,8 +882,7 @@ function makeCapsule(
           {
             type: 'text',
 
-            text:
-              unit,
+            text: unit,
 
             font: {
               size: 'caption2',
@@ -847,18 +897,15 @@ function makeCapsule(
           },
 
         ],
-
       },
 
     ],
-
   };
-
 }
 
 
 /* =========================================================
- * 中号 / 大号
+ * 中号 / 大号 / 超大号
  * ========================================================= */
 
 function buildMainWidget(
@@ -867,7 +914,6 @@ function buildMainWidget(
 ) {
 
   return {
-
     type: 'widget',
 
     backgroundColor:
@@ -890,12 +936,19 @@ function buildMainWidget(
 
     children: [
 
+      /*
+       * 顶部
+       */
       headerRow(
         title,
-        data
+        data,
+        fromCache
       ),
 
 
+      /*
+       * 三项数据
+       */
       {
         type: 'stack',
 
@@ -926,10 +979,12 @@ function buildMainWidget(
           ),
 
         ],
-
       },
 
 
+      /*
+       * 底部短横线
+       */
       {
         type: 'stack',
 
@@ -961,20 +1016,20 @@ function buildMainWidget(
           },
 
         ],
-
       },
 
     ],
-
   };
-
 }
 
 
 /* =========================================================
- * 小组件数据行
+ * 小组件
+ *
+ * 三行横条：圆形图标 + 数值 + 说明
  * ========================================================= */
 
+/* 小尺寸专用：圆形图标 + 数值 + 说明 的横条 */
 function smallRow(
   color,
   symbol,
@@ -987,7 +1042,6 @@ function smallRow(
   const iconChild =
     symbol
       ? {
-
           type: 'image',
 
           src: symbol,
@@ -997,10 +1051,8 @@ function smallRow(
           width: 16,
 
           height: 16,
-
         }
       : {
-
           type: 'text',
 
           text: glyph,
@@ -1010,11 +1062,8 @@ function smallRow(
             weight: 'bold',
           },
 
-          textColor:
-            '#FFFFFF',
-
+          textColor: '#FFFFFF',
         };
-
 
   return {
 
@@ -1059,15 +1108,12 @@ function smallRow(
 
         borderRadius: 15,
 
-        backgroundColor:
-          color,
+        backgroundColor: color,
 
         children: [
           iconChild,
         ],
-
       },
-
 
       {
         type: 'stack',
@@ -1092,16 +1138,14 @@ function smallRow(
               {
                 type: 'text',
 
-                text:
-                  String(value),
+                text: String(value),
 
                 font: {
                   size: 'title3',
                   weight: 'bold',
                 },
 
-                textColor:
-                  color,
+                textColor: color,
 
                 maxLines: 1,
 
@@ -1111,16 +1155,14 @@ function smallRow(
               {
                 type: 'text',
 
-                text:
-                  String(unit),
+                text: String(unit),
 
                 font: {
                   size: 'caption1',
                   weight: 'semibold',
                 },
 
-                textColor:
-                  color,
+                textColor: color,
 
                 maxLines: 1,
               },
@@ -1128,11 +1170,8 @@ function smallRow(
               {
                 type: 'spacer',
               },
-
             ],
-
           },
-
 
           {
             type: 'stack',
@@ -1146,16 +1185,14 @@ function smallRow(
               {
                 type: 'text',
 
-                text:
-                  String(label),
+                text: String(label),
 
                 font: {
                   size: 'caption2',
                   weight: 'medium',
                 },
 
-                textColor:
-                  color + 'B3',
+                textColor: color + 'B3',
 
                 maxLines: 1,
 
@@ -1165,25 +1202,13 @@ function smallRow(
               {
                 type: 'spacer',
               },
-
             ],
-
           },
-
         ],
-
       },
-
     ],
-
   };
-
 }
-
-
-/* =========================================================
- * 小尺寸
- * ========================================================= */
 
 function buildSmall(
   title,
@@ -1215,7 +1240,7 @@ function buildSmall(
     children: [
 
       smallRow(
-        '#1677FF',
+        '#E8651F',
         null,
         '¥',
         data.fee.value,
@@ -1242,9 +1267,7 @@ function buildSmall(
       ),
 
     ],
-
   };
-
 }
 
 
@@ -1259,12 +1282,10 @@ function buildLockScreen(
 ) {
 
   if (
-    family ===
-    'accessoryInline'
+    family === 'accessoryInline'
   ) {
 
     return {
-
       type: 'widget',
 
       children: [
@@ -1273,8 +1294,7 @@ function buildLockScreen(
           type: 'text',
 
           text:
-            `${title} ` +
-            `${data.fee.value}${data.fee.unit} · ` +
+            `${title} ${data.fee.value}${data.fee.unit} · ` +
             `${data.flow.value}${data.flow.unit}`,
 
           font: {
@@ -1291,19 +1311,15 @@ function buildLockScreen(
         },
 
       ],
-
     };
-
   }
 
 
   if (
-    family ===
-    'accessoryCircular'
+    family === 'accessoryCircular'
   ) {
 
     return {
-
       type: 'widget',
 
       padding: 4,
@@ -1314,7 +1330,7 @@ function buildLockScreen(
           type: 'text',
 
           text:
-            data.flow.value,
+            `${data.flow.value}`,
 
           font: {
             size: 'title2',
@@ -1352,14 +1368,11 @@ function buildLockScreen(
         },
 
       ],
-
     };
-
   }
 
 
   return {
-
     type: 'widget',
 
     padding: 4,
@@ -1379,10 +1392,7 @@ function buildLockScreen(
             type: 'image',
 
             src:
-              'sf-symbol:simcard.fill',
-
-            color:
-              COLORS.accent,
+              ICON_URL,
 
             width: 15,
 
@@ -1409,7 +1419,6 @@ function buildLockScreen(
           },
 
         ],
-
       },
 
 
@@ -1433,9 +1442,7 @@ function buildLockScreen(
       },
 
     ],
-
   };
-
 }
 
 
@@ -1487,8 +1494,7 @@ function buildError(
           {
             type: 'text',
 
-            text:
-              title,
+            text: title,
 
             font: {
               size: 'headline',
@@ -1502,7 +1508,6 @@ function buildError(
           },
 
         ],
-
       },
 
 
@@ -1514,8 +1519,7 @@ function buildError(
       {
         type: 'text',
 
-        text:
-          message,
+        text: message,
 
         font: {
           size: 'caption1',
@@ -1577,8 +1581,7 @@ function buildError(
               {
                 type: 'text',
 
-                text:
-                  '打开广电 App 查询一次',
+                text: '打开中国广电 App 查询一次',
 
                 font: {
                   size: 'caption2',
@@ -1592,7 +1595,6 @@ function buildError(
               },
 
             ],
-
           },
 
           {
@@ -1600,13 +1602,10 @@ function buildError(
           },
 
         ],
-
       },
 
     ],
-
   };
-
 }
 
 
@@ -1744,6 +1743,14 @@ export default async function(ctx) {
 
   }
 
+
+  if (getEnv(ctx, 'CB_KEEPALIVE', 'false') === 'true') {
+    const result = await loadData(ctx);
+    if (result.error) {
+      console.log('[ChinaBroadnet] 定时刷新失败: ' + result.error);
+    }
+    return;
+  }
 
   /*
    * Generic Widget
