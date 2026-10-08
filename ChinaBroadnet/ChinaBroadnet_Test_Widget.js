@@ -412,40 +412,6 @@ function t(text, size, weight, color, extra) {
   }, extra || {});
 }
 
-function glassSpecular(radius, dark) {
-  const stops = dark
-    ? [
-        ['0%', '#FFFFFF2A'],
-        ['38%', '#FFFFFF0C'],
-        ['100%', '#FFFFFF00'],
-      ]
-    : [
-        ['0%', '#FFFFFFB8'],
-        ['38%', '#FFFFFF38'],
-        ['100%', '#FFFFFF00'],
-      ];
-
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 180'>
-    <defs>
-      <radialGradient id='s' cx='0%' cy='0%' r='100%'>
-        <stop offset='${stops[0][0]}' stop-color='${stops[0][1]}'/>
-        <stop offset='${stops[1][0]}' stop-color='${stops[1][1]}'/>
-        <stop offset='${stops[2][0]}' stop-color='${stops[2][1]}'/>
-      </radialGradient>
-      <linearGradient id='e' x1='0' y1='0' x2='1' y2='1'>
-        <stop offset='0' stop-color='${dark ? '#FFFFFF18' : '#FFFFFF55'}'/>
-        <stop offset='0.16' stop-color='${dark ? '#FFFFFF08' : '#FFFFFF18'}'/>
-        <stop offset='0.55' stop-color='#FFFFFF00'/>
-      </linearGradient>
-    </defs>
-    <rect width='360' height='180' rx='${radius}' fill='url(#s)'/>
-    <path d='M0 0H360' stroke='${dark ? '#FFFFFF22' : '#FFFFFFA8'}' stroke-width='2'/>
-    <path d='M0 0C80 18 180 8 360 0V42C210 28 100 44 0 28Z' fill='url(#e)'/>
-  </svg>`;
-
-  return 'data:image/svg+xml,' + encodeURIComponent(svg);
-}
-
 function glass(children, extra) {
   return Object.assign({
     type: 'stack',
@@ -590,8 +556,7 @@ function heroFlowCard(ds) {
     padding: [8, 10],
     borderRadius: 18,
     gap: 4,
-    backgroundColor: { light: '#FFFFFF46', dark: '#FFFFFF0D' },
-    backgroundImage: glassSpecular(20, false),
+    backgroundColor: C.glass,
     borderColor: C.glassBorder,
     shadowColor: C.glassShadow,
     shadowRadius: 7,
@@ -878,9 +843,9 @@ function buildSmall(title, ds, fromCache) {
         gap: 5,
         padding: [5, 7],
         borderRadius: 12,
-        backgroundColor: { light: '#FFFFFF50', dark: '#FFFFFF18' },
+        backgroundColor: C.glass,
         borderWidth: 1,
-        borderColor: { light: '#FFFFFF90', dark: '#FFFFFF30' },
+        borderColor: C.glassBorder,
         children: [
           {
             type: 'stack',
