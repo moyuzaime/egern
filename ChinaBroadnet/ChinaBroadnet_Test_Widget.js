@@ -20,9 +20,9 @@ const C = {
   txt: { light: '#000000', dark: '#FFFFFF' },
   sub: { light: '#3C3C4399', dark: '#EBEBF599' },
   // iOS 27 Ultra Clear：低不透明度 + 高光边缘 + 深色分离
-  glass: { light: '#FFFFFF18', dark: '#FFFFFF26' },
-  glassBorder: { light: '#FFFFFF72', dark: '#FFFFFF78' },
-  glassShadow: { light: '#64748B04', dark: '#00000000' },
+  glass: { light: '#FFFFFF22', dark: '#FFFFFF30' },
+  glassBorder: { light: '#FFFFFF70', dark: '#FFFFFF68' },
+  glassShadow: { light: '#64748B06', dark: '#00000003' },
 };
 
 function bg() {
@@ -431,7 +431,7 @@ function glass(children, extra) {
 }
 
 function gaugeSvg(pct, color, w) {
-  const stroke = strokeWidth || 9;
+  const stroke = 11;
   const r = (w - stroke) / 2;
   const cx = w / 2;
   const cy = w / 2;
@@ -556,10 +556,10 @@ function heroFlowCard(ds) {
     padding: [8, 10],
     borderRadius: 18,
     gap: 4,
-    backgroundColor: { light: '#FFFFFF24', dark: '#FFFFFF42' },
-    borderColor: { light: '#FFFFFF82', dark: '#FFFFFF86' },
-    shadowColor: { light: '#64748B02', dark: '#00000000' },
-    shadowRadius: 1,
+    backgroundColor: { light: '#FFFFFF28', dark: '#FFFFFF3A' },
+    borderColor: { light: '#FFFFFF78', dark: '#FFFFFF70' },
+    shadowColor: { light: '#64748B04', dark: '#00000000' },
+    shadowRadius: 2,
     shadowOffset: { x: 0, y: 1 },
   });
 }
@@ -841,10 +841,11 @@ function buildSmall(title, ds, fromCache) {
         direction: 'row',
         alignItems: 'center',
         gap: 5,
-        padding: [4, 2],
-        borderRadius: 10,
-        borderWidth: 0,
-        borderColor: { light: '#FFFFFF00', dark: '#FFFFFF00' },
+        padding: [5, 7],
+        borderRadius: 12,
+        backgroundColor: C.glass,
+        borderWidth: 1,
+        borderColor: C.glassBorder,
         children: [
           {
             type: 'stack',
