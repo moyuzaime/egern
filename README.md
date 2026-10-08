@@ -17,7 +17,7 @@ Egern 模块集合，主要用于整理和维护个人使用的 Egern 模块。
 
 点击下面的链接，可直接跳转 Egern 添加中国广电小组件：
 
-**[🟢 一键安装中国广电小组件](egern:/modules/new?name=%E4%B8%AD%E5%9B%BD%E5%B9%BF%E7%94%B5%E5%B0%8F%E7%BB%84%E4%BB%B6%26url=https%3A%2F%2Fraw.githubusercontent.com%2Fmoyuzaime%2Fegern%2Fmain%2FChinaBroadnet%2FChinaBroadnet.yaml)**
+**[🟢 一键安装中国广电小组件](https://egernapp.com/modules/new/?name=%E4%B8%AD%E5%9B%BD%E5%B9%BF%E7%94%B5%E5%B0%8F%E7%BB%84%E4%BB%B6&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmoyuzaime%2Fegern%2Fmain%2FChinaBroadnet%2FChinaBroadnet.yaml)**
 
 > 如果点击无法唤起 Egern，也可以手动复制下面的模块地址添加。
 
