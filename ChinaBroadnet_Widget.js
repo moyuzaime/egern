@@ -906,7 +906,7 @@ function makeCapsule(
 function formatPhone(value) {
   const text = String(value || '').trim();
   if (!text) return '';
-  if (/^1\\d{10}$/.test(text)) {
+  if (/^1\d{10}$/.test(text)) {
     return text.slice(0, 3) + ' ' + text.slice(3, 7) + ' ' + text.slice(7);
   }
   return text;
@@ -1139,115 +1139,6 @@ function buildMainWidget(
     refreshAfter: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
     children
   };
-}
-function buildMainWidget(
-  title,
-  data
-) {
-
-  return {
-
-    type: 'widget',
-
-    backgroundColor:
-      COLORS.bg,
-
-    padding: [
-      10,
-      14,
-      10,
-      14,
-    ],
-
-    gap: 10,
-
-    refreshAfter:
-      new Date(
-        Date.now() +
-        20 * 60 * 1000
-      ).toISOString(),
-
-    children: [
-
-      headerRow(
-        title,
-        data
-      ),
-
-      buildUsageDashboard(data),
-
-      {
-        type: 'stack',
-
-        direction: 'row',
-
-        alignItems: 'center',
-
-        gap: 8,
-
-        children: [
-
-          makeCapsule(
-            data.fee.title,
-            data.fee.value,
-            data.fee.unit
-          ),
-
-          makeCapsule(
-            data.voice.title,
-            data.voice.value,
-            data.voice.unit
-          ),
-
-          makeCapsule(
-            data.flow.title,
-            data.flow.value,
-            data.flow.unit
-          ),
-
-        ],
-
-      },
-
-
-      {
-        type: 'stack',
-
-        direction: 'row',
-
-        alignItems: 'center',
-
-        children: [
-
-          {
-            type: 'spacer',
-          },
-
-          {
-            type: 'stack',
-
-            width: 42,
-
-            height: 3,
-
-            borderRadius: 2,
-
-            backgroundColor:
-              COLORS.border,
-          },
-
-          {
-            type: 'spacer',
-          },
-
-        ],
-
-      },
-
-    ],
-
-  };
-
 }
 
 
