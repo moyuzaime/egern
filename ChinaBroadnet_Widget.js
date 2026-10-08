@@ -15,6 +15,9 @@
 const API_URL =
   'https://app.10099.com.cn/contact-web/api/busi/qryUserInfo';
 
+const ICON_URL =
+  'https://raw.githubusercontent.com/wuhuhuuuu/study/main/Scripts/ChinaBroadnet/ChinaBroadnet.png';
+
 const KEY = 'ChinaBroadnet';
 
 
@@ -346,36 +349,17 @@ function formatFlow(value) {
     return String(value);
   }
 
-
   /*
-   * 大于等于 1GB
+   * 中国广电接口流量单位为 KB
+   *
+   * 1024 × 1024 KB = 1 GB
+   *
+   * 例如：
+   * 374.65 GB → 392744960 KB
    */
-  if (
-    n >= 1024 * 1024
-  ) {
-
-    return (
-      n / 1024 / 1024
-    ).toFixed(2);
-
-  }
-
-
-  /*
-   * MB
-   */
-  if (
-    n >= 1024
-  ) {
-
-    return (
-      n / 1024
-    ).toFixed(2);
-
-  }
-
-
-  return n.toFixed(2);
+  return (
+    n / 1048576
+  ).toFixed(2);
 }
 
 
@@ -520,7 +504,7 @@ async function loadData(ctx) {
         value: formatFlow(
           flowValue
         ),
-        unit: 'MB',
+        unit: 'GB',
       },
 
       voice: {
@@ -624,15 +608,13 @@ function headerRow(
           {
             type: 'image',
 
-            src:
-              'sf-symbol:simcard.fill',
+  src:
 
-            color:
-              COLORS.accent,
+    ICON_URL,
 
-            width: 17,
+  width: 24,
 
-            height: 17,
+  height: 24,
           },
 
           {
@@ -1367,15 +1349,13 @@ function buildLockScreen(
           {
             type: 'image',
 
-            src:
-              'sf-symbol:simcard.fill',
+  src:
 
-            color:
-              COLORS.accent,
+    ICON_URL,
 
-            width: 15,
+  width: 15,
 
-            height: 15,
+  height: 15,
           },
 
           {
