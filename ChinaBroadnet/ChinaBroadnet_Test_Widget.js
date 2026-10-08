@@ -752,44 +752,64 @@ function gaugeCard(icon, color, title, value, unit, percent) {
 }
 
 function buildSmall(title, ds, fromCache) {
+  const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : 0;
+  const remain = ds.flow.number + ' ' + ds.flow.unit;
+  const used = ds.plan && ds.plan.used != null
+    ? formatFlow(ds.plan.used).number + ' ' + formatFlow(ds.plan.used).unit
+    : '--';
+  const total = ds.plan && ds.plan.total != null
+    ? formatFlow(ds.plan.total).number + ' ' + formatFlow(ds.plan.total).unit
+    : '--';
+
   return {
     type: 'widget',
-    padding: 12,
-    gap: 6,
+    padding: 11,
+    gap: 7,
     backgroundGradient: bg(),
-    backgroundImage: glassSpecular(0, false),
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
+      // 顶部采用“品牌 + 余额”，避免重复占用底部空间
       {
         type: 'stack',
         direction: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 5,
         children: [
           {
             type: 'image',
             src: 'sf-symbol:antenna.radiowaves.left.and.right',
-            width: 11,
-            height: 11,
+            width: 12,
+            height: 12,
             color: C.flow,
           },
-          t(title, 'caption1', 'semibold'),
+          t(title, 12, 'semibold', C.txt),
           { type: 'spacer' },
-          t('话费 ¥' + ds.fee.number, 10, 'semibold', C.fee),
+          {
+            type: 'stack',
+            direction: 'row',
+            alignItems: 'end',
+            gap: 2,
+            children: [
+              t('¥', 9, 'semibold', C.fee),
+              t(ds.fee.number, 13, 'bold', C.txt, { minScale: 0.7 }),
+            ],
+          },
         ],
       },
+
+      // 主视觉：流量数字 + 半圆仪表
       {
         type: 'stack',
         direction: 'row',
         alignItems: 'center',
-        gap: 7,
+        gap: 8,
         flex: 1,
         children: [
           {
             type: 'stack',
             direction: 'column',
             alignItems: 'start',
-            gap: 0,
+            gap: 1,
             flex: 1,
             children: [
               t('剩余流量', 9, 'medium', C.sub),
@@ -799,36 +819,49 @@ function buildSmall(title, ds, fromCache) {
                 alignItems: 'end',
                 gap: 2,
                 children: [
-                  t(ds.flow.number, 24, 'bold', C.txt),
-                  t(ds.flow.unit, 9, 'semibold', C.sub),
+                  t(ds.flow.number, 27, 'bold', C.txt, { minScale: 0.58 }),
+                  t(ds.flow.unit, 10, 'semibold', C.sub),
                 ],
               },
-              t(
-                ds.plan && ds.plan.total != null
-                  ? '套餐总量已识别'
-                  : '套餐总量待确认',
-                8,
-                'medium',
-                ds.plan && ds.plan.total != null ? C.voice : C.sub
-              ),
+              {
+                type: 'stack',
+                direction: 'row',
+                alignItems: 'center',
+                gap: 4,
+                children: [
+                  {
+                    type: 'image',
+                    src: 'sf-symbol:chart.pie.fill',
+                    width: 8,
+                    height: 8,
+                    color: C.flow,
+                  },
+                  t(
+                    p != null
+                      ? Math.round((1 - p) * 100) + '% 剩余'
+                      : '套餐用量待确认',
+                    8,
+                    'semibold',
+                    C.flow
+                  ),
+                ],
+              },
             ],
           },
           {
             type: 'stack',
             direction: 'column',
             alignItems: 'center',
-            gap: -3,
+            gap: -2,
             children: [
               {
                 type: 'image',
-                src: gaugeSvg(ds.plan && ds.plan.percent != null ? ds.plan.percent : 0, C.flow, 72),
-                width: 48,
-                height: 28,
+                src: gaugeSvg(p, C.flow, 82),
+                width: 56,
+                height: 32,
               },
               t(
-                ds.plan && ds.plan.percent != null
-                  ? Math.round((1 - ds.plan.percent) * 100) + '%剩余'
-                  : '剩余',
+                p != null ? Math.round(p * 100) + '% 已用' : '—',
                 8,
                 'bold',
                 C.flow
@@ -837,13 +870,58 @@ function buildSmall(title, ds, fromCache) {
           },
         ],
       },
-      t(
-        `话费 ¥${ds.fee.number} · 语音 ${ds.voice.number}${ds.voice.unit}`,
-        9,
-        'medium',
-        C.sub,
-        { minScale: 0.7 }
-      ),
+
+      // 底部做成轻量信息栏，不再把三项数据全部挤成一行。
+      {
+        type: 'stack',
+        direction: 'row',
+        alignItems: 'center',
+        gap: 5,
+        padding: [5, 7],
+        borderRadius: 12,
+        backgroundColor: { light: '#FFFFFF50', dark: '#FFFFFF18' },
+        borderWidth: 1,
+        borderColor: { light: '#FFFFFF90', dark: '#FFFFFF30' },
+        children: [
+          {
+            type: 'stack',
+            direction: 'row',
+            alignItems: 'center',
+            gap: 3,
+            flex: 1,
+            children: [
+              {
+                type: 'image',
+                src: 'sf-symbol:phone.fill',
+                width: 9,
+                height: 9,
+                color: C.voice,
+              },
+              t(ds.voice.number + ' 分钟', 9, 'semibold', C.txt, { minScale: 0.65 }),
+            ],
+          },
+          {
+            type: 'stack',
+            direction: 'column',
+            alignItems: 'end',
+            gap: 0,
+            children: [
+              t('套餐', 7, 'regular', C.sub),
+              t(total, 8, 'medium', C.sub, { minScale: 0.65 }),
+            ],
+          },
+          {
+            type: 'stack',
+            direction: 'column',
+            alignItems: 'end',
+            gap: 0,
+            children: [
+              t('已用', 7, 'regular', C.sub),
+              t(used, 8, 'medium', C.sub, { minScale: 0.65 }),
+            ],
+          },
+        ],
+      },
     ],
   };
 }
