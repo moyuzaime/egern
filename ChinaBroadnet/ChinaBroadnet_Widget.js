@@ -552,6 +552,10 @@ async function loadData(ctx) {
       ['totalVoice','voiceTotal','totalMinute','minuteTotal'],
       ['totalVoice','voiceTotal','totalMinute','minuteTotal','minutesTotal']);
 
+    const phoneValue = pickDeep(user,
+      ['phone','mobile','mobileNo','phoneNumber'],
+      ['phone','mobile','mobileNo','phoneNumber','userPhone','contactPhone']);
+
 
     const resultData = {
 
@@ -652,11 +656,16 @@ async function loadData(ctx) {
 
 function headerRow(
   title,
-  data
+  data,
+  fromCache
 ) {
 
-  return {
+  const updateTime =
+    data?.updateTime ||
+    '--:--';
 
+
+  return {
     type: 'stack',
 
     direction: 'row',
@@ -679,20 +688,18 @@ function headerRow(
           {
             type: 'image',
 
-  src:
+            src:
+              ICON_URL,
 
-    ICON_URL,
+            width: 24,
 
-  width: 24,
-
-  height: 24,
+            height: 24,
           },
 
           {
             type: 'text',
 
-            text:
-              title,
+            text: title,
 
             font: {
               size: 'headline',
@@ -708,7 +715,6 @@ function headerRow(
           },
 
         ],
-
       },
 
 
@@ -745,9 +751,7 @@ function headerRow(
           {
             type: 'text',
 
-            text:
-              data.updateTime ||
-              '--:--',
+            text: updateTime,
 
             font: {
               size: 'caption2',
@@ -760,18 +764,15 @@ function headerRow(
           },
 
         ],
-
       },
 
     ],
-
   };
-
 }
 
 
 /* =========================================================
- * 数据胶囊
+ * 通用数据胶囊
  * ========================================================= */
 
 function makeCapsule(
@@ -781,7 +782,6 @@ function makeCapsule(
 ) {
 
   return {
-
     type: 'stack',
 
     direction: 'column',
@@ -814,8 +814,7 @@ function makeCapsule(
       {
         type: 'text',
 
-        text:
-          title,
+        text: title,
 
         font: {
           size: 'caption2',
@@ -825,8 +824,7 @@ function makeCapsule(
         textColor:
           COLORS.title,
 
-        textAlign:
-          'center',
+        textAlign: 'center',
 
         maxLines: 1,
 
@@ -850,8 +848,7 @@ function makeCapsule(
           {
             type: 'text',
 
-            text:
-              String(value),
+            text: String(value),
 
             font: {
               size: 'title2',
@@ -861,8 +858,7 @@ function makeCapsule(
             textColor:
               COLORS.value,
 
-            textAlign:
-              'center',
+            textAlign: 'center',
 
             maxLines: 1,
 
@@ -873,8 +869,7 @@ function makeCapsule(
           {
             type: 'text',
 
-            text:
-              unit,
+            text: unit,
 
             font: {
               size: 'caption2',
@@ -889,162 +884,16 @@ function makeCapsule(
           },
 
         ],
-
       },
 
     ],
-
   };
-
 }
 
 
 /* =========================================================
- * 中号 / 大号
+ * 中号 / 大号 / 超大号
  * ========================================================= */
-
-function formatPhone(value) {
-  const text = String(value || '').trim();
-  if (!text) return '';
-  if (/^1\d{10}$/.test(text)) {
-    return text.slice(0, 3) + ' ' + text.slice(3, 7) + ' ' + text.slice(7);
-  }
-  return text;
-}
-
-function usageBar(title, percent, color, remainText, totalText) {
-  if (percent == null) return null;
-
-  return {
-    type: 'stack',
-    direction: 'column',
-    gap: 5,
-    flex: 1,
-    children: [
-      {
-        type: 'stack',
-        direction: 'row',
-        alignItems: 'center',
-        children: [
-          {
-            type: 'text',
-            text: title,
-            font: { size: 'caption2', weight: 'medium' },
-            textColor: COLORS.title,
-            maxLines: 1
-          },
-          { type: 'spacer' },
-          {
-            type: 'text',
-            text: remainText || (percent + '%'),
-            font: { size: 'caption2', weight: 'semibold' },
-            textColor: color,
-            maxLines: 1
-          }
-        ]
-      },
-      {
-        type: 'stack',
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: COLORS.border,
-        children: [{
-          type: 'stack',
-          width: Math.max(2, percent) + '%',
-          height: 6,
-          borderRadius: 3,
-          backgroundColor: color
-        }]
-      },
-      ...(totalText ? [{
-        type: 'text',
-        text: totalText,
-        font: { size: 'caption2' },
-        textColor: COLORS.time,
-        maxLines: 1
-      }] : [])
-    ]
-  };
-}
-
-function buildUsageDashboard(data) {
-  const bars = [];
-
-  if (data.flowPercent != null) {
-    const totalFlow = toFiniteNumber(data.totalFlow);
-    bars.push(
-      usageBar(
-        '流量',
-        data.flowPercent,
-        COLORS.accent,
-        data.flow.value + data.flow.unit + ' 剩余',
-        totalFlow != null ? '套餐 ' + formatFlow(totalFlow) + ' GB' : ''
-      )
-    );
-  }
-
-  if (data.voicePercent != null) {
-    const totalVoice = toFiniteNumber(data.totalVoice);
-    bars.push(
-      usageBar(
-        '通话',
-        data.voicePercent,
-        '#55C759',
-        data.voice.value + data.voice.unit + ' 剩余',
-        totalVoice != null ? '套餐 ' + formatVoice(totalVoice) + ' 分钟' : ''
-      )
-    );
-  }
-
-  const validBars = bars.filter(Boolean);
-  if (!validBars.length) return null;
-
-  return {
-    type: 'stack',
-    direction: 'row',
-    gap: 12,
-    children: validBars
-  };
-}
-
-function buildHeroBalance(data) {
-  return {
-    type: 'stack',
-    direction: 'column',
-    gap: 2,
-    children: [
-      {
-        type: 'text',
-        text: '账户余额',
-        font: { size: 'caption1', weight: 'medium' },
-        textColor: COLORS.title,
-        maxLines: 1
-      },
-      {
-        type: 'stack',
-        direction: 'row',
-        alignItems: 'baseline',
-        gap: 4,
-        children: [
-          {
-            type: 'text',
-            text: '¥',
-            font: { size: 'title3', weight: 'semibold' },
-            textColor: COLORS.accent
-          },
-          {
-            type: 'text',
-            text: data.fee.value,
-            font: { size: 'largeTitle', weight: 'bold' },
-            textColor: COLORS.value,
-            maxLines: 1,
-            minScale: 0.65
-          }
-        ]
-      }
-    ]
-  };
-}
 
 function buildMainWidget(
   title,
@@ -1058,54 +907,35 @@ function buildMainWidget(
       COLORS.bg,
 
     padding: [
-      12,
+      10,
       14,
-      12,
+      10,
       14,
     ],
 
-    gap: 9,
+    gap: 10,
 
     refreshAfter:
       new Date(
         Date.now() +
-        20 * 60 * 1000
+        60 * 60 * 1000
       ).toISOString(),
 
     children: [
 
+      /*
+       * 顶部
+       */
       headerRow(
         title,
-        data
+        data,
+        fromCache
       ),
 
-      {
-        type: 'stack',
 
-        direction: 'row',
-
-        alignItems: 'center',
-
-        gap: 8,
-
-        children: [
-
-          makeCapsule(
-            data.flow.title,
-            data.flow.value,
-            data.flow.unit
-          ),
-
-          makeCapsule(
-            data.voice.title,
-            data.voice.value,
-            data.voice.unit
-          ),
-
-        ],
-
-      },
-
+      /*
+       * 三项数据
+       */
       {
         type: 'stack',
 
@@ -1123,89 +953,70 @@ function buildMainWidget(
             data.fee.unit
           ),
 
+          makeCapsule(
+            data.voice.title,
+            data.voice.value,
+            data.voice.unit
+          ),
+
+          makeCapsule(
+            data.flow.title,
+            data.flow.value,
+            data.flow.unit
+          ),
+
+        ],
+      },
+
+
+      /*
+       * 底部短横线
+       */
+      {
+        type: 'stack',
+
+        direction: 'row',
+
+        alignItems: 'center',
+
+        children: [
+
+          {
+            type: 'spacer',
+          },
+
           {
             type: 'stack',
 
-            direction: 'column',
+            width: 42,
 
-            alignItems: 'center',
+            height: 3,
 
-            justifyContent: 'center',
-
-            flex: 1,
-
-            padding: [
-              7,
-              8,
-              7,
-              8,
-            ],
+            borderRadius: 2,
 
             backgroundColor:
-              COLORS.capsuleBg,
-
-            borderRadius: 14,
-
-            borderWidth: 1,
-
-            borderColor:
               COLORS.border,
+          },
 
-            children: [
-
-              {
-                type: 'text',
-
-                text:
-                  '最后更新',
-
-                font: {
-                  size: 'caption2',
-                  weight: 'medium',
-                },
-
-                textColor:
-                  COLORS.title,
-
-                maxLines: 1,
-              },
-
-              {
-                type: 'text',
-
-                text:
-                  data.updateTime ||
-                  '--:--',
-
-                font: {
-                  size: 'title3',
-                  weight: 'semibold',
-                },
-
-                textColor:
-                  COLORS.value,
-
-                maxLines: 1,
-              },
-
-            ],
-
+          {
+            type: 'spacer',
           },
 
         ],
-
       },
 
     ],
-
   };
-
 }
 
+
 /* =========================================================
- * 小组件数据行
+ * 小组件
+ *
+ * 三行横条：圆形图标 + 数值 + 说明
  * ========================================================= */
 
+/* 小尺寸专用：圆形图标 + 数值 + 说明 的横条 */
 function smallRow(
   color,
   symbol,
@@ -1218,7 +1029,6 @@ function smallRow(
   const iconChild =
     symbol
       ? {
-
           type: 'image',
 
           src: symbol,
@@ -1228,10 +1038,8 @@ function smallRow(
           width: 16,
 
           height: 16,
-
         }
       : {
-
           type: 'text',
 
           text: glyph,
@@ -1241,11 +1049,8 @@ function smallRow(
             weight: 'bold',
           },
 
-          textColor:
-            '#FFFFFF',
-
+          textColor: '#FFFFFF',
         };
-
 
   return {
 
@@ -1290,15 +1095,12 @@ function smallRow(
 
         borderRadius: 15,
 
-        backgroundColor:
-          color,
+        backgroundColor: color,
 
         children: [
           iconChild,
         ],
-
       },
-
 
       {
         type: 'stack',
@@ -1323,16 +1125,14 @@ function smallRow(
               {
                 type: 'text',
 
-                text:
-                  String(value),
+                text: String(value),
 
                 font: {
                   size: 'title3',
                   weight: 'bold',
                 },
 
-                textColor:
-                  color,
+                textColor: color,
 
                 maxLines: 1,
 
@@ -1342,16 +1142,14 @@ function smallRow(
               {
                 type: 'text',
 
-                text:
-                  String(unit),
+                text: String(unit),
 
                 font: {
                   size: 'caption1',
                   weight: 'semibold',
                 },
 
-                textColor:
-                  color,
+                textColor: color,
 
                 maxLines: 1,
               },
@@ -1359,11 +1157,8 @@ function smallRow(
               {
                 type: 'spacer',
               },
-
             ],
-
           },
-
 
           {
             type: 'stack',
@@ -1377,16 +1172,14 @@ function smallRow(
               {
                 type: 'text',
 
-                text:
-                  String(label),
+                text: String(label),
 
                 font: {
                   size: 'caption2',
                   weight: 'medium',
                 },
 
-                textColor:
-                  color + 'B3',
+                textColor: color + 'B3',
 
                 maxLines: 1,
 
@@ -1396,25 +1189,13 @@ function smallRow(
               {
                 type: 'spacer',
               },
-
             ],
-
           },
-
         ],
-
       },
-
     ],
-
   };
-
 }
-
-
-/* =========================================================
- * 小尺寸
- * ========================================================= */
 
 function buildSmall(
   title,
@@ -1440,13 +1221,13 @@ function buildSmall(
     refreshAfter:
       new Date(
         Date.now() +
-        20 * 60 * 1000
+        60 * 60 * 1000
       ).toISOString(),
 
     children: [
 
       smallRow(
-        '#1677FF',
+        '#E8651F',
         null,
         '¥',
         data.fee.value,
@@ -1473,9 +1254,7 @@ function buildSmall(
       ),
 
     ],
-
   };
-
 }
 
 
@@ -1490,12 +1269,10 @@ function buildLockScreen(
 ) {
 
   if (
-    family ===
-    'accessoryInline'
+    family === 'accessoryInline'
   ) {
 
     return {
-
       type: 'widget',
 
       children: [
@@ -1504,8 +1281,7 @@ function buildLockScreen(
           type: 'text',
 
           text:
-            `${title} ` +
-            `${data.fee.value}${data.fee.unit} · ` +
+            `${title} ${data.fee.value}${data.fee.unit} · ` +
             `${data.flow.value}${data.flow.unit}`,
 
           font: {
@@ -1522,19 +1298,15 @@ function buildLockScreen(
         },
 
       ],
-
     };
-
   }
 
 
   if (
-    family ===
-    'accessoryCircular'
+    family === 'accessoryCircular'
   ) {
 
     return {
-
       type: 'widget',
 
       padding: 4,
@@ -1545,7 +1317,7 @@ function buildLockScreen(
           type: 'text',
 
           text:
-            data.flow.value,
+            `${data.flow.value}`,
 
           font: {
             size: 'title2',
@@ -1583,14 +1355,11 @@ function buildLockScreen(
         },
 
       ],
-
     };
-
   }
 
 
   return {
-
     type: 'widget',
 
     padding: 4,
@@ -1609,13 +1378,12 @@ function buildLockScreen(
           {
             type: 'image',
 
-  src:
+            src:
+              ICON_URL,
 
-    ICON_URL,
+            width: 15,
 
-  width: 15,
-
-  height: 15,
+            height: 15,
           },
 
           {
@@ -1638,7 +1406,6 @@ function buildLockScreen(
           },
 
         ],
-
       },
 
 
@@ -1662,9 +1429,7 @@ function buildLockScreen(
       },
 
     ],
-
   };
-
 }
 
 
@@ -1716,8 +1481,7 @@ function buildError(
           {
             type: 'text',
 
-            text:
-              title,
+            text: title,
 
             font: {
               size: 'headline',
@@ -1731,7 +1495,6 @@ function buildError(
           },
 
         ],
-
       },
 
 
@@ -1743,8 +1506,7 @@ function buildError(
       {
         type: 'text',
 
-        text:
-          message,
+        text: message,
 
         font: {
           size: 'caption1',
@@ -1807,7 +1569,7 @@ function buildError(
                 type: 'text',
 
                 text:
-                  '打开广电 App 查询一次',
+                  '打开联通 App 查询一次',
 
                 font: {
                   size: 'caption2',
@@ -1821,7 +1583,6 @@ function buildError(
               },
 
             ],
-
           },
 
           {
@@ -1829,13 +1590,10 @@ function buildError(
           },
 
         ],
-
       },
 
     ],
-
   };
-
 }
 
 
