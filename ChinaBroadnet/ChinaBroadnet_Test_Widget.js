@@ -1080,7 +1080,7 @@ function buildLarge(title, ds, fromCache) {
         borderRadius: 18,
         backgroundColor: { light: '#FFFFFF12', dark: '#FFFFFF1A' },
         borderColor: { light: '#FFFFFF58', dark: '#FFFFFF48' },
-        shadowColor: { light: '#64748B0200', dark: '#00000000' },
+        shadowColor: { light: '#64748B02', dark: '#00000000' },
         shadowRadius: 1,
         shadowOffset: { x: 0, y: 1 },
       }),
