@@ -1,0 +1,41 @@
+name: 中国广电小组件（Hark UI 测试版）
+description: 中国广电 话费、流量、语音小组件，使用 Hark 液态玻璃仪表盘 UI
+author: wuhuhuuuu
+icon: https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/16/18/99/161899ef-a284-ea5d-cb5b-b8d7b8aa0ff5/AppIcon-0-0-1x_U007emarketing-0-8-0-0-85-220.png/1200x630wa.png
+
+compat_arguments:
+  cbCapture: 'true'
+
+compat_arguments_schema:
+  cbCapture:
+    name: 中国广电数据抓取
+    description: 直接打开 App 查询一次即可
+    default_value: 'true'
+    options:
+      - 'true'
+      - 'false'
+
+dns: {}
+
+scriptings:
+  - generic:
+      name: china-broadnet-hark-test
+      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Test_Widget.js
+      update_interval: 1800
+      timeout: 20
+
+  - http_request:
+      name: 中国广电 App 自动捕获
+      match: '^https://app\.10099\.com\.cn/contact-web/api/busi/qryUserInfo'
+      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Test_Widget.js
+      body_required: true
+      max_size: 1048576
+      timeout: 10
+
+mitm:
+  hostnames:
+    includes:
+      - app.10099.com.cn
+
+widgets:
+  - name: china-broadnet-hark-test
