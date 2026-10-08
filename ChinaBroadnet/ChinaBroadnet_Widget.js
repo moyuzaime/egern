@@ -1,0 +1,1932 @@
+/**
+ * 中国广电话费流量小组件
+ *
+ * 自动获取方式：
+ * 1. 开启「中国广电数据抓取」
+ * 2. 打开中国广电 App
+ * 3. App 请求 qryUserInfo 接口
+ * 4. Egern 自动捕获 access + data
+ * 5. 小组件自动更新
+ * 6. 捕获成功后可以关闭「数据抓取」
+ *
+ * Author: wuhuhuuuu
+ */
+
+const API_URL =
+  'https://app.10099.com.cn/contact-web/api/busi/qryUserInfo';
+
+const ICON_URL =
+  'https://raw.githubusercontent.com/wuhuhuuuu/study/main/Scripts/ChinaBroadnet/ChinaBroadnet.png';
+
+const KEY = 'ChinaBroadnet';
+
+
+/* =========================================================
+ * 颜色
+ * ========================================================= */
+
+const COLORS = {
+
+  bg: {
+    light: '#FFFFFF',
+    dark: '#2C2C2E',
+  },
+
+  border: {
+    light: '#E5E5EA',
+    dark: '#3A3A3C',
+  },
+
+  title: {
+    light: '#666666',
+    dark: '#8E8E93',
+  },
+
+  value: {
+    light: '#1C1C1E',
+    dark: '#FFFFFF',
+  },
+
+  time: {
+    light: '#999999',
+    dark: '#666666',
+  },
+
+  error: {
+    light: '#FF3B30',
+    dark: '#FF453A',
+  },
+
+  capsuleBg: {
+    light: '#F5F5F7',
+    dark: '#3A3A3C',
+  },
+
+  accent: {
+    light: '#1677FF',
+    dark: '#409CFF',
+  },
+
+};
+
+
+/* =========================================================
+ * Headers
+ * ========================================================= */
+
+function getHeader(headers, name) {
+
+  if (!headers) {
+    return '';
+  }
+
+  try {
+
+    if (typeof headers.get === 'function') {
+      return headers.get(name) || '';
+    }
+
+  } catch (e) {}
+
+  try {
+
+    for (const key of Object.keys(headers)) {
+
+      if (
+        String(key).toLowerCase() ===
+        name.toLowerCase()
+      ) {
+        return headers[key] || '';
+      }
+
+    }
+
+  } catch (e) {}
+
+  return '';
+}
+
+
+/* =========================================================
+ * 自动捕获
+ * ========================================================= */
+
+async function handleCapture(ctx) {
+
+  const req =
+    ctx.request || {};
+
+  const url =
+    String(req.url || '');
+
+  if (!url) {
+    return;
+  }
+
+  if (
+    !url.startsWith(API_URL)
+  ) {
+    return;
+  }
+
+  if (
+    String(req.method || '').toUpperCase() !==
+    'POST'
+  ) {
+    return;
+  }
+
+  try {
+
+    const access =
+      String(
+        getHeader(
+          req.headers,
+          'access'
+        ) || ''
+      ).trim();
+
+    const body =
+      await req.json();
+
+    if (
+      !access ||
+      !body ||
+      body.data == null
+    ) {
+      return;
+    }
+
+
+    /*
+     * 保存接口地址
+     */
+    ctx.storage.set(
+      KEY + '.url',
+      url
+    );
+
+
+    /*
+     * 保存 access
+     */
+    ctx.storage.set(
+      KEY + '.access',
+      access
+    );
+
+
+    /*
+     * 保存请求数据
+     */
+    ctx.storage.setJSON(
+      KEY + '.data',
+      body.data
+    );
+
+
+    /*
+     * 保存捕获时间
+     */
+    ctx.storage.set(
+      KEY + '.captureTime',
+      String(Date.now())
+    );
+
+
+    /*
+     * 捕获成功通知
+     */
+    ctx.notify({
+      title: '中国广电',
+      body: '已自动获取登录信息，小组件将自动更新',
+      sound: false,
+    });
+
+  } catch (e) {
+
+    console.log(
+      '[ChinaBroadnet] capture error: ' +
+      e
+    );
+
+  }
+}
+
+
+/* =========================================================
+ * 数据请求
+ * ========================================================= */
+
+async function fetchData(
+  ctx,
+  access,
+  data,
+  url
+) {
+
+  const resp =
+    await ctx.http.post(
+      url || API_URL,
+      {
+
+        timeout: 10000,
+
+        headers: {
+          access: access,
+          'Content-Type':
+            'application/json',
+        },
+
+        body: {
+          data: data,
+        },
+
+      }
+    );
+
+
+  if (
+    !resp ||
+    resp.status < 200 ||
+    resp.status >= 300
+  ) {
+
+    throw new Error(
+      `HTTP ${resp ? resp.status : 'no-response'}`
+    );
+
+  }
+
+
+  return await resp.json();
+}
+
+
+/* =========================================================
+ * 数据解析
+ * ========================================================= */
+
+function findValue(
+  obj,
+  keys
+) {
+
+  if (
+    !obj ||
+    typeof obj !== 'object'
+  ) {
+    return null;
+  }
+
+  for (
+    const key of keys
+  ) {
+
+    if (
+      obj[key] !== undefined &&
+      obj[key] !== null &&
+      obj[key] !== ''
+    ) {
+
+      return obj[key];
+
+    }
+
+  }
+
+  return null;
+}
+
+
+/* =========================================================
+ * Hark 风格增强解析
+ * ========================================================= */
+function normalizeKey(key) {
+  return String(key).replace(/[._\-\s]/g, '').toLowerCase();
+}
+
+function deepFindValue(obj, keys, maxDepth = 8) {
+  if (obj == null || typeof obj !== 'object' || maxDepth < 0) return null;
+  const wanted = new Set(keys.map(normalizeKey));
+  const seen = new Set();
+
+  function walk(value, depth) {
+    if (value == null || typeof value !== 'object' || depth > maxDepth) return null;
+    if (seen.has(value)) return null;
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = walk(item, depth + 1);
+        if (found != null) return found;
+      }
+      return null;
+    }
+
+    for (const key of Object.keys(value)) {
+      if (wanted.has(normalizeKey(key))) {
+        const v = value[key];
+        if (v !== undefined && v !== null && v !== '') return v;
+      }
+    }
+
+    for (const key of Object.keys(value)) {
+      const found = walk(value[key], depth + 1);
+      if (found != null) return found;
+    }
+    return null;
+  }
+
+  return walk(obj, 0);
+}
+
+function pickDeep(obj, directKeys, deepKeys) {
+  return findValue(obj, directKeys) ??
+    deepFindValue(obj, deepKeys);
+}
+
+function toFiniteNumber(value) {
+  if (value == null || value === '') return null;
+  const n = Number(String(value).replace(/,/g, '').trim());
+  return Number.isFinite(n) ? n : null;
+}
+
+function getRemainPercent(remain, total) {
+  const r = toFiniteNumber(remain);
+  const t = toFiniteNumber(total);
+  if (r == null || t == null || t <= 0 || r < 0) return null;
+  return Math.max(0, Math.min(100, Math.round(r / t * 100)));
+}
+
+function getEnv(ctx, key, fallback = '') {
+  try {
+    return ctx.env && ctx.env[key] != null ? String(ctx.env[key]) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function debugLog(ctx, message, value) {
+  if (getEnv(ctx, 'CB_DEBUG', 'false') !== 'true') return;
+  try {
+    console.log('[ChinaBroadnet][DEBUG] ' + message +
+      (value === undefined ? '' : ' ' + JSON.stringify(value)));
+  } catch (e) {}
+}
+
+
+/* =========================================================
+ * 话费
+ *
+ * 中国广电接口：
+ * 374 → 3.74 元
+ *
+ * 接口单位为分
+ * ========================================================= */
+
+function formatFee(value) {
+
+  if (value == null) {
+    return '--';
+  }
+
+  const n =
+    Number(value);
+
+  if (
+    !Number.isFinite(n)
+  ) {
+    return String(value);
+  }
+
+  return (
+    n / 100
+  ).toFixed(2);
+
+}
+
+
+/* =========================================================
+ * 流量
+ * ========================================================= */
+
+function formatFlow(value) {
+
+  if (value == null) {
+    return '--';
+  }
+
+  const n =
+    Number(value);
+
+  if (
+    !Number.isFinite(n)
+  ) {
+    return String(value);
+  }
+
+  /*
+   * 中国广电接口流量单位为 KB
+   *
+   * 1024 × 1024 KB = 1 GB
+   *
+   * 例如：
+   * 374.65 GB → 392744960 KB
+   */
+  return (
+    n / 1048576
+  ).toFixed(2);
+}
+
+
+/* =========================================================
+ * 语音
+ * ========================================================= */
+
+function formatVoice(value) {
+
+  if (value == null) {
+    return '--';
+  }
+
+  const n =
+    Number(value);
+
+  if (
+    !Number.isFinite(n)
+  ) {
+    return String(value);
+  }
+
+  return n.toFixed(0);
+}
+
+
+/* =========================================================
+ * 数据加载
+ * ========================================================= */
+
+async function loadData(ctx) {
+
+  const url =
+    ctx.storage.get(
+      KEY + '.url'
+    ) || API_URL;
+
+  const access =
+    ctx.storage.get(
+      KEY + '.access'
+    );
+
+  const data =
+    ctx.storage.getJSON(
+      KEY + '.data'
+    );
+
+
+  /*
+   * 尚未捕获
+   */
+  if (
+    !access ||
+    data == null
+  ) {
+
+    return {
+      configured: false,
+      data: null,
+      error: null,
+    };
+
+  }
+
+
+  try {
+
+    const result =
+      await fetchData(
+        ctx,
+        access,
+        data,
+        url
+      );
+
+
+    if (
+      !result ||
+      result.status !==
+      '000000' ||
+      !result.data
+    ) {
+
+      throw new Error(
+        'API 返回异常'
+      );
+
+    }
+
+
+    const user =
+      result.data.userData ||
+      result.data;
+
+
+    const feeValue = pickDeep(user,
+      ['fee','balance','money','remainFee'],
+      ['fee','balance','money','remainFee','remainMoney','availableBalance','accountBalance']);
+
+    const flowValue = pickDeep(user,
+      ['flow','remainFlow','flowRemain'],
+      ['flow','remainFlow','flowRemain','dataRemain','remainData','traffic','trafficRemain']);
+
+    const voiceValue = pickDeep(user,
+      ['voice','remainVoice','voiceRemain'],
+      ['voice','remainVoice','voiceRemain','minute','remainMinute','minutes','voiceMinutes']);
+
+    const totalFlowValue = pickDeep(user,
+      ['totalFlow','flowTotal','dataTotal','totalData'],
+      ['totalFlow','flowTotal','dataTotal','totalData','trafficTotal','totalTraffic']);
+
+    const totalVoiceValue = pickDeep(user,
+      ['totalVoice','voiceTotal','totalMinute','minuteTotal'],
+      ['totalVoice','voiceTotal','totalMinute','minuteTotal','minutesTotal']);
+
+
+    const resultData = {
+
+      fee: {
+        title: '剩余话费',
+        value: formatFee(
+          feeValue
+        ),
+        unit: '元',
+      },
+
+      flow: {
+        title: '剩余流量',
+        value: formatFlow(
+          flowValue
+        ),
+        unit: 'GB',
+      },
+
+      voice: {
+        title: '剩余语音',
+        value: formatVoice(
+          voiceValue
+        ),
+        unit: '分钟',
+      },
+
+      flowPercent: getRemainPercent(flowValue, totalFlowValue),
+      voicePercent: getRemainPercent(voiceValue, totalVoiceValue),
+
+      phone: phoneValue ? String(phoneValue) : '',
+      totalFlow: totalFlowValue,
+      totalVoice: totalVoiceValue,
+
+      updateTime:
+        new Date().toLocaleTimeString(
+          'zh-CN',
+          {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'Asia/Shanghai',
+          }
+        ),
+
+      timestamp:
+        Date.now(),
+
+    };
+
+
+    /*
+     * 保存最新数据
+     */
+    ctx.storage.setJSON(
+      KEY + '.datasource',
+      resultData
+    );
+
+
+    return {
+      configured: true,
+      data: resultData,
+      error: null,
+    };
+
+
+  } catch (e) {
+
+    console.log(
+      '[ChinaBroadnet] query error: ' +
+      e
+    );
+
+
+    /*
+     * 接口失败时显示缓存
+     */
+    const cached =
+      ctx.storage.getJSON(
+        KEY + '.datasource'
+      );
+
+
+    return {
+      configured: true,
+      data: cached || null,
+      error: e,
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+ * 顶部标题
+ * ========================================================= */
+
+function headerRow(
+  title,
+  data
+) {
+
+  return {
+
+    type: 'stack',
+
+    direction: 'row',
+
+    alignItems: 'center',
+
+    children: [
+
+      {
+        type: 'stack',
+
+        direction: 'row',
+
+        alignItems: 'center',
+
+        gap: 6,
+
+        children: [
+
+          {
+            type: 'image',
+
+  src:
+
+    ICON_URL,
+
+  width: 24,
+
+  height: 24,
+          },
+
+          {
+            type: 'text',
+
+            text:
+              title,
+
+            font: {
+              size: 'headline',
+              weight: 'semibold',
+            },
+
+            textColor:
+              COLORS.value,
+
+            maxLines: 1,
+
+            minScale: 0.8,
+          },
+
+        ],
+
+      },
+
+
+      {
+        type: 'spacer',
+      },
+
+
+      {
+        type: 'stack',
+
+        direction: 'row',
+
+        alignItems: 'center',
+
+        gap: 5,
+
+        children: [
+
+          {
+            type: 'image',
+
+            src:
+              'sf-symbol:arrow.clockwise',
+
+            color:
+              COLORS.time,
+
+            width: 12,
+
+            height: 12,
+          },
+
+          {
+            type: 'text',
+
+            text:
+              data.updateTime ||
+              '--:--',
+
+            font: {
+              size: 'caption2',
+            },
+
+            textColor:
+              COLORS.time,
+
+            maxLines: 1,
+          },
+
+        ],
+
+      },
+
+    ],
+
+  };
+
+}
+
+
+/* =========================================================
+ * 数据胶囊
+ * ========================================================= */
+
+function makeCapsule(
+  title,
+  value,
+  unit
+) {
+
+  return {
+
+    type: 'stack',
+
+    direction: 'column',
+
+    alignItems: 'center',
+
+    justifyContent: 'center',
+
+    flex: 1,
+
+    padding: [
+      7,
+      8,
+      7,
+      8,
+    ],
+
+    backgroundColor:
+      COLORS.capsuleBg,
+
+    borderRadius: 14,
+
+    borderWidth: 1,
+
+    borderColor:
+      COLORS.border,
+
+    children: [
+
+      {
+        type: 'text',
+
+        text:
+          title,
+
+        font: {
+          size: 'caption2',
+          weight: 'medium',
+        },
+
+        textColor:
+          COLORS.title,
+
+        textAlign:
+          'center',
+
+        maxLines: 1,
+
+        minScale: 0.7,
+      },
+
+
+      {
+        type: 'stack',
+
+        direction: 'row',
+
+        alignItems: 'center',
+
+        justifyContent: 'center',
+
+        gap: 3,
+
+        children: [
+
+          {
+            type: 'text',
+
+            text:
+              String(value),
+
+            font: {
+              size: 'title2',
+              weight: 'semibold',
+            },
+
+            textColor:
+              COLORS.value,
+
+            textAlign:
+              'center',
+
+            maxLines: 1,
+
+            minScale: 0.55,
+          },
+
+
+          {
+            type: 'text',
+
+            text:
+              unit,
+
+            font: {
+              size: 'caption2',
+            },
+
+            textColor:
+              COLORS.title,
+
+            maxLines: 1,
+
+            minScale: 0.7,
+          },
+
+        ],
+
+      },
+
+    ],
+
+  };
+
+}
+
+
+/* =========================================================
+ * 中号 / 大号
+ * ========================================================= */
+
+function formatPhone(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  if (/^1\d{10}$/.test(text)) {
+    return text.slice(0, 3) + ' ' + text.slice(3, 7) + ' ' + text.slice(7);
+  }
+  return text;
+}
+
+function usageBar(title, percent, color, remainText, totalText) {
+  if (percent == null) return null;
+
+  return {
+    type: 'stack',
+    direction: 'column',
+    gap: 5,
+    flex: 1,
+    children: [
+      {
+        type: 'stack',
+        direction: 'row',
+        alignItems: 'center',
+        children: [
+          {
+            type: 'text',
+            text: title,
+            font: { size: 'caption2', weight: 'medium' },
+            textColor: COLORS.title,
+            maxLines: 1
+          },
+          { type: 'spacer' },
+          {
+            type: 'text',
+            text: remainText || (percent + '%'),
+            font: { size: 'caption2', weight: 'semibold' },
+            textColor: color,
+            maxLines: 1
+          }
+        ]
+      },
+      {
+        type: 'stack',
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: COLORS.border,
+        children: [{
+          type: 'stack',
+          width: Math.max(2, percent) + '%',
+          height: 6,
+          borderRadius: 3,
+          backgroundColor: color
+        }]
+      },
+      ...(totalText ? [{
+        type: 'text',
+        text: totalText,
+        font: { size: 'caption2' },
+        textColor: COLORS.time,
+        maxLines: 1
+      }] : [])
+    ]
+  };
+}
+
+function buildUsageDashboard(data) {
+  const bars = [];
+
+  if (data.flowPercent != null) {
+    const totalFlow = toFiniteNumber(data.totalFlow);
+    bars.push(
+      usageBar(
+        '流量',
+        data.flowPercent,
+        COLORS.accent,
+        data.flow.value + data.flow.unit + ' 剩余',
+        totalFlow != null ? '套餐 ' + formatFlow(totalFlow) + ' GB' : ''
+      )
+    );
+  }
+
+  if (data.voicePercent != null) {
+    const totalVoice = toFiniteNumber(data.totalVoice);
+    bars.push(
+      usageBar(
+        '通话',
+        data.voicePercent,
+        '#55C759',
+        data.voice.value + data.voice.unit + ' 剩余',
+        totalVoice != null ? '套餐 ' + formatVoice(totalVoice) + ' 分钟' : ''
+      )
+    );
+  }
+
+  const validBars = bars.filter(Boolean);
+  if (!validBars.length) return null;
+
+  return {
+    type: 'stack',
+    direction: 'row',
+    gap: 12,
+    children: validBars
+  };
+}
+
+function buildHeroBalance(data) {
+  return {
+    type: 'stack',
+    direction: 'column',
+    gap: 2,
+    children: [
+      {
+        type: 'text',
+        text: '账户余额',
+        font: { size: 'caption1', weight: 'medium' },
+        textColor: COLORS.title,
+        maxLines: 1
+      },
+      {
+        type: 'stack',
+        direction: 'row',
+        alignItems: 'baseline',
+        gap: 4,
+        children: [
+          {
+            type: 'text',
+            text: '¥',
+            font: { size: 'title3', weight: 'semibold' },
+            textColor: COLORS.accent
+          },
+          {
+            type: 'text',
+            text: data.fee.value,
+            font: { size: 'largeTitle', weight: 'bold' },
+            textColor: COLORS.value,
+            maxLines: 1,
+            minScale: 0.65
+          }
+        ]
+      }
+    ]
+  };
+}
+
+function buildMainWidget(
+  title,
+  data
+) {
+
+  const phone = formatPhone(data.phone);
+  const dashboard = buildUsageDashboard(data);
+
+  const children = [
+    headerRow(title, data),
+    ...(phone ? [{
+      type: 'text',
+      text: phone,
+      font: { size: 'caption2', weight: 'medium' },
+      textColor: COLORS.time,
+      maxLines: 1
+    }] : []),
+    buildHeroBalance(data),
+    {
+      type: 'stack',
+      direction: 'row',
+      alignItems: 'center',
+      children: [
+        { type: 'spacer' },
+        {
+          type: 'stack',
+          height: 1,
+          flex: 1,
+          backgroundColor: COLORS.border,
+        },
+        { type: 'spacer' }
+      ]
+    }
+  ];
+
+  if (dashboard) children.push(dashboard);
+
+  children.push(
+    {
+      type: 'stack',
+      direction: 'row',
+      alignItems: 'center',
+      gap: 8,
+      children: [
+        makeCapsule(data.flow.title, data.flow.value, data.flow.unit),
+        makeCapsule(data.voice.title, data.voice.value, data.voice.unit)
+      ]
+    },
+    {
+      type: 'stack',
+      direction: 'row',
+      alignItems: 'center',
+      gap: 8,
+      children: [
+        makeCapsule(data.fee.title, data.fee.value, data.fee.unit),
+        {
+          type: 'stack',
+          direction: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flex: 1,
+          padding: [7, 8, 7, 8],
+          backgroundColor: COLORS.capsuleBg,
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: COLORS.border,
+          children: [
+            {
+              type: 'text',
+              text: '最后更新',
+              font: { size: 'caption2', weight: 'medium' },
+              textColor: COLORS.title
+            },
+            {
+              type: 'text',
+              text: data.updateTime || '--:--',
+              font: { size: 'title3', weight: 'semibold' },
+              textColor: COLORS.value
+            }
+          ]
+        }
+      ]
+    }
+  );
+
+  return {
+    type: 'widget',
+    backgroundColor: COLORS.bg,
+    padding: [12, 14, 12, 14],
+    gap: 9,
+    refreshAfter: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
+    children
+  };
+}
+
+
+/* =========================================================
+ * 小组件数据行
+ * ========================================================= */
+
+function smallRow(
+  color,
+  symbol,
+  glyph,
+  value,
+  unit,
+  label
+) {
+
+  const iconChild =
+    symbol
+      ? {
+
+          type: 'image',
+
+          src: symbol,
+
+          color: '#FFFFFF',
+
+          width: 16,
+
+          height: 16,
+
+        }
+      : {
+
+          type: 'text',
+
+          text: glyph,
+
+          font: {
+            size: 'headline',
+            weight: 'bold',
+          },
+
+          textColor:
+            '#FFFFFF',
+
+        };
+
+
+  return {
+
+    type: 'stack',
+
+    direction: 'row',
+
+    alignItems: 'center',
+
+    gap: 8,
+
+    flex: 1,
+
+    padding: [
+      4,
+      8,
+      4,
+      8,
+    ],
+
+    backgroundColor: {
+      light: color + '1F',
+      dark: color + '33',
+    },
+
+    borderRadius: 14,
+
+    children: [
+
+      {
+        type: 'stack',
+
+        direction: 'row',
+
+        alignItems: 'center',
+
+        justifyContent: 'center',
+
+        width: 30,
+
+        height: 30,
+
+        borderRadius: 15,
+
+        backgroundColor:
+          color,
+
+        children: [
+          iconChild,
+        ],
+
+      },
+
+
+      {
+        type: 'stack',
+
+        direction: 'column',
+
+        flex: 1,
+
+        children: [
+
+          {
+            type: 'stack',
+
+            direction: 'row',
+
+            alignItems: 'center',
+
+            gap: 3,
+
+            children: [
+
+              {
+                type: 'text',
+
+                text:
+                  String(value),
+
+                font: {
+                  size: 'title3',
+                  weight: 'bold',
+                },
+
+                textColor:
+                  color,
+
+                maxLines: 1,
+
+                minScale: 0.5,
+              },
+
+              {
+                type: 'text',
+
+                text:
+                  String(unit),
+
+                font: {
+                  size: 'caption1',
+                  weight: 'semibold',
+                },
+
+                textColor:
+                  color,
+
+                maxLines: 1,
+              },
+
+              {
+                type: 'spacer',
+              },
+
+            ],
+
+          },
+
+
+          {
+            type: 'stack',
+
+            direction: 'row',
+
+            alignItems: 'center',
+
+            children: [
+
+              {
+                type: 'text',
+
+                text:
+                  String(label),
+
+                font: {
+                  size: 'caption2',
+                  weight: 'medium',
+                },
+
+                textColor:
+                  color + 'B3',
+
+                maxLines: 1,
+
+                minScale: 0.7,
+              },
+
+              {
+                type: 'spacer',
+              },
+
+            ],
+
+          },
+
+        ],
+
+      },
+
+    ],
+
+  };
+
+}
+
+
+/* =========================================================
+ * 小尺寸
+ * ========================================================= */
+
+function buildSmall(
+  title,
+  data
+) {
+
+  return {
+
+    type: 'widget',
+
+    backgroundColor:
+      COLORS.bg,
+
+    padding: [
+      10,
+      10,
+      10,
+      10,
+    ],
+
+    gap: 6,
+
+    refreshAfter:
+      new Date(
+        Date.now() +
+        20 * 60 * 1000
+      ).toISOString(),
+
+    children: [
+
+      smallRow(
+        '#1677FF',
+        null,
+        '¥',
+        data.fee.value,
+        data.fee.unit,
+        data.fee.title
+      ),
+
+      smallRow(
+        '#4DA6F0',
+        'sf-symbol:antenna.radiowaves.left.and.right',
+        '',
+        data.flow.value,
+        data.flow.unit,
+        data.flow.title
+      ),
+
+      smallRow(
+        '#55C759',
+        'sf-symbol:phone.and.waveform.fill',
+        '',
+        data.voice.value,
+        data.voice.unit,
+        data.voice.title
+      ),
+
+    ],
+
+  };
+
+}
+
+
+/* =========================================================
+ * 锁屏小组件
+ * ========================================================= */
+
+function buildLockScreen(
+  title,
+  data,
+  family
+) {
+
+  if (
+    family ===
+    'accessoryInline'
+  ) {
+
+    return {
+
+      type: 'widget',
+
+      children: [
+
+        {
+          type: 'text',
+
+          text:
+            `${title} ` +
+            `${data.fee.value}${data.fee.unit} · ` +
+            `${data.flow.value}${data.flow.unit}`,
+
+          font: {
+            size: 'caption1',
+            weight: 'medium',
+          },
+
+          textColor:
+            COLORS.value,
+
+          maxLines: 1,
+
+          minScale: 0.5,
+        },
+
+      ],
+
+    };
+
+  }
+
+
+  if (
+    family ===
+    'accessoryCircular'
+  ) {
+
+    return {
+
+      type: 'widget',
+
+      padding: 4,
+
+      children: [
+
+        {
+          type: 'text',
+
+          text:
+            data.flow.value,
+
+          font: {
+            size: 'title2',
+            weight: 'bold',
+          },
+
+          textColor:
+            COLORS.value,
+
+          textAlign:
+            'center',
+
+          maxLines: 1,
+
+          minScale: 0.5,
+        },
+
+        {
+          type: 'text',
+
+          text:
+            data.flow.unit,
+
+          font: {
+            size: 'caption2',
+          },
+
+          textColor:
+            COLORS.title,
+
+          textAlign:
+            'center',
+
+          maxLines: 1,
+        },
+
+      ],
+
+    };
+
+  }
+
+
+  return {
+
+    type: 'widget',
+
+    padding: 4,
+
+    children: [
+
+      {
+        type: 'stack',
+
+        direction: 'row',
+
+        alignItems: 'center',
+
+        children: [
+
+          {
+            type: 'image',
+
+  src:
+
+    ICON_URL,
+
+  width: 15,
+
+  height: 15,
+          },
+
+          {
+            type: 'text',
+
+            text:
+              `${data.fee.value}${data.fee.unit}`,
+
+            font: {
+              size: 'headline',
+              weight: 'semibold',
+            },
+
+            textColor:
+              COLORS.value,
+
+            maxLines: 1,
+
+            minScale: 0.5,
+          },
+
+        ],
+
+      },
+
+
+      {
+        type: 'text',
+
+        text:
+          `${data.flow.value}${data.flow.unit}`,
+
+        font: {
+          size: 'caption1',
+          weight: 'medium',
+        },
+
+        textColor:
+          COLORS.title,
+
+        maxLines: 1,
+
+        minScale: 0.5,
+      },
+
+    ],
+
+  };
+
+}
+
+
+/* =========================================================
+ * 错误界面
+ * ========================================================= */
+
+function buildError(
+  title,
+  message
+) {
+
+  return {
+
+    type: 'widget',
+
+    backgroundColor:
+      COLORS.bg,
+
+    padding: 12,
+
+    children: [
+
+      {
+        type: 'stack',
+
+        direction: 'row',
+
+        alignItems: 'center',
+
+        gap: 6,
+
+        children: [
+
+          {
+            type: 'image',
+
+            src:
+              'sf-symbol:exclamationmark.triangle.fill',
+
+            color:
+              COLORS.error,
+
+            width: 15,
+
+            height: 15,
+          },
+
+          {
+            type: 'text',
+
+            text:
+              title,
+
+            font: {
+              size: 'headline',
+              weight: 'semibold',
+            },
+
+            textColor:
+              COLORS.value,
+
+            maxLines: 1,
+          },
+
+        ],
+
+      },
+
+
+      {
+        type: 'spacer',
+      },
+
+
+      {
+        type: 'text',
+
+        text:
+          message,
+
+        font: {
+          size: 'caption1',
+          weight: 'medium',
+        },
+
+        textColor:
+          COLORS.title,
+
+        textAlign:
+          'center',
+
+        maxLines: 3,
+
+        minScale: 0.75,
+      },
+
+
+      {
+        type: 'spacer',
+      },
+
+
+      {
+        type: 'stack',
+
+        direction: 'row',
+
+        alignItems: 'center',
+
+        children: [
+
+          {
+            type: 'spacer',
+          },
+
+          {
+            type: 'stack',
+
+            padding: [
+              5,
+              12,
+              5,
+              12,
+            ],
+
+            backgroundColor:
+              COLORS.capsuleBg,
+
+            borderRadius: 10,
+
+            borderWidth: 1,
+
+            borderColor:
+              COLORS.border,
+
+            children: [
+
+              {
+                type: 'text',
+
+                text:
+                  '打开广电 App 查询一次',
+
+                font: {
+                  size: 'caption2',
+                  weight: 'medium',
+                },
+
+                textColor:
+                  COLORS.accent,
+
+                maxLines: 1,
+              },
+
+            ],
+
+          },
+
+          {
+            type: 'spacer',
+          },
+
+        ],
+
+      },
+
+    ],
+
+  };
+
+}
+
+
+/* =========================================================
+ * Widget 主逻辑
+ * ========================================================= */
+
+async function handleWidget(ctx) {
+
+  const title =
+    '中国广电';
+
+
+  const result =
+    await loadData(ctx);
+
+
+  const data =
+    result.data;
+
+
+  /*
+   * 尚未捕获
+   */
+  if (
+    !result.configured
+  ) {
+
+    return buildError(
+      title,
+      '请打开中国广电 App，登录后等待自动捕获'
+    );
+
+  }
+
+
+  /*
+   * 没有数据
+   */
+  if (!data) {
+
+    return buildError(
+      title,
+      '数据获取失败，请重新打开中国广电 App 查询一次'
+    );
+
+  }
+
+
+  const family =
+    ctx.widgetFamily ||
+    'systemSmall';
+
+
+  /*
+   * 锁屏
+   */
+  if (
+    family.startsWith(
+      'accessory'
+    )
+  ) {
+
+    return buildLockScreen(
+      title,
+      data,
+      family
+    );
+
+  }
+
+
+  /*
+   * 小组件
+   */
+  if (
+    family ===
+    'systemSmall'
+  ) {
+
+    return buildSmall(
+      title,
+      data
+    );
+
+  }
+
+
+  /*
+   * 中号 / 大号 / 超大号
+   */
+  if (
+    family ===
+      'systemMedium' ||
+    family ===
+      'systemLarge' ||
+    family ===
+      'systemExtraLarge'
+  ) {
+
+    return buildMainWidget(
+      title,
+      data
+    );
+
+  }
+
+
+  return buildSmall(
+    title,
+    data
+  );
+
+}
+
+
+/* =========================================================
+ * Egern 入口
+ * ========================================================= */
+
+export default async function(ctx) {
+
+  /*
+   * HTTP Request
+   * 自动捕获 access + data
+   */
+  if (
+    ctx.request &&
+    ctx.request.url
+  ) {
+
+    return handleCapture(
+      ctx
+    );
+
+  }
+
+
+  if (getEnv(ctx, 'CB_KEEPALIVE', 'false') === 'true') {
+    const result = await loadData(ctx);
+    if (result.error) {
+      console.log('[ChinaBroadnet] 定时刷新失败: ' + result.error);
+    }
+    return;
+  }
+
+  /*
+   * Generic Widget
+   */
+  return handleWidget(
+    ctx
+  );
+
+}
