@@ -81,6 +81,69 @@ function findValue(obj, keys) {
   return null;
 }
 
+// 只扫描“套餐资源”相关字段，避免把手机号、姓名等敏感字段写入调试信息。
+// 目标是定位广电接口里的：总量 / 已用 / 剩余 / 套餐资源字段。
+function scanPlanFields(root) {
+  const out = [];
+  const seen = new Set();
+  const words = /(flow|traffic|data|voice|call|quota|total|used|remain|balance|resource|package|plan|usage|limit|free|gprs|fee)/i;
+
+  function walk(v, path, depth) {
+    if (depth > 8 || v == null) return;
+
+    if (typeof v === 'object') {
+      if (seen.has(v)) return;
+      seen.add(v);
+
+      for (const k of Object.keys(v)) {
+        const value = v[k];
+        const nextPath = path ? path + '.' + k : k;
+        const keyHit = words.test(k);
+
+        if (keyHit && (typeof value === 'number' || (typeof value === 'string' && /^-?\\d+(?:\\.\\d+)?$/.test(value.trim())))) {
+          out.push({
+            path: nextPath,
+            key: k,
+            value: Number(value),
+          });
+        }
+
+        if (typeof value === 'object' && value !== null) {
+          walk(value, nextPath, depth + 1);
+        }
+      }
+    }
+  }
+
+  walk(root, '', 0);
+  return out.slice(0, 80);
+}
+
+function pickPlanMetric(candidates, kind) {
+  const list = candidates || [];
+  const re = kind === 'total'
+    ? /(total|quota|limit|package|plan|free)/i
+    : kind === 'used'
+      ? /(used|usage|consume|consumed)/i
+      : /(remain|left|balance|available)/i;
+
+  return list.find(x => re.test(x.key) || re.test(x.path)) || null;
+}
+
+function calcPlanPercent(total, used, remain) {
+  const t = Number(total);
+  const u = Number(used);
+  const r = Number(remain);
+
+  if (Number.isFinite(t) && t > 0 && Number.isFinite(u) && u >= 0) {
+    return Math.max(0, Math.min(1, u / t));
+  }
+  if (Number.isFinite(t) && t > 0 && Number.isFinite(r) && r >= 0) {
+    return Math.max(0, Math.min(1, 1 - r / t));
+  }
+  return null;
+}
+
 function formatFee(v) {
   const n = Number(v);
   return Number.isFinite(n) ? (n / 100).toFixed(2) : '--';
@@ -188,6 +251,26 @@ async function loadData(ctx) {
 
     const user = result.data.userData || result.data;
 
+    // 自动探测套餐资源字段。只保存与套餐资源明显相关的数值字段。
+    const planFields = scanPlanFields(result.data);
+    const totalField = pickPlanMetric(planFields, 'total');
+    const usedField = pickPlanMetric(planFields, 'used');
+    const remainField = pickPlanMetric(planFields, 'remain');
+    const planPercent = calcPlanPercent(
+      totalField && totalField.value,
+      usedField && usedField.value,
+      remainField && remainField.value
+    );
+
+    ctx.storage.setJSON(KEY + '.planDebug', {
+      capturedAt: Date.now(),
+      fields: planFields,
+      total: totalField,
+      used: usedField,
+      remain: remainField,
+      percent: planPercent,
+    });
+
     const feeRaw = findValue(user, ['fee', 'balance', 'money', 'remainFee']);
     const flowRaw = findValue(user, ['flow', 'remainFlow', 'flowRemain']);
     const voiceRaw = findValue(user, ['voice', 'remainVoice', 'voiceRemain']);
@@ -214,9 +297,27 @@ async function loadData(ctx) {
       },
       updatedAt: Date.now(),
       history,
+      plan: {
+        total: totalField ? totalField.value : null,
+        used: usedField ? usedField.value : null,
+        remain: remainField ? remainField.value : null,
+        percent: planPercent,
+        totalPath: totalField ? totalField.path : null,
+        usedPath: usedField ? usedField.path : null,
+        remainPath: remainField ? remainField.path : null,
+      },
     };
 
     ctx.storage.setJSON(KEY + '.datasource', ds);
+
+    if (planFields.length) {
+      console.log(
+        '[ChinaBroadnet-Hark] 套餐字段探测: ' +
+        planFields.map(x => x.path + '=' + x.value).join(', ')
+      );
+    } else {
+      console.log('[ChinaBroadnet-Hark] 未发现明显的套餐资源数值字段');
+    }
 
     return { configured: true, data: ds, fromCache: false };
   } catch (e) {
@@ -576,7 +677,7 @@ function buildMedium(title, ds, fromCache) {
             },
             t('流量快照', 9, 'semibold', C.txt),
             { type: 'spacer' },
-            t('实时剩余', 9, 'medium', C.sub),
+            t(ds.plan && ds.plan.total != null ? '已找到套餐总量' : '等待套餐总量', 9, 'medium', ds.plan && ds.plan.total != null ? C.voice : C.sub),
           ],
         },
       ], {
@@ -586,6 +687,17 @@ function buildMedium(title, ds, fromCache) {
       }),
     ],
   };
+}
+
+function planText(ds) {
+  const p = ds.plan || {};
+  if (p.total != null && p.remain != null) {
+    return '套餐总量已探测 · 剩余 ' + p.remain + ' / 总量 ' + p.total;
+  }
+  if (p.total != null && p.used != null) {
+    return '套餐总量已探测 · 已用 ' + p.used + ' / 总量 ' + p.total;
+  }
+  return '等待接口返回套餐总量字段';
 }
 
 function buildLarge(title, ds, fromCache) {
