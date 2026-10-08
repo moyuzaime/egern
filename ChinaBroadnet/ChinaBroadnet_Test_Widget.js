@@ -19,20 +19,21 @@ const C = {
   other: '#64D2FF',
   txt: { light: '#000000', dark: '#FFFFFF' },
   sub: { light: '#3C3C4399', dark: '#EBEBF599' },
-  glass: { light: '#FFFFFFA6', dark: '#FFFFFF1A' },
+  glass: { light: '#FFFFFF78', dark: '#FFFFFF16' },
 };
 
 function bg() {
   return {
-    type: 'linear',
+    type: 'radial',
     colors: [
       { light: '#EAF3FF', dark: '#0B1A33' },
       { light: '#F4F0FF', dark: '#120B24' },
       { light: '#E9FBF3', dark: '#03140F' },
     ],
     stops: [0, 0.55, 1],
-    startPoint: { x: 0, y: 0 },
-    endPoint: { x: 1, y: 1 },
+    center: { x: 0.22, y: 0.12 },
+    startRadius: 0,
+    endRadius: 520,
   };
 }
 
@@ -417,6 +418,11 @@ function glass(children, extra) {
     padding: 10,
     borderRadius: 18,
     backgroundColor: C.glass,
+    borderWidth: 1,
+    borderColor: { light: '#FFFFFFB8', dark: '#FFFFFF2E' },
+    shadowColor: { light: '#FFFFFF80', dark: '#00000055' },
+    shadowRadius: 12,
+    shadowOffset: { x: 0, y: 4 },
     children,
   }, extra || {});
 }
@@ -802,7 +808,7 @@ function buildMedium(title, ds, fromCache) {
     type: 'widget',
     padding: [11, 12],
     gap: 8,
-    backgroundColor: C.glass,
+    backgroundGradient: bg(),
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
       header(title, ds, fromCache),
@@ -877,7 +883,7 @@ function buildLarge(title, ds, fromCache) {
     type: 'widget',
     padding: 15,
     gap: 10,
-    backgroundColor: C.glass,
+    backgroundGradient: bg(),
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
       header(title, ds, fromCache),
