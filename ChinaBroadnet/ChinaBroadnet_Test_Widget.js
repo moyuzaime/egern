@@ -20,18 +20,18 @@ const C = {
   txt: { light: '#000000', dark: '#FFFFFF' },
   sub: { light: '#3C3C4399', dark: '#EBEBF599' },
   // iOS 27 Ultra Clear：低不透明度 + 高光边缘 + 深色分离
-  glass: { light: '#FFFFFF52', dark: '#FFFFFF0F' },
-  glassBorder: { light: '#FFFFFFD6', dark: '#FFFFFF38' },
-  glassShadow: { light: '#64748B26', dark: '#00000052' },
+  glass: { light: '#FFFFFF78', dark: '#FFFFFF22' },
+  glassBorder: { light: '#FFFFFFE0', dark: '#FFFFFF55' },
+  glassShadow: { light: '#64748B1F', dark: '#00000038' },
 };
 
 function bg() {
   return {
     type: 'radial',
     colors: [
-      { light: '#EEF6FF', dark: '#09172A' },
-      { light: '#F8F4FF', dark: '#140D25' },
-      { light: '#EEFCF6', dark: '#041711' },
+      { light: '#EEF6FF', dark: '#24344A' },
+      { light: '#F8F4FF', dark: '#302944' },
+      { light: '#EEFCF6', dark: '#18382F' },
     ],
     stops: [0, 0.55, 1],
     center: { x: 0.22, y: 0.12 },
@@ -578,7 +578,7 @@ function heroFlowCard(ds) {
           gap: 1,
           flex: 1,
           children: [
-            t(remain, 25, 'bold', C.txt, { minScale: 0.55 }),
+            t(remain, 23, 'bold', C.txt, { minScale: 0.55 }),
             t(usedText, 9, 'medium', C.sub),
             t(totalText, 9, 'medium', C.sub, { minScale: 0.65 }),
           ],
@@ -588,9 +588,9 @@ function heroFlowCard(ds) {
   ], {
     width: 0,
     flex: 1,
-    padding: [10, 12],
-    borderRadius: 20,
-    gap: 5,
+    padding: [8, 10],
+    borderRadius: 18,
+    gap: 4,
     backgroundColor: { light: '#FFFFFF46', dark: '#FFFFFF0D' },
     backgroundImage: glassSpecular(20, false),
     borderColor: C.glassBorder,
@@ -654,7 +654,7 @@ function feeCard(ds) {
       gap: 3,
       children: [
         t('¥', 12, 'semibold', low ? '#FF453A' : C.fee),
-        t(ds.fee.number, 24, 'bold', low ? '#FF453A' : C.txt, {
+        t(ds.fee.number, 22, 'bold', low ? '#FF453A' : C.txt, {
           minScale: 0.7,
         }),
         t('元', 8, 'medium', C.sub),
@@ -663,10 +663,10 @@ function feeCard(ds) {
   ], {
     flex: 1,
     alignItems: 'center',
-    padding: [8, 10],
+    padding: [7, 8],
     borderRadius: 18,
-    height: 88,
-    gap: 6,
+    height: 82,
+    gap: 5,
   });
 }
 function dataCard(icon, color, title, value, unit) {
@@ -687,15 +687,15 @@ function dataCard(icon, color, title, value, unit) {
       alignItems: 'end',
       gap: 2,
       children: [
-        t(value, 21, 'bold', C.txt, { minScale: 0.55 }),
+        t(value, 19, 'bold', C.txt, { minScale: 0.55 }),
         t(unit, 9, 'semibold', C.sub),
       ],
     },
   ], {
     flex: 1,
-    padding: [10, 10],
+    padding: [8, 8],
     borderRadius: 18,
-    height: 88,
+    height: 82,
   });
 }
 
@@ -852,7 +852,7 @@ function buildMedium(title, ds, fromCache) {
   return {
     type: 'widget',
     padding: [11, 12],
-    gap: 8,
+    gap: 7,
     backgroundGradient: bg(),
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
@@ -861,7 +861,7 @@ function buildMedium(title, ds, fromCache) {
         type: 'stack',
         direction: 'row',
         alignItems: 'start',
-        gap: 8,
+        gap: 7,
         flex: 1,
         children: [
           heroFlowCard(ds),
@@ -870,7 +870,8 @@ function buildMedium(title, ds, fromCache) {
             direction: 'column',
             alignItems: 'start',
             gap: 8,
-            width: 108,
+            width: 116,
+            gap: 8,
             children: [
               feeCard(ds),
               dataCard('phone.fill', C.voice, '剩余语音', ds.voice.number, ds.voice.unit),
@@ -945,6 +946,7 @@ function buildLarge(title, ds, fromCache) {
             alignItems: 'start',
             gap: 10,
             width: 132,
+            gap: 8,
             children: [
               feeCard(ds),
               dataCard('phone.fill', C.voice, '剩余语音', ds.voice.number, ds.voice.unit),
