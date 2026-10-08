@@ -520,7 +520,6 @@ function feeCard(ds) {
           color: low ? '#FF453A' : C.fee,
         },
         t('剩余话费', 9, 'medium', C.sub),
-        { type: 'spacer' },
         t(low ? '余额偏低' : '可用余额', 8, 'medium', low ? '#FF453A' : C.sub),
       ],
     },
@@ -539,6 +538,7 @@ function feeCard(ds) {
     },
   ], {
     flex: 1,
+    alignItems: 'center',
     padding: [8, 10],
     borderRadius: 16,
     height: 78,
