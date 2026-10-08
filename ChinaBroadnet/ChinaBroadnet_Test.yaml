@@ -1,5 +1,5 @@
 name: 中国广电小组件（Hark UI 测试版）
-description: 中国广电 话费、流量、语音小组件，使用 Hark 液态玻璃仪表盘 UI
+description: 中国广电话费、流量、语音小组件｜Hark 液态玻璃 UI 测试版
 author: wuhuhuuuu
 icon: https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/16/18/99/161899ef-a284-ea5d-cb5b-b8d7b8aa0ff5/AppIcon-0-0-1x_U007emarketing-0-8-0-0-85-220.png/1200x630wa.png
 
@@ -21,7 +21,7 @@ scriptings:
   - generic:
       name: china-broadnet-hark-test
       script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Test_Widget.js
-      update_interval: 1800
+      update_interval: 900
       timeout: 20
 
   - http_request:
