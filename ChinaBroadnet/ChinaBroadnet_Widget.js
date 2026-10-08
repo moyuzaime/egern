@@ -669,10 +669,9 @@ async function loadData(ctx) {
  * ========================================================= */
 
 function headerRow(
-  title,
-  data,
-  fromCache
-) {
+        title,
+        data
+      ) {
 
   const updateTime =
     data?.updateTime ||
@@ -1582,8 +1581,7 @@ function buildError(
               {
                 type: 'text',
 
-                text:
-                  '打开联通 App 查询一次',
+                text: '打开中国广电 App 查询一次',
 
                 font: {
                   size: 'caption2',
