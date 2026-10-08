@@ -476,6 +476,80 @@ function historySvg(history, color, w, h) {
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 
+
+function heroFlowCard(ds) {
+  const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
+  const remain = ds.flow.number + ' ' + ds.flow.unit;
+  const usedText = ds.plan && ds.plan.used != null
+    ? '已用 ' + formatFlow(ds.plan.used).number + ' ' + formatFlow(ds.plan.used).unit
+    : '套餐用量待确认';
+  const totalText = ds.plan && ds.plan.total != null
+    ? '套餐 ' + formatFlow(ds.plan.total).number + ' ' + formatFlow(ds.plan.total).unit
+    : '等待套餐总量';
+
+  return glass([
+    {
+      type: 'stack',
+      direction: 'row',
+      alignItems: 'center',
+      gap: 6,
+      children: [
+        {
+          type: 'image',
+          src: 'sf-symbol:chart.pie.fill',
+          width: 13,
+          height: 13,
+          color: C.flow,
+        },
+        t('流量主卡', 10, 'semibold', C.txt),
+        { type: 'spacer' },
+        t(p != null ? Math.round((1 - p) * 100) + '% 剩余' : '实时套餐', 9, 'semibold', C.flow),
+      ],
+    },
+    {
+      type: 'stack',
+      direction: 'row',
+      alignItems: 'center',
+      gap: 12,
+      children: [
+        {
+          type: 'stack',
+          direction: 'column',
+          alignItems: 'center',
+          gap: -2,
+          children: [
+            {
+              type: 'image',
+              src: gaugeSvg(p != null ? p : 0, C.flow, 110),
+              width: 82,
+              height: 43,
+            },
+            t(p != null ? Math.round(p * 100) + '% 已用' : '—', 10, 'bold', C.flow),
+          ],
+        },
+        {
+          type: 'stack',
+          direction: 'column',
+          alignItems: 'start',
+          gap: 1,
+          flex: 1,
+          children: [
+            t(remain, 25, 'bold', C.txt, { minScale: 0.55 }),
+            t(usedText, 9, 'medium', C.sub),
+            t(totalText, 9, 'medium', C.sub, { minScale: 0.65 }),
+          ],
+        },
+      ],
+    },
+  ], {
+    width: 0,
+    flex: 1,
+    padding: [10, 12],
+    borderRadius: 18,
+    gap: 5,
+  });
+}
+
 function header(title, ds, fromCache) {
   return {
     type: 'stack',
@@ -657,7 +731,7 @@ function buildSmall(title, ds, fromCache) {
         type: 'stack',
         direction: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 7,
         flex: 1,
         children: [
           {
@@ -665,6 +739,7 @@ function buildSmall(title, ds, fromCache) {
             direction: 'column',
             alignItems: 'start',
             gap: 0,
+            flex: 1,
             children: [
               t('剩余流量', 9, 'medium', C.sub),
               {
@@ -673,13 +748,20 @@ function buildSmall(title, ds, fromCache) {
                 alignItems: 'end',
                 gap: 2,
                 children: [
-                  t(ds.flow.number, 22, 'bold', C.txt),
+                  t(ds.flow.number, 24, 'bold', C.txt),
                   t(ds.flow.unit, 9, 'semibold', C.sub),
                 ],
               },
+              t(
+                ds.plan && ds.plan.total != null
+                  ? '套餐总量已识别'
+                  : '套餐总量待确认',
+                8,
+                'medium',
+                ds.plan && ds.plan.total != null ? C.voice : C.sub
+              ),
             ],
           },
-          { type: 'spacer' },
           {
             type: 'stack',
             direction: 'column',
@@ -688,9 +770,9 @@ function buildSmall(title, ds, fromCache) {
             children: [
               {
                 type: 'image',
-                src: gaugeSvg(ds.plan && ds.plan.percent != null ? ds.plan.percent : 0, C.flow, 64),
-                width: 42,
-                height: 25,
+                src: gaugeSvg(ds.plan && ds.plan.percent != null ? ds.plan.percent : 0, C.flow, 72),
+                width: 48,
+                height: 28,
               },
               t(
                 ds.plan && ds.plan.percent != null
@@ -727,13 +809,22 @@ function buildMedium(title, ds, fromCache) {
       {
         type: 'stack',
         direction: 'row',
-        alignItems: 'center',
+        alignItems: 'stretch',
         gap: 8,
         flex: 1,
         children: [
-          feeCard(ds),
-          dataCard('wifi', C.flow, '剩余流量', ds.flow.number, ds.flow.unit),
-          dataCard('phone.fill', C.voice, '剩余语音', ds.voice.number, ds.voice.unit),
+          heroFlowCard(ds),
+          {
+            type: 'stack',
+            direction: 'column',
+            alignItems: 'stretch',
+            gap: 8,
+            width: 108,
+            children: [
+              feeCard(ds),
+              dataCard('phone.fill', C.voice, '剩余语音', ds.voice.number, ds.voice.unit),
+            ],
+          },
         ],
       },
       glass([
@@ -793,12 +884,21 @@ function buildLarge(title, ds, fromCache) {
       {
         type: 'stack',
         direction: 'row',
-        alignItems: 'center',
+        alignItems: 'stretch',
         gap: 10,
         children: [
-          feeCard(ds),
-          dataCard('wifi', C.flow, '剩余流量', ds.flow.number, ds.flow.unit),
-          dataCard('phone.fill', C.voice, '剩余语音', ds.voice.number, ds.voice.unit),
+          heroFlowCard(ds),
+          {
+            type: 'stack',
+            direction: 'column',
+            alignItems: 'stretch',
+            gap: 10,
+            width: 132,
+            children: [
+              feeCard(ds),
+              dataCard('phone.fill', C.voice, '剩余语音', ds.voice.number, ds.voice.unit),
+            ],
+          },
         ],
       },
       glass([
