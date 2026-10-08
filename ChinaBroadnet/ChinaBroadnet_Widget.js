@@ -1,4 +1,4 @@
-/**
+/** 
  * 中国广电话费流量小组件
  *
  * 自动获取方式：
@@ -154,46 +154,26 @@ async function handleCapture(ctx) {
       return;
     }
 
-
-    /*
-     * 保存接口地址
-     */
     ctx.storage.set(
       KEY + '.url',
       url
     );
 
-
-    /*
-     * 保存 access
-     */
     ctx.storage.set(
       KEY + '.access',
       access
     );
 
-
-    /*
-     * 保存请求数据
-     */
     ctx.storage.setJSON(
       KEY + '.data',
       body.data
     );
 
-
-    /*
-     * 保存捕获时间
-     */
     ctx.storage.set(
       KEY + '.captureTime',
       String(Date.now())
     );
 
-
-    /*
-     * 捕获成功通知
-     */
     ctx.notify({
       title: '中国广电',
       body: '已自动获取登录信息，小组件将自动更新',
@@ -242,7 +222,6 @@ async function fetchData(
       }
     );
 
-
   if (
     !resp ||
     resp.status < 200 ||
@@ -254,7 +233,6 @@ async function fetchData(
     );
 
   }
-
 
   return await resp.json();
 }
@@ -329,12 +307,25 @@ function formatFee(value) {
 
 /* =========================================================
  * 流量
+ *
+ * 中国广电接口流量按 KB 处理：
+ *
+ * 1024 KB        = 1 MB
+ * 1024 × 1024 KB = 1 GB
+ *
+ * 小组件优先显示 GB，避免把几十 GB
+ * 的套餐错误显示成几十 MB。
  * ========================================================= */
 
 function formatFlow(value) {
 
   if (value == null) {
-    return '--';
+
+    return {
+      value: '--',
+      unit: 'GB',
+    };
+
   }
 
   const n =
@@ -343,39 +334,48 @@ function formatFlow(value) {
   if (
     !Number.isFinite(n)
   ) {
-    return String(value);
+
+    return {
+      value: String(value),
+      unit: 'GB',
+    };
+
   }
 
+  const KB_PER_MB = 1024;
+  const KB_PER_GB = 1024 * 1024;
 
-  /*
-   * 大于等于 1GB
-   */
   if (
-    n >= 1024 * 1024
+    n >= KB_PER_GB
   ) {
 
-    return (
-      n / 1024 / 1024
-    ).toFixed(2);
+    return {
+      value: (
+        n / KB_PER_GB
+      ).toFixed(2),
+      unit: 'GB',
+    };
 
   }
 
-
-  /*
-   * MB
-   */
   if (
-    n >= 1024
+    n >= KB_PER_MB
   ) {
 
-    return (
-      n / 1024
-    ).toFixed(2);
+    return {
+      value: (
+        n / KB_PER_MB
+      ).toFixed(2),
+      unit: 'MB',
+    };
 
   }
 
+  return {
+    value: n.toFixed(2),
+    unit: 'KB',
+  };
 
-  return n.toFixed(2);
 }
 
 
@@ -423,10 +423,6 @@ async function loadData(ctx) {
       KEY + '.data'
     );
 
-
-  /*
-   * 尚未捕获
-   */
   if (
     !access ||
     data == null
@@ -440,7 +436,6 @@ async function loadData(ctx) {
 
   }
 
-
   try {
 
     const result =
@@ -450,7 +445,6 @@ async function loadData(ctx) {
         data,
         url
       );
-
 
     if (
       !result ||
@@ -465,11 +459,9 @@ async function loadData(ctx) {
 
     }
 
-
     const user =
       result.data.userData ||
       result.data;
-
 
     const feeValue =
       findValue(
@@ -482,7 +474,6 @@ async function loadData(ctx) {
         ]
       );
 
-
     const flowValue =
       findValue(
         user,
@@ -492,7 +483,6 @@ async function loadData(ctx) {
           'flowRemain',
         ]
       );
-
 
     const voiceValue =
       findValue(
@@ -504,6 +494,10 @@ async function loadData(ctx) {
         ]
       );
 
+    const flow =
+      formatFlow(
+        flowValue
+      );
 
     const resultData = {
 
@@ -517,10 +511,8 @@ async function loadData(ctx) {
 
       flow: {
         title: '剩余流量',
-        value: formatFlow(
-          flowValue
-        ),
-        unit: 'MB',
+        value: flow.value,
+        unit: flow.unit,
       },
 
       voice: {
@@ -546,22 +538,16 @@ async function loadData(ctx) {
 
     };
 
-
-    /*
-     * 保存最新数据
-     */
     ctx.storage.setJSON(
       KEY + '.datasource',
       resultData
     );
-
 
     return {
       configured: true,
       data: resultData,
       error: null,
     };
-
 
   } catch (e) {
 
@@ -570,15 +556,10 @@ async function loadData(ctx) {
       e
     );
 
-
-    /*
-     * 接口失败时显示缓存
-     */
     const cached =
       ctx.storage.getJSON(
         KEY + '.datasource'
       );
-
 
     return {
       configured: true,
@@ -611,6 +592,7 @@ function headerRow(
     children: [
 
       {
+
         type: 'stack',
 
         direction: 'row',
@@ -622,6 +604,7 @@ function headerRow(
         children: [
 
           {
+
             type: 'image',
 
             src:
@@ -636,6 +619,7 @@ function headerRow(
           },
 
           {
+
             type: 'text',
 
             text:
@@ -658,13 +642,13 @@ function headerRow(
 
       },
 
-
       {
+
         type: 'spacer',
       },
 
-
       {
+
         type: 'stack',
 
         direction: 'row',
@@ -676,6 +660,7 @@ function headerRow(
         children: [
 
           {
+
             type: 'image',
 
             src:
@@ -690,6 +675,7 @@ function headerRow(
           },
 
           {
+
             type: 'text',
 
             text:
@@ -759,6 +745,7 @@ function makeCapsule(
     children: [
 
       {
+
         type: 'text',
 
         text:
@@ -780,8 +767,8 @@ function makeCapsule(
         minScale: 0.7,
       },
 
-
       {
+
         type: 'stack',
 
         direction: 'row',
@@ -795,6 +782,7 @@ function makeCapsule(
         children: [
 
           {
+
             type: 'text',
 
             text:
@@ -816,8 +804,8 @@ function makeCapsule(
             minScale: 0.55,
           },
 
-
           {
+
             type: 'text',
 
             text:
@@ -884,8 +872,8 @@ function buildMainWidget(
         data
       ),
 
-
       {
+
         type: 'stack',
 
         direction: 'row',
@@ -918,8 +906,8 @@ function buildMainWidget(
 
       },
 
-
       {
+
         type: 'stack',
 
         direction: 'row',
@@ -929,10 +917,12 @@ function buildMainWidget(
         children: [
 
           {
+
             type: 'spacer',
           },
 
           {
+
             type: 'stack',
 
             width: 42,
@@ -946,6 +936,7 @@ function buildMainWidget(
           },
 
           {
+
             type: 'spacer',
           },
 
@@ -1004,7 +995,6 @@ function smallRow(
 
         };
 
-
   return {
 
     type: 'stack',
@@ -1034,6 +1024,7 @@ function smallRow(
     children: [
 
       {
+
         type: 'stack',
 
         direction: 'row',
@@ -1057,8 +1048,8 @@ function smallRow(
 
       },
 
-
       {
+
         type: 'stack',
 
         direction: 'column',
@@ -1068,6 +1059,7 @@ function smallRow(
         children: [
 
           {
+
             type: 'stack',
 
             direction: 'row',
@@ -1079,6 +1071,7 @@ function smallRow(
             children: [
 
               {
+
                 type: 'text',
 
                 text:
@@ -1098,6 +1091,7 @@ function smallRow(
               },
 
               {
+
                 type: 'text',
 
                 text:
@@ -1115,6 +1109,7 @@ function smallRow(
               },
 
               {
+
                 type: 'spacer',
               },
 
@@ -1122,8 +1117,8 @@ function smallRow(
 
           },
 
-
           {
+
             type: 'stack',
 
             direction: 'row',
@@ -1133,6 +1128,7 @@ function smallRow(
             children: [
 
               {
+
                 type: 'text',
 
                 text:
@@ -1152,6 +1148,7 @@ function smallRow(
               },
 
               {
+
                 type: 'spacer',
               },
 
@@ -1259,6 +1256,7 @@ function buildLockScreen(
       children: [
 
         {
+
           type: 'text',
 
           text:
@@ -1300,6 +1298,7 @@ function buildLockScreen(
       children: [
 
         {
+
           type: 'text',
 
           text:
@@ -1322,6 +1321,7 @@ function buildLockScreen(
         },
 
         {
+
           type: 'text',
 
           text:
@@ -1338,6 +1338,8 @@ function buildLockScreen(
             'center',
 
           maxLines: 1,
+
+          minScale: 0.5,
         },
 
       ],
@@ -1345,7 +1347,6 @@ function buildLockScreen(
     };
 
   }
-
 
   return {
 
@@ -1356,6 +1357,7 @@ function buildLockScreen(
     children: [
 
       {
+
         type: 'stack',
 
         direction: 'row',
@@ -1365,6 +1367,7 @@ function buildLockScreen(
         children: [
 
           {
+
             type: 'image',
 
             src:
@@ -1379,6 +1382,7 @@ function buildLockScreen(
           },
 
           {
+
             type: 'text',
 
             text:
@@ -1401,8 +1405,8 @@ function buildLockScreen(
 
       },
 
-
       {
+
         type: 'text',
 
         text:
@@ -1449,6 +1453,7 @@ function buildError(
     children: [
 
       {
+
         type: 'stack',
 
         direction: 'row',
@@ -1460,6 +1465,7 @@ function buildError(
         children: [
 
           {
+
             type: 'image',
 
             src:
@@ -1474,6 +1480,7 @@ function buildError(
           },
 
           {
+
             type: 'text',
 
             text:
@@ -1494,13 +1501,13 @@ function buildError(
 
       },
 
-
       {
+
         type: 'spacer',
       },
 
-
       {
+
         type: 'text',
 
         text:
@@ -1522,13 +1529,13 @@ function buildError(
         minScale: 0.75,
       },
 
-
       {
+
         type: 'spacer',
       },
 
-
       {
+
         type: 'stack',
 
         direction: 'row',
@@ -1538,10 +1545,12 @@ function buildError(
         children: [
 
           {
+
             type: 'spacer',
           },
 
           {
+
             type: 'stack',
 
             padding: [
@@ -1564,6 +1573,7 @@ function buildError(
             children: [
 
               {
+
                 type: 'text',
 
                 text:
@@ -1585,6 +1595,7 @@ function buildError(
           },
 
           {
+
             type: 'spacer',
           },
 
@@ -1608,18 +1619,12 @@ async function handleWidget(ctx) {
   const title =
     '中国广电';
 
-
   const result =
     await loadData(ctx);
-
 
   const data =
     result.data;
 
-
-  /*
-   * 尚未捕获
-   */
   if (
     !result.configured
   ) {
@@ -1631,10 +1636,6 @@ async function handleWidget(ctx) {
 
   }
 
-
-  /*
-   * 没有数据
-   */
   if (!data) {
 
     return buildError(
@@ -1644,15 +1645,10 @@ async function handleWidget(ctx) {
 
   }
 
-
   const family =
     ctx.widgetFamily ||
     'systemSmall';
 
-
-  /*
-   * 锁屏
-   */
   if (
     family.startsWith(
       'accessory'
@@ -1667,10 +1663,6 @@ async function handleWidget(ctx) {
 
   }
 
-
-  /*
-   * 小组件
-   */
   if (
     family ===
     'systemSmall'
@@ -1683,10 +1675,6 @@ async function handleWidget(ctx) {
 
   }
 
-
-  /*
-   * 中号 / 大号 / 超大号
-   */
   if (
     family ===
       'systemMedium' ||
@@ -1703,7 +1691,6 @@ async function handleWidget(ctx) {
 
   }
 
-
   return buildSmall(
     title,
     data
@@ -1718,10 +1705,6 @@ async function handleWidget(ctx) {
 
 export default async function(ctx) {
 
-  /*
-   * HTTP Request
-   * 自动捕获 access + data
-   */
   if (
     ctx.request &&
     ctx.request.url
@@ -1733,10 +1716,6 @@ export default async function(ctx) {
 
   }
 
-
-  /*
-   * Generic Widget
-   */
   return handleWidget(
     ctx
   );
