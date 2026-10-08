@@ -314,12 +314,28 @@ async function loadData(ctx) {
       percent: planPercent,
     });
 
+    // 已确认的中国广电套餐字段，优先使用真实接口字段；自动探测仅作为其他套餐/接口的兜底。
+    // 注意：flowAll / flowUserd / flow 均为字节（Byte）。
+    // flowUserd 是广电接口原始字段拼写，不能改成 used。
     const feeRaw = findValue(user, ['fee', 'balance', 'money', 'remainFee']);
+    const flowTotalRaw = findValue(user, ['flowAll']);
+    const flowUsedRaw = findValue(user, ['flowUserd']);
     const flowRaw = findValue(user, ['flow', 'remainFlow', 'flowRemain']);
+    const voiceTotalRaw = findValue(user, ['voiceAll']);
+    const voiceUsedRaw = findValue(user, ['voiceUsed']);
     const voiceRaw = findValue(user, ['voice', 'remainVoice', 'voiceRemain']);
 
-    const flow = formatFlow(flowRaw);
-    const history = saveHistory(ctx, flowRaw);
+    const flowTotal = flowTotalRaw != null ? Number(flowTotalRaw) : (totalField && /flow/i.test(totalField.path) ? totalField.value : null);
+    const flowUsed = flowUsedRaw != null ? Number(flowUsedRaw) : (usedField && /flow/i.test(usedField.path) ? usedField.value : null);
+    const flowRemain = flowRaw != null ? Number(flowRaw) : (remainField && /flow/i.test(remainField.path) ? remainField.value : null);
+    const voiceTotal = voiceTotalRaw != null ? Number(voiceTotalRaw) : (totalField && /voice/i.test(totalField.path) ? totalField.value : null);
+    const voiceUsed = voiceUsedRaw != null ? Number(voiceUsedRaw) : (usedField && /voice/i.test(usedField.path) ? usedField.value : null);
+    const voiceRemain = voiceRaw != null ? Number(voiceRaw) : (remainField && /voice/i.test(remainField.path) ? remainField.value : null);
+
+    const flow = formatFlow(flowRemain);
+    const flowPercent = calcPlanPercent(flowTotal, flowUsed, flowRemain);
+    const voicePercent = calcPlanPercent(voiceTotal, voiceUsed, voiceRemain);
+    const history = saveHistory(ctx, flowRemain);
 
     const ds = {
       stale: false,
@@ -335,19 +351,23 @@ async function loadData(ctx) {
       },
       voice: {
         title: '剩余语音',
-        number: formatVoice(voiceRaw),
+        number: formatVoice(voiceRemain),
         unit: '分钟',
       },
       updatedAt: Date.now(),
       history,
       plan: {
-        total: totalField ? totalField.value : null,
-        used: usedField ? usedField.value : null,
-        remain: remainField ? remainField.value : null,
-        percent: planPercent,
-        totalPath: totalField ? totalField.path : null,
-        usedPath: usedField ? usedField.path : null,
-        remainPath: remainField ? remainField.path : null,
+        total: flowTotal,
+        used: flowUsed,
+        remain: flowRemain,
+        percent: flowPercent,
+        totalPath: flowTotalRaw != null ? 'userData.flowAll' : (totalField ? totalField.path : null),
+        usedPath: flowUsedRaw != null ? 'userData.flowUserd' : (usedField ? usedField.path : null),
+        remainPath: flowRaw != null ? 'userData.flow' : (remainField ? remainField.path : null),
+        voiceTotal,
+        voiceUsed,
+        voiceRemain,
+        voicePercent,
       },
     };
 
@@ -664,11 +684,18 @@ function buildSmall(title, ds, fromCache) {
             children: [
               {
                 type: 'image',
-                src: gaugeSvg(0, C.flow, 64),
+                src: gaugeSvg(ds.plan && ds.plan.percent != null ? ds.plan.percent : 0, C.flow, 64),
                 width: 42,
                 height: 25,
               },
-              t('剩余', 8, 'bold', C.flow),
+              t(
+                ds.plan && ds.plan.percent != null
+                  ? Math.round((1 - ds.plan.percent) * 100) + '%剩余'
+                  : '剩余',
+                8,
+                'bold',
+                C.flow
+              ),
             ],
           },
         ],
@@ -720,7 +747,14 @@ function buildMedium(title, ds, fromCache) {
             },
             t('流量快照', 9, 'semibold', C.txt),
             { type: 'spacer' },
-            t(ds.plan && ds.plan.total != null ? '已找到套餐总量' : '等待套餐总量', 9, 'medium', ds.plan && ds.plan.total != null ? C.voice : C.sub),
+            t(
+              ds.plan && ds.plan.total != null
+                ? ('已用 ' + Math.round((ds.plan.percent || 0) * 100) + '%')
+                : '等待套餐总量',
+              9,
+              'medium',
+              ds.plan && ds.plan.total != null ? C.voice : C.sub
+            ),
           ],
         },
       ], {
@@ -779,7 +813,14 @@ function buildLarge(title, ds, fromCache) {
             },
             t('流量变化', 10, 'semibold', C.txt),
             { type: 'spacer' },
-            t('最近捕获快照', 9, 'medium', C.sub),
+            t(
+              ds.plan && ds.plan.total != null
+                ? ('已用 ' + Math.round((ds.plan.percent || 0) * 100) + '%')
+                : '最近捕获快照',
+              9,
+              'medium',
+              ds.plan && ds.plan.total != null ? C.voice : C.sub
+            ),
           ],
         },
         {
@@ -788,10 +829,16 @@ function buildLarge(title, ds, fromCache) {
           width: 290,
           height: 45,
         },
-        t('套餐总量暂未从广电接口确认，圆环仅用于展示风格，不代表真实使用比例。', 8, 'regular', C.sub, {
-          maxLines: 2,
-          minScale: 0.7,
-        }),
+        t(
+          ds.plan && ds.plan.total != null
+            ? ('套餐流量 · 已用 ' + (formatFlow(ds.plan.used).number) + formatFlow(ds.plan.used).unit +
+               ' / ' + (formatFlow(ds.plan.total).number) + formatFlow(ds.plan.total).unit)
+            : '等待接口返回套餐总量字段',
+          8,
+          'regular',
+          C.sub,
+          { maxLines: 2, minScale: 0.7 }
+        ),
       ], {
         gap: 5,
         padding: [9, 12],
