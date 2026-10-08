@@ -20,18 +20,18 @@ const C = {
   txt: { light: '#000000', dark: '#FFFFFF' },
   sub: { light: '#3C3C4399', dark: '#EBEBF599' },
   // iOS 27 Ultra Clear：低不透明度 + 高光边缘 + 深色分离
-  glass: { light: '#FFFFFF18', dark: '#FFFFFF0C' },
-  glassBorder: { light: '#FFFFFF68', dark: '#FFFFFF28' },
-  glassShadow: { light: '#64748B12', dark: '#00000022' },
+  glass: { light: '#FFFFFF18', dark: '#FFFFFF18' },
+  glassBorder: { light: '#FFFFFF68', dark: '#FFFFFF50' },
+  glassShadow: { light: '#64748B0A', dark: '#00000008' },
 };
 
 function bg() {
   return {
     type: 'radial',
     colors: [
-      { light: '#EEF6FF', dark: '#24344A' },
-      { light: '#F8F4FF', dark: '#302944' },
-      { light: '#EEFCF6', dark: '#18382F' },
+      { light: '#EEF6FF', dark: '#405A70' },
+      { light: '#F8F4FF', dark: '#514761' },
+      { light: '#EEFCF6', dark: '#3E5E53' },
     ],
     stops: [0, 0.55, 1],
     center: { x: 0.22, y: 0.12 },
@@ -559,8 +559,8 @@ function heroFlowCard(ds) {
     backgroundColor: C.glass,
     borderColor: C.glassBorder,
     shadowColor: C.glassShadow,
-    shadowRadius: 7,
-    shadowOffset: { x: 0, y: 3 },
+    shadowRadius: 5,
+    shadowOffset: { x: 0, y: 2 },
   });
 }
 
