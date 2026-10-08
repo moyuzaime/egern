@@ -1,7 +1,7 @@
 name: 中国广电小组件
 description: 中国广电 话费 语音 流量小组件
 author: wuhuhuuuu
-icon: https://iili.io/nEuB6Jt.png
+icon: https://zh.wikipedia.org/wiki/Special:Redirect/file/CBN_CHINA.png
 
 compat_arguments:
   cbCapture: 'true'
