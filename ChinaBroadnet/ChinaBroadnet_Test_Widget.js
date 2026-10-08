@@ -625,11 +625,10 @@ function feeCard(ds) {
       ],
     },
   ], {
-    flex: 1,
     alignItems: 'center',
     padding: [7, 8],
     borderRadius: 18,
-    height: 82,
+    height: 78,
     gap: 5,
   });
 }
@@ -656,10 +655,9 @@ function dataCard(icon, color, title, value, unit) {
       ],
     },
   ], {
-    flex: 1,
     padding: [8, 8],
     borderRadius: 18,
-    height: 82,
+    height: 78,
   });
 }
 
@@ -1025,7 +1023,6 @@ function buildLarge(title, ds, fromCache) {
             type: 'stack',
             direction: 'column',
             alignItems: 'start',
-            gap: 10,
             width: 132,
             gap: 8,
             children: [
