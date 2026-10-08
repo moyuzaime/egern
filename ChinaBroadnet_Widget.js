@@ -179,10 +179,7 @@ function formatFee(value) {
     return String(value);
   }
 
-  return (
-    (Math.abs(n) >= 1000 ? n / 100 : n).toFixed(2) +
-    ' 元'
-  );
+  return (n / 100).toFixed(2) + ' 元';
 }
 
 function formatFlow(value) {
