@@ -431,7 +431,7 @@ function glass(children, extra) {
 }
 
 function gaugeSvg(pct, color, w) {
-  const stroke = 9;
+  const stroke = strokeWidth || 9;
   const r = (w - stroke) / 2;
   const cx = w / 2;
   const cy = w / 2;
@@ -1008,28 +1008,32 @@ function buildLarge(title, ds, fromCache) {
   return {
     type: 'widget',
     padding: 15,
-    gap: 9,
+    gap: 10,
     backgroundGradient: bg(),
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
       header(title, ds, fromCache),
-
-      // 第一层：完整宽度的流量 Hero，作为 Large 的唯一主视觉
-      heroFlowCard(ds),
-
-      // 第二层：余额与语音，降低视觉权重
       {
         type: 'stack',
         direction: 'row',
         alignItems: 'start',
-        gap: 9,
+        gap: 10,
         children: [
-          feeCard(ds),
-          dataCard('phone.fill', C.voice, '剩余语音', ds.voice.number, ds.voice.unit),
+          heroFlowCard(ds),
+          {
+            type: 'stack',
+            direction: 'column',
+            alignItems: 'start',
+            gap: 10,
+            width: 132,
+            gap: 8,
+            children: [
+              feeCard(ds),
+              dataCard('phone.fill', C.voice, '剩余语音', ds.voice.number, ds.voice.unit),
+            ],
+          },
         ],
       },
-
-      // 第三层：历史趋势，使用更轻的玻璃层
       glass([
         {
           type: 'stack',
@@ -1060,31 +1064,25 @@ function buildLarge(title, ds, fromCache) {
           type: 'image',
           src: historySvg(ds.history, C.flow, 290, 45),
           width: 290,
-          height: 45,
+          height: 48,
         },
         t(
           ds.plan && ds.plan.total != null
-            ? ('套餐 ' + formatFlow(ds.plan.total).number + formatFlow(ds.plan.total).unit +
-               ' · 已用 ' + formatFlow(ds.plan.used).number + formatFlow(ds.plan.used).unit)
+            ? ('套餐流量 · 已用 ' + (formatFlow(ds.plan.used).number) + formatFlow(ds.plan.used).unit +
+               ' / ' + (formatFlow(ds.plan.total).number) + formatFlow(ds.plan.total).unit)
             : '等待接口返回套餐总量字段',
           8,
           'regular',
           C.sub,
-          { maxLines: 1, minScale: 0.65 }
+          { maxLines: 2, minScale: 0.7 }
         ),
       ], {
         width: 0,
         flex: 1,
-        gap: 5,
-        padding: [9, 13],
+        gap: 6,
+        padding: [10, 13],
         borderRadius: 18,
-        backgroundColor: { light: '#FFFFFF12', dark: '#FFFFFF1A' },
-        borderColor: { light: '#FFFFFF58', dark: '#FFFFFF48' },
-        shadowColor: { light: '#64748B02', dark: '#00000000' },
-        shadowRadius: 1,
-        shadowOffset: { x: 0, y: 1 },
       }),
-
       {
         type: 'stack',
         direction: 'row',
