@@ -582,6 +582,10 @@ async function loadData(ctx) {
       flowPercent: getRemainPercent(flowValue, totalFlowValue),
       voicePercent: getRemainPercent(voiceValue, totalVoiceValue),
 
+      phone: phoneValue ? String(phoneValue) : '',
+      totalFlow: totalFlowValue,
+      totalVoice: totalVoiceValue,
+
       updateTime:
         new Date().toLocaleTimeString(
           'zh-CN',
@@ -899,12 +903,22 @@ function makeCapsule(
  * 中号 / 大号
  * ========================================================= */
 
-function usageBar(title, percent, color) {
-  if (percent == null) return { type: 'stack', children: [] };
+function formatPhone(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  if (/^1\\d{10}$/.test(text)) {
+    return text.slice(0, 3) + ' ' + text.slice(3, 7) + ' ' + text.slice(7);
+  }
+  return text;
+}
+
+function usageBar(title, percent, color, remainText, totalText) {
+  if (percent == null) return null;
+
   return {
     type: 'stack',
     direction: 'column',
-    gap: 4,
+    gap: 5,
     flex: 1,
     children: [
       {
@@ -912,44 +926,220 @@ function usageBar(title, percent, color) {
         direction: 'row',
         alignItems: 'center',
         children: [
-          { type: 'text', text: title, font: { size: 'caption2', weight: 'medium' }, textColor: COLORS.title },
+          {
+            type: 'text',
+            text: title,
+            font: { size: 'caption2', weight: 'medium' },
+            textColor: COLORS.title,
+            maxLines: 1
+          },
           { type: 'spacer' },
-          { type: 'text', text: percent + '%', font: { size: 'caption2', weight: 'semibold' }, textColor: color }
+          {
+            type: 'text',
+            text: remainText || (percent + '%'),
+            font: { size: 'caption2', weight: 'semibold' },
+            textColor: color,
+            maxLines: 1
+          }
         ]
       },
       {
         type: 'stack',
-        height: 5,
+        height: 6,
         borderRadius: 3,
         backgroundColor: COLORS.border,
         children: [{
           type: 'stack',
           width: Math.max(2, percent) + '%',
-          height: 5,
+          height: 6,
           borderRadius: 3,
           backgroundColor: color
         }]
-      }
+      },
+      ...(totalText ? [{
+        type: 'text',
+        text: totalText,
+        font: { size: 'caption2' },
+        textColor: COLORS.time,
+        maxLines: 1
+      }] : [])
     ]
   };
 }
 
 function buildUsageDashboard(data) {
-  if (data.flowPercent == null && data.voicePercent == null) {
-    return { type: 'stack', children: [] };
+  const bars = [];
+
+  if (data.flowPercent != null) {
+    const totalFlow = toFiniteNumber(data.totalFlow);
+    bars.push(
+      usageBar(
+        '流量',
+        data.flowPercent,
+        COLORS.accent,
+        data.flow.value + data.flow.unit + ' 剩余',
+        totalFlow != null ? '套餐 ' + formatFlow(totalFlow) + ' GB' : ''
+      )
+    );
   }
+
+  if (data.voicePercent != null) {
+    const totalVoice = toFiniteNumber(data.totalVoice);
+    bars.push(
+      usageBar(
+        '通话',
+        data.voicePercent,
+        '#55C759',
+        data.voice.value + data.voice.unit + ' 剩余',
+        totalVoice != null ? '套餐 ' + formatVoice(totalVoice) + ' 分钟' : ''
+      )
+    );
+  }
+
+  const validBars = bars.filter(Boolean);
+  if (!validBars.length) return null;
+
   return {
     type: 'stack',
     direction: 'row',
-    gap: 10,
+    gap: 12,
+    children: validBars
+  };
+}
+
+function buildHeroBalance(data) {
+  return {
+    type: 'stack',
+    direction: 'column',
+    gap: 2,
     children: [
-      usageBar('流量剩余', data.flowPercent, COLORS.accent),
-      usageBar('语音剩余', data.voicePercent, '#55C759')
+      {
+        type: 'text',
+        text: '账户余额',
+        font: { size: 'caption1', weight: 'medium' },
+        textColor: COLORS.title,
+        maxLines: 1
+      },
+      {
+        type: 'stack',
+        direction: 'row',
+        alignItems: 'baseline',
+        gap: 4,
+        children: [
+          {
+            type: 'text',
+            text: '¥',
+            font: { size: 'title3', weight: 'semibold' },
+            textColor: COLORS.accent
+          },
+          {
+            type: 'text',
+            text: data.fee.value,
+            font: { size: 'largeTitle', weight: 'bold' },
+            textColor: COLORS.value,
+            maxLines: 1,
+            minScale: 0.65
+          }
+        ]
+      }
     ]
   };
 }
 
+function buildMainWidget(
+  title,
+  data
+) {
 
+  const phone = formatPhone(data.phone);
+  const dashboard = buildUsageDashboard(data);
+
+  const children = [
+    headerRow(title, data),
+    ...(phone ? [{
+      type: 'text',
+      text: phone,
+      font: { size: 'caption2', weight: 'medium' },
+      textColor: COLORS.time,
+      maxLines: 1
+    }] : []),
+    buildHeroBalance(data),
+    {
+      type: 'stack',
+      direction: 'row',
+      alignItems: 'center',
+      children: [
+        { type: 'spacer' },
+        {
+          type: 'stack',
+          height: 1,
+          flex: 1,
+          backgroundColor: COLORS.border,
+        },
+        { type: 'spacer' }
+      ]
+    }
+  ];
+
+  if (dashboard) children.push(dashboard);
+
+  children.push(
+    {
+      type: 'stack',
+      direction: 'row',
+      alignItems: 'center',
+      gap: 8,
+      children: [
+        makeCapsule(data.flow.title, data.flow.value, data.flow.unit),
+        makeCapsule(data.voice.title, data.voice.value, data.voice.unit)
+      ]
+    },
+    {
+      type: 'stack',
+      direction: 'row',
+      alignItems: 'center',
+      gap: 8,
+      children: [
+        makeCapsule(data.fee.title, data.fee.value, data.fee.unit),
+        {
+          type: 'stack',
+          direction: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flex: 1,
+          padding: [7, 8, 7, 8],
+          backgroundColor: COLORS.capsuleBg,
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: COLORS.border,
+          children: [
+            {
+              type: 'text',
+              text: '最后更新',
+              font: { size: 'caption2', weight: 'medium' },
+              textColor: COLORS.title
+            },
+            {
+              type: 'text',
+              text: data.updateTime || '--:--',
+              font: { size: 'title3', weight: 'semibold' },
+              textColor: COLORS.value
+            }
+          ]
+        }
+      ]
+    }
+  );
+
+  return {
+    type: 'widget',
+    backgroundColor: COLORS.bg,
+    padding: [12, 14, 12, 14],
+    gap: 9,
+    refreshAfter: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
+    children
+  };
+}
 function buildMainWidget(
   title,
   data
