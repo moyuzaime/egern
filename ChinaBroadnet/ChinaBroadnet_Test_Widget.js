@@ -430,7 +430,7 @@ function glass(children, extra) {
   }, extra || {});
 }
 
-function gaugeSvg(pct, color, w) {
+function gaugeSvg(pct, color, w, strokeWidth) {
   const stroke = strokeWidth || 9;
   const r = (w - stroke) / 2;
   const cx = w / 2;
