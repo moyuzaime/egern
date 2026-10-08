@@ -849,66 +849,105 @@ function buildSmall(title, ds, fromCache) {
 }
 
 function buildMedium(title, ds, fromCache) {
+  // 中号 Widget 高度有限：这里改为“固定行高 + 固定卡片高度”，
+  // 不再让右侧两张卡使用 flex:1，避免 Egern 在有限高度下发生重叠。
+  const compactFee = glass([
+    {
+      type: 'stack',
+      direction: 'row',
+      alignItems: 'center',
+      gap: 4,
+      children: [
+        {
+          type: 'image',
+          src: 'sf-symbol:yensign.circle.fill',
+          width: 10,
+          height: 10,
+          color: C.fee,
+        },
+        t('话费', 9, 'medium', C.sub),
+        { type: 'spacer' },
+        t('¥' + ds.fee.number, 17, 'bold', C.txt, { minScale: 0.65 }),
+      ],
+    },
+    t('可用余额', 8, 'regular', C.sub),
+  ], {
+    height: 50,
+    padding: [6, 8],
+    gap: 2,
+    borderRadius: 16,
+  });
+
+  const compactVoice = glass([
+    {
+      type: 'stack',
+      direction: 'row',
+      alignItems: 'center',
+      gap: 4,
+      children: [
+        {
+          type: 'image',
+          src: 'sf-symbol:phone.fill',
+          width: 10,
+          height: 10,
+          color: C.voice,
+        },
+        t('语音', 9, 'medium', C.sub),
+        { type: 'spacer' },
+        t(ds.voice.number, 17, 'bold', C.txt, { minScale: 0.65 }),
+        t('分', 8, 'semibold', C.sub),
+      ],
+    },
+    t(
+      ds.plan && ds.plan.voiceTotal != null
+        ? ('套餐 ' + formatVoice(ds.plan.voiceTotal) + ' 分')
+        : '剩余语音',
+      8,
+      'regular',
+      C.sub
+    ),
+  ], {
+    height: 50,
+    padding: [6, 8],
+    gap: 2,
+    borderRadius: 16,
+  });
+
+  const row = {
+    type: 'stack',
+    direction: 'row',
+    alignItems: 'start',
+    gap: 7,
+    height: 106,
+    children: [
+      heroFlowCard(ds),
+      {
+        type: 'stack',
+        direction: 'column',
+        alignItems: 'start',
+        gap: 6,
+        width: 112,
+        height: 106,
+        children: [
+          compactFee,
+          compactVoice,
+        ],
+      },
+    ],
+  };
+
+  // 只保留核心三项，移除中号底部“流量快照”卡。
+  // 原布局总高度约 88 + 8 + 88，已经超过中号 Widget 可用高度，
+  // 再叠加 header/padding 后必然出现裁切/重叠。
   return {
     type: 'widget',
-    padding: [11, 12],
-    gap: 7,
+    padding: [10, 11],
+    gap: 6,
     backgroundGradient: bg(),
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
       header(title, ds, fromCache),
-      {
-        type: 'stack',
-        direction: 'row',
-        alignItems: 'start',
-        gap: 7,
-        flex: 1,
-        children: [
-          heroFlowCard(ds),
-          {
-            type: 'stack',
-            direction: 'column',
-            alignItems: 'start',
-            gap: 8,
-            width: 116,
-            gap: 8,
-            children: [
-              feeCard(ds),
-              dataCard('phone.fill', C.voice, '剩余语音', ds.voice.number, ds.voice.unit),
-            ],
-          },
-        ],
-      },
-      glass([
-        {
-          type: 'stack',
-          direction: 'row',
-          alignItems: 'center',
-          gap: 5,
-          children: [
-            {
-              type: 'image',
-              src: historySvg(ds.history, C.flow, 70, 18),
-              width: 50,
-              height: 13,
-            },
-            t('流量快照', 9, 'semibold', C.txt),
-            { type: 'spacer' },
-            t(
-              ds.plan && ds.plan.total != null
-                ? ('已用 ' + Math.round((ds.plan.percent || 0) * 100) + '%')
-                : '等待套餐总量',
-              9,
-              'medium',
-              ds.plan && ds.plan.total != null ? C.voice : C.sub
-            ),
-          ],
-        },
-      ], {
-        padding: [7, 10],
-        borderRadius: 16,
-        gap: 0,
-      }),
+      row,
     ],
   };
 }
