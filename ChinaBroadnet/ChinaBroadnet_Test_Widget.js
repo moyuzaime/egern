@@ -167,8 +167,51 @@ function formatVoice(v) {
 async function capture(ctx) {
   const req = ctx.request || {};
   const url = String(req.url || '');
+  const method = String(req.method || '').toUpperCase();
+
+  // 侦察中国广电 App 的所有 HTTPS API。
+  // 这里只保存 URL、方法和请求体字段名，不保存 Cookie/手机号/完整请求体。
+  if (/^https:\/\/app\\.10099\\.com\\.cn\//i.test(url)) {
+    try {
+      const body = await readRequestBody(ctx);
+      const keys = [];
+
+      function collectKeys(v, depth) {
+        if (depth > 5 || v == null || typeof v !== 'object') return;
+        for (const k of Object.keys(v)) {
+          if (!keys.includes(k)) keys.push(k);
+          if (v[k] && typeof v[k] === 'object') collectKeys(v[k], depth + 1);
+        }
+      }
+
+      collectKeys(body, 0);
+
+      const old = ctx.storage.getJSON(KEY + '.apiProbe') || [];
+      const item = {
+        ts: Date.now(),
+        method,
+        url,
+        keys: keys.slice(0, 80),
+      };
+
+      // 同一个接口只保留最近一次，避免大量重复请求撑爆存储。
+      const next = old.filter(x => !(x.url === url && x.method === method));
+      next.push(item);
+      ctx.storage.setJSON(KEY + '.apiProbe', next.slice(-60));
+
+      console.log(
+        '[ChinaBroadnet-Hark] API侦察: ' +
+        method + ' ' + url +
+        (keys.length ? ' | keys=' + keys.join(',') : '')
+      );
+    } catch (e) {
+      console.log('[ChinaBroadnet-Hark] probe error: ' + e);
+    }
+  }
+
+  // 正式数据捕获仍然只处理 qryUserInfo，不受侦察逻辑影响。
   if (!url.startsWith(API_URL)) return;
-  if (String(req.method || '').toUpperCase() !== 'POST') return;
+  if (method !== 'POST') return;
 
   try {
     const access = String(getHeader(req.headers, 'access') || '').trim();
@@ -182,7 +225,7 @@ async function capture(ctx) {
 
     ctx.notify({
       title: '中国广电',
-      body: '数据捕获成功，Hark UI 测试版已更新',
+      body: '数据捕获成功，正在侦察套餐接口',
       sound: false,
     });
   } catch (e) {
