@@ -793,46 +793,34 @@ function buildSmall(title, ds, fromCache) {
           gap: 4,
           children: [
             { type: 'image', src: 'sf-symbol:phone.fill', width: 10, height: 10, color: C.voice },
-            t('通话时长', 9, 'semibold', C.sub),
-            { type: 'spacer' },
-            t('剩余语音', 8, 'medium', C.sub),
+            t('剩余语音', 9, 'semibold', C.sub),
           ],
         },
         {
           type: 'stack',
           direction: 'row',
           alignItems: 'center',
-          gap: 8,
+          gap: 10,
           children: [
             {
               type: 'stack',
-              direction: 'row',
-              alignItems: 'end',
-              gap: 4,
-              width: 150,
-              children: [
-                t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 25, 'bold', C.txt, { minScale: 0.5 }),
-                t(ds.voice.number === '--' ? '' : '分钟', 10, 'semibold', C.sub),
-              ],
-            },
-            {
-              type: 'stack',
               direction: 'column',
-              alignItems: 'end',
-              gap: 1,
+              alignItems: 'start',
+              gap: 2,
+              flex: 1,
               children: [
-                t('套餐', 7, 'regular', C.sub),
-                t(total, 8, 'medium', C.txt, { minScale: 0.65 }),
-              ],
-            },
-            {
-              type: 'stack',
-              direction: 'column',
-              alignItems: 'end',
-              gap: 1,
-              children: [
-                t('已用', 7, 'regular', C.sub),
-                t(used, 8, 'medium', C.txt, { minScale: 0.65 }),
+                {
+                  type: 'stack',
+                  direction: 'row',
+                  alignItems: 'end',
+                  gap: 3,
+                  children: [
+                    t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 22, 'bold', C.txt, { minScale: 0.45 }),
+                    t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
+                  ],
+                },
+                t('套餐 ' + total, 8, 'medium', C.sub, { minScale: 0.65 }),
+                t('已用 ' + used, 8, 'medium', C.sub, { minScale: 0.65 }),
               ],
             },
           ],
@@ -840,9 +828,9 @@ function buildSmall(title, ds, fromCache) {
       ], {
         width: 0,
         flex: 1,
-        padding: [7, 9],
+        padding: [7, 10],
         borderRadius: 14,
-        gap: 5,
+        gap: 4,
         backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
         borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
       })
