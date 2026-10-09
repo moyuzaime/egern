@@ -793,9 +793,9 @@ function buildSmall(title, ds, fromCache) {
           gap: 4,
           children: [
             { type: 'image', src: 'sf-symbol:phone.fill', width: 10, height: 10, color: C.voice },
-            t('通话时长', 9, 'semibold', C.sub),
+            t('通话剩余', 9, 'semibold', C.sub),
             { type: 'spacer' },
-            t('剩余语音', 8, 'medium', C.sub),
+            t('分钟', 8, 'medium', C.sub),
           ],
         },
         {
@@ -808,10 +808,11 @@ function buildSmall(title, ds, fromCache) {
               type: 'stack',
               direction: 'row',
               alignItems: 'end',
-              gap: 2,
+              justifyContent: 'center',
+              gap: 3,
               flex: 1,
               children: [
-                t(ds.voice.number, 18, 'bold', C.txt, { minScale: 0.5 }),
+                t(ds.voice.number, 19, 'bold', C.txt, { minScale: 0.5 }),
                 t('分钟', 9, 'semibold', C.sub),
               ],
             },
@@ -838,9 +839,11 @@ function buildSmall(title, ds, fromCache) {
           ],
         },
       ], {
-        padding: [6, 8],
+        width: 0,
+        flex: 1,
+        padding: [5, 8],
         borderRadius: 14,
-        gap: 4,
+        gap: 3,
         backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
         borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
       })
