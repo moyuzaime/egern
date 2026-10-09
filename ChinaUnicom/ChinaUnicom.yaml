@@ -1,0 +1,42 @@
+name: 中国联通小组件
+description: 中国联通话费、语音、流量小组件（自动捕获 App 登录信息）
+author: iBL3ND
+icon: https://iili.io/nEuB6Jt.png
+
+compat_arguments:
+  cuCapture: 'true'
+
+compat_arguments_schema:
+  cuCapture:
+    name: 中国联通数据抓取
+    description: 打开中国联通 App，进入首页并点击余额位置即可自动捕获
+    default_value: 'true'
+    options:
+      - 'true'
+      - 'false'
+
+dns: {}
+
+scriptings:
+  - generic:
+      name: china-unicom
+      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaUnicom/ChinaUnicom_Widget.js
+      update_interval: 60
+      timeout: 20
+
+  - http_request:
+      name: 中国联通 App 自动捕获
+      match: '^https://m\.client\.10010\.com/'
+      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaUnicom/ChinaUnicom_Widget.js
+      body_required: false
+      max_size: 1048576
+      timeout: 10
+
+mitm:
+  hostnames:
+    includes:
+      - m.client.10010.com
+
+widgets:
+  - name: china-unicom
+    script_name: china-unicom
