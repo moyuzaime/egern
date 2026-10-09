@@ -1,5 +1,5 @@
 name: 中国广电小组件
-description: 中国广电 话费 语音 流量小组件
+description: 中国广电 话费 语音 流量小组件（App、微信、支付宝自动捕获）
 author: wuhuhuuuu
 icon: https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/03CNSoft/ChinaBroadcastNetwork.png
 
@@ -26,7 +26,7 @@ scriptings:
 
   - http_request:
       name: 中国广电 App / 支付宝小程序自动捕获
-      match: '^https://(?:app|zfb)\.10099\.com\.cn/contact-web/api/busi/qryUserInfo'
+      match: '^https://(?:app|wx|zfb)\\.10099\\.com\\.cn/contact-web/api/busi/qryUserInfo'
       script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Widget.js
       body_required: true
       max_size: 1048576
@@ -36,6 +36,7 @@ mitm:
   hostnames:
     includes:
       - app.10099.com.cn
+      - wx.10099.com.cn
       - zfb.10099.com.cn
 
 widgets:
