@@ -63,30 +63,39 @@ function readRequestBody(ctx) {
           }
         }
       } catch (e) {}
-      return raw;
+      // An empty Request-like object is not the parsed payload. Let json()/text()
+      // read the actual body instead of returning {} and masking it.
+      try {
+        if (Object.keys(raw).length > 0) return raw;
+      } catch (e) {}
+      return null;
     }
 
     return null;
   }
 
   return (async () => {
-    // Prefer a directly exposed body because calling json() may consume a stream.
+    // Some Egern runtimes expose req.body as an empty Request-like object while
+    // the actual payload is available through req.json() or req.text().
     try {
       const body = parseBody(req.body);
-      if (body != null) return body;
+      if (body != null && (typeof body !== 'object' || Object.keys(body).length > 0)) return body;
+    } catch (e) {}
+
+    try {
+      if (typeof req.json === 'function') {
+        const body = await req.json();
+        if (body != null) {
+          const parsed = parseBody(body);
+          if (parsed != null) return parsed;
+        }
+      }
     } catch (e) {}
 
     try {
       if (typeof req.text === 'function') {
         const raw = await req.text();
         const body = parseBody(raw);
-        if (body != null) return body;
-      }
-    } catch (e) {}
-
-    try {
-      if (typeof req.json === 'function') {
-        const body = await req.json();
         if (body != null) return body;
       }
     } catch (e) {}
