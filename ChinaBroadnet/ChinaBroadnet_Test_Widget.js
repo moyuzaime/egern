@@ -144,11 +144,16 @@ function formatFee(v) {
 function formatFlow(v) {
   const n = Number(v);
   if (!Number.isFinite(n)) return { number: '--', unit: 'GB' };
-  const gb = 1024 * 1024;
-  const mb = 1024;
+
+  // 广电 userData.flowAll/flow/flowUserd 返回字节数，按 1024 进制换算。
+  const kb = 1024;
+  const mb = 1024 * 1024;
+  const gb = 1024 * 1024 * 1024;
+
   if (n >= gb) return { number: (n / gb).toFixed(2), unit: 'GB' };
   if (n >= mb) return { number: (n / mb).toFixed(2), unit: 'MB' };
-  return { number: n.toFixed(2), unit: 'KB' };
+  if (n >= kb) return { number: (n / kb).toFixed(2), unit: 'KB' };
+  return { number: n.toFixed(0), unit: 'B' };
 }
 
 function formatVoice(v) {
