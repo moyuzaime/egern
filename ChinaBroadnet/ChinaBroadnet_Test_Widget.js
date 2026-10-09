@@ -319,10 +319,31 @@ async function loadData(ctx) {
   const queryStartedAt = Date.now();
   try {
     stage = '请求广电接口';
-    const result = await fetchData(ctx, access, data, url);
+    let queryUrl = url;
+    let result = await fetchData(ctx, access, data, queryUrl);
+
+    // 微信接口偶尔会返回 PAPERLESS002（无订单数据）。
+    // 记录业务错误，并仅对该错误尝试一次 App 接口备用查询。
+    if (result && result.status !== '000000' && queryUrl.indexOf('wx.') >= 0) {
+      console.log(
+        '[ChinaBroadnet-Hark] 微信接口业务失败：status=' +
+        String(result.status || '(空)') +
+        '，message=' + String(result.message || '(空)')
+      );
+
+      if (String(result.status) === 'PAPERLESS002') {
+        queryUrl = API_URL;
+        console.log('[ChinaBroadnet-Hark] 收到 PAPERLESS002，尝试一次 App 接口备用查询');
+        result = await fetchData(ctx, access, data, queryUrl);
+      }
+    }
+
     stage = '解析套餐字段';
     if (!result || result.status !== '000000' || !result.data) {
-      throw new Error('API 返回异常');
+      const code = result && result.status != null ? String(result.status) : '(无响应)';
+      const message = result && result.message != null ? String(result.message) : '接口未返回业务错误说明';
+      console.log('[ChinaBroadnet-Hark] API业务失败：status=' + code + '，message=' + message);
+      throw new Error('API业务失败：' + code + '，' + message);
     }
 
     const user = result.data.userData || result.data;
