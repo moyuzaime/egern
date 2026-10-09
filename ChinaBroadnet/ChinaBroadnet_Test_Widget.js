@@ -145,10 +145,9 @@ function formatFlow(v) {
   const n = Number(v);
   if (!Number.isFinite(n)) return { number: '--', unit: 'GB' };
 
-  // 广电接口流量字段以字节返回，组件统一换算为 GB 展示。
-  const gb = 1024 * 1024 * 1024;
-  return { number: (n / gb).toFixed(2), unit: 'GB' };
-}
+  // 广电接口流量字段以 KB 返回，按 1024 KB = 1 MB、1024 MB = 1 GB 换算。
+  const kbPerGb = 1024 * 1024;
+  return { number: (n / kbPerGb).toFixed(2), unit: 'GB' };
 
 function formatVoice(v) {
   const n = Number(v);
