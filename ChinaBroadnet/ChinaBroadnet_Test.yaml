@@ -22,7 +22,7 @@ scriptings:
       name: china-broadnet-hark-test
       script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Test_Widget.js
       update_interval: 60
-      timeout: 20
+      timeout: 30
 
   - http_request:
       name: 中国广电 App 自动捕获
@@ -30,7 +30,7 @@ scriptings:
       script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Test_Widget.js
       body_required: true
       max_size: 1048576
-      timeout: 10
+      timeout: 20
 
 mitm:
   hostnames:
