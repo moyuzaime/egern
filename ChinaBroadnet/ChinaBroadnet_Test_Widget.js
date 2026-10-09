@@ -378,11 +378,32 @@ async function loadData(ctx) {
   }
 }
 
+function fontSize(size) {
+  if (typeof size === 'number') {
+    if (size <= 8) return 9;
+    if (size <= 10) return 10;
+    if (size <= 13) return 12;
+    if (size <= 19) return 16;
+    return 24;
+  }
+
+  const named = {
+    caption2: 9,
+    caption1: 10,
+    footnote: 12,
+    body: 16,
+    title3: 20,
+    title2: 22,
+    title: 24,
+  };
+  return named[size] || 12;
+}
+
 function t(text, size, weight, color, extra) {
   return Object.assign({
     type: 'text',
     text: String(text),
-    font: { size, weight: weight || 'regular' },
+    font: { size: fontSize(size), weight: weight || 'regular' },
     textColor: color || C.txt,
     maxLines: 1,
     minScale: 0.6,
