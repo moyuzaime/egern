@@ -459,6 +459,20 @@ function gaugeSvg(pct, color, w) {
     );
 }
 
+function todayUsedFlow(history) {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const samples = (history || [])
+    .filter(x => Number(x.ts) >= start.getTime())
+    .sort((a, b) => Number(a.ts) - Number(b.ts))
+    .filter(x => Number.isFinite(Number(x.flowKB)));
+  if (samples.length < 2) return null;
+  const first = Number(samples[0].flowKB);
+  const last = Number(samples[samples.length - 1].flowKB);
+  if (!Number.isFinite(first) || !Number.isFinite(last) || first < last) return null;
+  return first - last;
+}
+
 function historyDeltaText(history) {
   const vals = (history || []).map(x => Number(x.flowKB)).filter(Number.isFinite);
   if (vals.length < 2) return '采集中';
@@ -773,54 +787,78 @@ function buildSmall(title, ds, fromCache) {
         ],
       },
 
-      glass([
-        {
-          type: 'stack',
-          direction: 'row',
-          alignItems: 'center',
-          gap: 4,
-          children: [
-            { type: 'image', src: 'sf-symbol:phone.fill', width: 10, height: 10, color: C.voice },
-            t('剩余语音', 9, 'semibold', C.sub),
-          ],
-        },
-        {
-          type: 'stack',
-          direction: 'row',
-          alignItems: 'center',
-          gap: 10,
-          children: [
+      {
+        type: 'stack',
+        direction: 'row',
+        alignItems: 'stretch',
+        gap: 7,
+        children: [
+          glass([
             {
               type: 'stack',
-              direction: 'column',
-              alignItems: 'start',
-              gap: 2,
-              flex: 1,
+              direction: 'row',
+              alignItems: 'center',
+              gap: 4,
               children: [
-                {
-                  type: 'stack',
-                  direction: 'row',
-                  alignItems: 'end',
-                  gap: 3,
-                  children: [
-                    t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 22, 'bold', C.txt, { minScale: 0.45 }),
-                    t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
-                  ],
-                },
-
+                { type: 'image', src: 'sf-symbol:phone.fill', width: 10, height: 10, color: C.voice },
+                t('剩余语音', 9, 'semibold', C.sub),
               ],
             },
-          ],
-        },
-      ], {
-        width: 0,
-        flex: 1,
-        padding: [7, 10],
-        borderRadius: 14,
-        gap: 4,
-        backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
-        borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
-      })
+            {
+              type: 'stack',
+              direction: 'row',
+              alignItems: 'end',
+              gap: 3,
+              children: [
+                t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 22, 'bold', C.txt, { minScale: 0.45 }),
+                t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
+              ],
+            },
+          ], {
+            width: 0,
+            flex: 1,
+            padding: [7, 9],
+            borderRadius: 14,
+            gap: 5,
+            backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
+            borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
+          }),
+          (() => {
+            const usedToday = todayUsedFlow(ds.history);
+            const f = usedToday == null ? { number: '--', unit: '' } : formatFlow(usedToday);
+            return glass([
+              {
+                type: 'stack',
+                direction: 'row',
+                alignItems: 'center',
+                gap: 4,
+                children: [
+                  { type: 'image', src: 'sf-symbol:chart.bar.fill', width: 10, height: 10, color: C.flow },
+                  t('今日已用流量', 9, 'semibold', C.sub),
+                ],
+              },
+              {
+                type: 'stack',
+                direction: 'row',
+                alignItems: 'end',
+                gap: 3,
+                children: [
+                  t(f.number, 22, 'bold', C.txt, { minScale: 0.45 }),
+                  t(f.unit, 9, 'semibold', C.sub),
+                ],
+              },
+            ], {
+              width: 0,
+              flex: 1,
+              padding: [7, 9],
+              borderRadius: 14,
+              gap: 5,
+              backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
+              borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
+            });
+          })(),
+        ],
+      }
     ],
   };
 }
