@@ -2,7 +2,8 @@
 
 const API_URL = 'https://app.10099.com.cn/contact-web/api/busi/qryUserInfo';
 const MINI_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryUserInfo';
-const SUPPORTED_API_URLS = [API_URL, MINI_API_URL];
+const ALIPAY_API_URL = 'https://zfb.10099.com.cn/contact-web/api/busi/qryUserInfo';
+const SUPPORTED_API_URLS = [API_URL, MINI_API_URL, ALIPAY_API_URL];
 const BLOCKED_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryNeedPaperLess';
 const KEY = 'ChinaBroadnetHarkTest';
 
@@ -188,7 +189,7 @@ async function capture(ctx) {
     return parsedBody;
   };
 
-  if (/^https:\/\/(?:app|wx)\.10099\.com\.cn\//i.test(url)) {
+  if (/^https:\/\/(?:app|wx|zfb)\.10099\.com\.cn\//i.test(url)) {
     try {
       const body = await getParsedBody();
       const keys = [];
@@ -242,9 +243,11 @@ async function capture(ctx) {
     ctx.storage.setJSON(KEY + '.data', body.data);
     ctx.storage.set(KEY + '.captureTime', String(Date.now()));
 
-    const source = url.startsWith(MINI_API_URL)
-      ? '微信小程序'
-      : detectCaptureSource(req);
+    const source = url.startsWith(ALIPAY_API_URL)
+      ? '支付宝小程序'
+      : url.startsWith(MINI_API_URL)
+        ? '微信小程序'
+        : detectCaptureSource(req);
     ctx.notify({
       title: '中国广电',
       body: source + '数据捕获成功，正在查询套餐接口',
