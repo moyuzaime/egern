@@ -1,6 +1,9 @@
 'use strict';
 
 const API_URL = 'https://app.10099.com.cn/contact-web/api/busi/qryUserInfo';
+const ALIPAY_API_URL = 'https://zfb.10099.com.cn/contact-web/api/busi/qryUserInfo';
+const SUPPORTED_API_URLS = [API_URL, ALIPAY_API_URL];
+const BLOCKED_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryNeedPaperLess';
 const KEY = 'ChinaBroadnet';
 
 const C = {
@@ -154,14 +157,40 @@ function formatVoice(v) {
   return Number.isFinite(n) ? n.toFixed(0) : '--';
 }
 
+function detectCaptureSource(req) {
+  const headers = req && req.headers;
+  const hints = [
+    getHeader(headers, 'referer'),
+    getHeader(headers, 'origin'),
+    getHeader(headers, 'user-agent'),
+    getHeader(headers, 'x-requested-with'),
+  ].join(' ').toLowerCase();
+
+  if (/alipay|alipayclient|alipay\.com|mini\.alipay|my\.alipay/.test(hints)) return '支付宝小程序';
+  if (/weixin|micromessenger|wx\.qq\.com|servicewechat/.test(hints)) return '微信小程序';
+  return '中国广电 App 或未识别来源';
+}
+
 async function capture(ctx) {
   const req = ctx.request || {};
   const url = String(req.url || '');
   const method = String(req.method || '').toUpperCase();
+  // Ignore this endpoint entirely; the widget must never query it.
+  if (url.startsWith(BLOCKED_API_URL)) return;
+  // Parse the request body once and reuse it for both probing and capture.
+  let parsedBody = null;
+  let bodyRead = false;
+  const getParsedBody = async () => {
+    if (!bodyRead) {
+      parsedBody = await readRequestBody(ctx);
+      bodyRead = true;
+    }
+    return parsedBody;
+  };
 
-  if (/^https:\/\/app\\.10099\\.com\\.cn\//i.test(url)) {
+  if (/^https:\/\/(?:app|zfb)\.10099\.com\.cn\//i.test(url)) {
     try {
-      const body = await readRequestBody(ctx);
+      const body = await getParsedBody();
       const keys = [];
 
       function collectKeys(v, depth) {
@@ -187,31 +216,38 @@ async function capture(ctx) {
       ctx.storage.setJSON(KEY + '.apiProbe', next.slice(-60));
 
       console.log(
-        '[ChinaBroadnet-Hark] API侦察: ' +
+        '[ChinaBroadnet] API侦察: ' +
         method + ' ' + url +
         (keys.length ? ' | keys=' + keys.join(',') : '')
       );
     } catch (e) {
-      console.log('[ChinaBroadnet-Hark] probe error: ' + e);
+      console.log('[ChinaBroadnet] probe error: ' + e);
     }
   }
 
-  if (!url.startsWith(API_URL)) return;
+  const matchedApi = SUPPORTED_API_URLS.find(api => url.startsWith(api));
+  if (!matchedApi) return;
   if (method !== 'POST') return;
 
   try {
     const access = String(getHeader(req.headers, 'access') || '').trim();
-    const body = await readRequestBody(ctx);
-    if (!access || !body || body.data == null) return;
+    const body = await getParsedBody();
+    if (!access || !body || body.data == null) {
+      console.log('[ChinaBroadnet-Hark] 捕获未完成: ' + (!access ? '缺少 access 请求头' : '请求体中缺少 data'));
+      return;
+    }
 
     ctx.storage.set(KEY + '.url', url);
     ctx.storage.set(KEY + '.access', access);
     ctx.storage.setJSON(KEY + '.data', body.data);
     ctx.storage.set(KEY + '.captureTime', String(Date.now()));
 
+    const source = url.startsWith(ALIPAY_API_URL)
+      ? '支付宝小程序'
+      : detectCaptureSource(req);
     ctx.notify({
       title: '中国广电',
-      body: '数据捕获成功，正在侦察套餐接口',
+      body: source + '数据捕获成功，正在查询套餐接口',
       sound: false,
     });
   } catch (e) {
@@ -220,7 +256,11 @@ async function capture(ctx) {
 }
 
 async function fetchData(ctx, access, data, url) {
-  const resp = await ctx.http.post(url || API_URL, {
+  const targetUrl = url || API_URL;
+  if (targetUrl.startsWith(BLOCKED_API_URL)) {
+    throw new Error('已禁用 qryNeedPaperLess 接口');
+  }
+  const resp = await ctx.http.post(targetUrl, {
     timeout: 10000,
     headers: {
       access,
