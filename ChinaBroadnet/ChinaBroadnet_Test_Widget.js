@@ -807,13 +807,12 @@ function buildSmall(title, ds, fromCache) {
             {
               type: 'stack',
               direction: 'row',
-              alignItems: 'center',
-              gap: 3,
-              width: 0,
-              flex: 1,
+              alignItems: 'end',
+              gap: 4,
+              width: 150,
               children: [
-                t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 22, 'bold', C.txt, { minScale: 0.45 }),
-                t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
+                t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 25, 'bold', C.txt, { minScale: 0.5 }),
+                t(ds.voice.number === '--' ? '' : '分钟', 10, 'semibold', C.sub),
               ],
             },
             {
