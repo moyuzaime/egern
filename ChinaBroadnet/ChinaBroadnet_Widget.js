@@ -1088,11 +1088,6 @@ function buildLarge(title, ds, fromCache) {
               ],
             },
             {
-              type: 'divider',
-              color: { light: '#FFFFFF70', dark: '#FFFFFF35' },
-              size: 1,
-            },
-            {
               type: 'stack',
               direction: 'column',
               alignItems: 'start',
