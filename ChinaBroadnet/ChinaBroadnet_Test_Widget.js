@@ -3,6 +3,7 @@
 const API_URL = 'https://app.10099.com.cn/contact-web/api/busi/qryUserInfo';
 const MINI_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryUserInfo';
 const SUPPORTED_API_URLS = [API_URL, MINI_API_URL];
+const BLOCKED_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryNeedPaperLess';
 const KEY = 'ChinaBroadnetHarkTest';
 
 const C = {
