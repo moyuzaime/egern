@@ -793,9 +793,9 @@ function buildSmall(title, ds, fromCache) {
           gap: 4,
           children: [
             { type: 'image', src: 'sf-symbol:phone.fill', width: 10, height: 10, color: C.voice },
-            t('通话剩余', 9, 'semibold', C.sub),
+            t('通话时长', 9, 'semibold', C.sub),
             { type: 'spacer' },
-            t('分钟', 8, 'medium', C.sub),
+            t('剩余语音', 8, 'medium', C.sub),
           ],
         },
         {
@@ -812,8 +812,8 @@ function buildSmall(title, ds, fromCache) {
               gap: 3,
               flex: 1,
               children: [
-                t(ds.voice.number, 19, 'bold', C.txt, { minScale: 0.5 }),
-                t('分钟', 9, 'semibold', C.sub),
+                t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 19, 'bold', C.txt, { minScale: 0.35 }),
+                t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
               ],
             },
             {
