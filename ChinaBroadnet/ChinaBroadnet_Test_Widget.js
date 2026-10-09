@@ -1,6 +1,8 @@
 'use strict';
 
 const API_URL = 'https://app.10099.com.cn/contact-web/api/busi/qryUserInfo';
+const MINI_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryUserInfo';
+const SUPPORTED_API_URLS = [API_URL, MINI_API_URL];
 const KEY = 'ChinaBroadnetHarkTest';
 
 const C = {
@@ -159,7 +161,7 @@ async function capture(ctx) {
   const url = String(req.url || '');
   const method = String(req.method || '').toUpperCase();
 
-  if (/^https:\/\/app\\.10099\\.com\\.cn\//i.test(url)) {
+  if (/^https:\/\/(?:app|wx)\.10099\.com\.cn\//i.test(url)) {
     try {
       const body = await readRequestBody(ctx);
       const keys = [];
@@ -196,7 +198,8 @@ async function capture(ctx) {
     }
   }
 
-  if (!url.startsWith(API_URL)) return;
+  const matchedApi = SUPPORTED_API_URLS.find(api => url.startsWith(api));
+  if (!matchedApi) return;
   if (method !== 'POST') return;
 
   try {
@@ -211,7 +214,9 @@ async function capture(ctx) {
 
     ctx.notify({
       title: '中国广电',
-      body: '数据捕获成功，正在侦察套餐接口',
+      body: url.startsWith(MINI_API_URL)
+        ? '微信小程序数据捕获成功，正在查询套餐接口'
+        : '中国广电 App 数据捕获成功，正在侦察套餐接口',
       sound: false,
     });
   } catch (e) {
