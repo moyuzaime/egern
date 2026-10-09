@@ -251,7 +251,7 @@ async function fetchData(ctx, access, data, url) {
   let resp;
   try {
     resp = await ctx.http.post(target, {
-      timeout: 20000,
+      timeout: 3000,
       headers: {
         access,
         'Content-Type': 'application/json',
