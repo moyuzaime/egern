@@ -654,7 +654,7 @@ function dataCard(icon, color, title, value, unit, detail) {
       alignItems: 'end',
       gap: 2,
       children: [
-        t(value, 24, 'bold', C.txt, { minScale: 0.55 }),
+        t(value, 20, 'bold', C.txt, { minScale: 0.4 }),
         t(unit, 9, 'semibold', C.sub),
       ],
     },
