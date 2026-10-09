@@ -943,21 +943,69 @@ function buildLarge(title, ds, fromCache) {
         gap: 10,
         children: [
           heroFlowCard(ds),
-          {
-            type: 'stack',
-            direction: 'column',
-            alignItems: 'start',
+          glass([
+            {
+              type: 'stack',
+              direction: 'row',
+              alignItems: 'center',
+              gap: 4,
+              children: [
+                { type: 'image', src: 'sf-symbol:phone.fill', width: 11, height: 11, color: C.voice },
+                t('通信余量', 10, 'semibold', C.txt),
+              ],
+            },
+            {
+              type: 'stack',
+              direction: 'column',
+              alignItems: 'start',
+              gap: 3,
+              children: [
+                t('剩余语音', 9, 'medium', C.sub),
+                {
+                  type: 'stack',
+                  direction: 'row',
+                  alignItems: 'end',
+                  gap: 3,
+                  children: [
+                    t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 23, 'bold', C.txt, { minScale: 0.5 }),
+                    t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
+                  ],
+                },
+              ],
+            },
+            {
+              type: 'divider',
+              color: { light: '#FFFFFF70', dark: '#FFFFFF35' },
+              size: 1,
+            },
+            {
+              type: 'stack',
+              direction: 'column',
+              alignItems: 'start',
+              gap: 2,
+              children: [
+                t('剩余话费', 9, 'medium', C.sub),
+                {
+                  type: 'stack',
+                  direction: 'row',
+                  alignItems: 'end',
+                  gap: 2,
+                  children: [
+                    t('¥', 12, 'semibold', C.fee),
+                    t(ds.fee.number, 22, 'bold', C.txt, { minScale: 0.55 }),
+                  ],
+                },
+              ],
+            },
+          ], {
             width: 132,
             height: 148,
-            gap: 8,
-            children: [
-              feeCard(ds),
-              dataCard(
-                'phone.fill', C.voice, '剩余语音', ds.voice.number, ds.voice.unit,
-                ''
-              ),
-            ],
-          },
+            padding: [9, 10],
+            borderRadius: 18,
+            gap: 5,
+            backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
+            borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
+          }),
         ],
       },
       glass([
