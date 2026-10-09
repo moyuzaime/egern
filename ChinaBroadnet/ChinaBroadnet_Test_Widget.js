@@ -161,123 +161,84 @@ async function capture(ctx) {
   const url = String(req.url || '');
   const method = String(req.method || '').toUpperCase();
 
-  if (!/^https:\/\/(?:app|wx)\.10099\.com\.cn\/contact-web\/api\/busi\/qryUserInfo(?:\?|$)/i.test(url)) {
-    return;
-  }
-  if (method !== 'POST') {
-    console.log('[ChinaBroadnet-Hark] 抓取跳过：接口请求方法不是 POST，method=' + (method || '(空)'));
-    return;
+  if (/^https:\/\/(?:app|wx)\.10099\.com\.cn\//i.test(url)) {
+    try {
+      const body = await readRequestBody(ctx);
+      const keys = [];
+
+      function collectKeys(v, depth) {
+        if (depth > 5 || v == null || typeof v !== 'object') return;
+        for (const k of Object.keys(v)) {
+          if (!keys.includes(k)) keys.push(k);
+          if (v[k] && typeof v[k] === 'object') collectKeys(v[k], depth + 1);
+        }
+      }
+
+      collectKeys(body, 0);
+
+      const old = ctx.storage.getJSON(KEY + '.apiProbe') || [];
+      const item = {
+        ts: Date.now(),
+        method,
+        url,
+        keys: keys.slice(0, 80),
+      };
+
+      const next = old.filter(x => !(x.url === url && x.method === method));
+      next.push(item);
+      ctx.storage.setJSON(KEY + '.apiProbe', next.slice(-60));
+
+      console.log(
+        '[ChinaBroadnet-Hark] API侦察: ' +
+        method + ' ' + url +
+        (keys.length ? ' | keys=' + keys.join(',') : '')
+      );
+    } catch (e) {
+      console.log('[ChinaBroadnet-Hark] probe error: ' + e);
+    }
   }
 
-  let body = null;
+  const matchedApi = SUPPORTED_API_URLS.find(api => url.startsWith(api));
+  if (!matchedApi) return;
+  if (method !== 'POST') return;
+
   try {
-    body = await readRequestBody(ctx);
-  } catch (e) {
-    console.log('[ChinaBroadnet-Hark] 请求体读取失败：' + String(e));
-  }
+    const access = String(getHeader(req.headers, 'access') || '').trim();
+    const body = await readRequestBody(ctx);
+    if (!access || !body || body.data == null) return;
 
-  const access = String(getHeader(req.headers, 'access') || '').trim();
-  const hasData = !!(body && typeof body === 'object' && body.data != null);
-  const hasAccess = !!access;
-
-  // 记录诊断信息，但绝不记录 access/Cookie 等敏感凭据。
-  try {
-    const old = ctx.storage.getJSON(KEY + '.apiProbe') || [];
-    const item = {
-      ts: Date.now(),
-      method,
-      url,
-      bodyKeys: body && typeof body === 'object' ? Object.keys(body).slice(0, 40) : [],
-      hasData,
-      hasAccess,
-      contentType: String(getHeader(req.headers, 'content-type') || ''),
-    };
-    const next = old.filter(x => !(x.url === url && x.method === method));
-    next.push(item);
-    ctx.storage.setJSON(KEY + '.apiProbe', next.slice(-60));
-  } catch (e) {
-    console.log('[ChinaBroadnet-Hark] 诊断信息保存失败：' + String(e));
-  }
-
-  console.log(
-    '[ChinaBroadnet-Hark] 抓取检查：' +
-    'body=' + (body ? '已读取' : '为空') +
-    ', data=' + (hasData ? '存在' : '缺失') +
-    ', access=' + (hasAccess ? '存在' : '缺失')
-  );
-
-  if (!hasData) {
-    console.log('[ChinaBroadnet-Hark] 抓取未完成：请求体中没有 data 字段；请确认 Egern http_request 提供的是请求体，而不是响应体。');
-    return;
-  }
-
-  // 即使 access 暂时未被识别，也先保存请求数据，避免整个捕获流程静默失败。
-  try {
-    ctx.storage.set(KEY + '.url', url.split('?')[0]);
+    ctx.storage.set(KEY + '.url', url);
+    ctx.storage.set(KEY + '.access', access);
     ctx.storage.setJSON(KEY + '.data', body.data);
     ctx.storage.set(KEY + '.captureTime', String(Date.now()));
 
-    if (hasAccess) {
-      ctx.storage.set(KEY + '.access', access);
-    } else {
-      console.log('[ChinaBroadnet-Hark] 请求数据已保存，但 access 请求头未读取到；查询时需要重新捕获包含 access 的请求。');
-    }
-
-    if (hasAccess) {
-      ctx.notify({
-        title: '中国广电',
-        body: url.startsWith(MINI_API_URL)
-          ? '微信小程序请求已捕获，正在查询套餐数据'
-          : '中国广电 App 请求已捕获，正在查询套餐数据',
-        sound: false,
-      });
-    } else {
-      ctx.notify({
-        title: '中国广电',
-        body: '已捕获请求数据，但缺少 access 请求头，请查看日志',
-        sound: false,
-      });
-    }
+    ctx.notify({
+      title: '中国广电',
+      body: url.startsWith(MINI_API_URL)
+        ? '微信小程序数据捕获成功，正在查询套餐接口'
+        : '中国广电 App 数据捕获成功，正在侦察套餐接口',
+      sound: false,
+    });
   } catch (e) {
-    console.log('[ChinaBroadnet-Hark] 捕获保存失败：' + String(e));
+    console.log('[ChinaBroadnet-Hark] capture error: ' + e);
   }
 }
 
 async function fetchData(ctx, access, data, url) {
-  const target = url || API_URL;
-  const startedAt = Date.now();
-  console.log('[ChinaBroadnet-Hark] 查询开始：' + (target.indexOf('wx.') >= 0 ? '微信接口' : 'App接口'));
-
-  let resp;
-  try {
-    resp = await ctx.http.post(target, {
-      timeout: 3000,
-      headers: {
-        access,
-        'Content-Type': 'application/json',
-      },
-      body: { data },
-    });
-  } catch (e) {
-    console.log('[ChinaBroadnet-Hark] HTTP请求失败，耗时 ' + (Date.now() - startedAt) + 'ms：' + String(e));
-    throw new Error('HTTP请求失败：' + String(e));
-  }
-
-  const elapsed = Date.now() - startedAt;
-  console.log('[ChinaBroadnet-Hark] HTTP响应：status=' + (resp ? resp.status : '无响应') + '，耗时 ' + elapsed + 'ms');
+  const resp = await ctx.http.post(url || API_URL, {
+    timeout: 10000,
+    headers: {
+      access,
+      'Content-Type': 'application/json',
+    },
+    body: { data },
+  });
 
   if (!resp || resp.status < 200 || resp.status >= 300) {
-    throw new Error('HTTP状态异常：' + (resp ? resp.status : 'no-response'));
+    throw new Error('HTTP ' + (resp ? resp.status : 'no-response'));
   }
 
-  try {
-    const result = await resp.json();
-    console.log('[ChinaBroadnet-Hark] JSON解析完成，耗时 ' + (Date.now() - startedAt) + 'ms');
-    return result;
-  } catch (e) {
-    console.log('[ChinaBroadnet-Hark] JSON解析失败，耗时 ' + (Date.now() - startedAt) + 'ms：' + String(e));
-    throw new Error('响应JSON解析失败：' + String(e));
-  }
+  return await resp.json();
 }
 
 function fmtTime(ts) {
@@ -315,35 +276,10 @@ async function loadData(ctx) {
     return { configured: false, data: null };
   }
 
-  let stage = '准备请求';
-  const queryStartedAt = Date.now();
   try {
-    stage = '请求广电接口';
-    let queryUrl = url;
-    let result = await fetchData(ctx, access, data, queryUrl);
-
-    // 微信接口偶尔会返回 PAPERLESS002（无订单数据）。
-    // 记录业务错误，并仅对该错误尝试一次 App 接口备用查询。
-    if (result && result.status !== '000000' && queryUrl.indexOf('wx.') >= 0) {
-      console.log(
-        '[ChinaBroadnet-Hark] 微信接口业务失败：status=' +
-        String(result.status || '(空)') +
-        '，message=' + String(result.message || '(空)')
-      );
-
-      if (String(result.status) === 'PAPERLESS002') {
-        queryUrl = API_URL;
-        console.log('[ChinaBroadnet-Hark] 收到 PAPERLESS002，尝试一次 App 接口备用查询');
-        result = await fetchData(ctx, access, data, queryUrl);
-      }
-    }
-
-    stage = '解析套餐字段';
+    const result = await fetchData(ctx, access, data, url);
     if (!result || result.status !== '000000' || !result.data) {
-      const code = result && result.status != null ? String(result.status) : '(无响应)';
-      const message = result && result.message != null ? String(result.message) : '接口未返回业务错误说明';
-      console.log('[ChinaBroadnet-Hark] API业务失败：status=' + code + '，message=' + message);
-      throw new Error('API业务失败：' + code + '，' + message);
+      throw new Error('API 返回异常');
     }
 
     const user = result.data.userData || result.data;
@@ -434,7 +370,7 @@ async function loadData(ctx) {
 
     return { configured: true, data: ds, fromCache: false };
   } catch (e) {
-    console.log('[ChinaBroadnet-Hark] query error [' + stage + ']，总耗时 ' + (Date.now() - queryStartedAt) + 'ms：' + String(e));
+    console.log('[ChinaBroadnet-Hark] query error: ' + e);
     return {
       configured: true,
       data: (() => {
@@ -1236,7 +1172,7 @@ async function handleWidget(ctx) {
   return buildSmall('中国广电', result.data, result.fromCache);
 }
 
-async function main(ctx) {
+export default async function(ctx) {
   if (ctx.request && ctx.request.url) {
     return capture(ctx);
   }
