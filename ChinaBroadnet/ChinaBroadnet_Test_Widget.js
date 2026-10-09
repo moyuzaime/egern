@@ -244,20 +244,40 @@ async function capture(ctx) {
 }
 
 async function fetchData(ctx, access, data, url) {
-  const resp = await ctx.http.post(url || API_URL, {
-    timeout: 20000,
-    headers: {
-      access,
-      'Content-Type': 'application/json',
-    },
-    body: { data },
-  });
+  const target = url || API_URL;
+  const startedAt = Date.now();
+  console.log('[ChinaBroadnet-Hark] 查询开始：' + (target.indexOf('wx.') >= 0 ? '微信接口' : 'App接口'));
 
-  if (!resp || resp.status < 200 || resp.status >= 300) {
-    throw new Error('HTTP ' + (resp ? resp.status : 'no-response'));
+  let resp;
+  try {
+    resp = await ctx.http.post(target, {
+      timeout: 20000,
+      headers: {
+        access,
+        'Content-Type': 'application/json',
+      },
+      body: { data },
+    });
+  } catch (e) {
+    console.log('[ChinaBroadnet-Hark] HTTP请求失败，耗时 ' + (Date.now() - startedAt) + 'ms：' + String(e));
+    throw new Error('HTTP请求失败：' + String(e));
   }
 
-  return await resp.json();
+  const elapsed = Date.now() - startedAt;
+  console.log('[ChinaBroadnet-Hark] HTTP响应：status=' + (resp ? resp.status : '无响应') + '，耗时 ' + elapsed + 'ms');
+
+  if (!resp || resp.status < 200 || resp.status >= 300) {
+    throw new Error('HTTP状态异常：' + (resp ? resp.status : 'no-response'));
+  }
+
+  try {
+    const result = await resp.json();
+    console.log('[ChinaBroadnet-Hark] JSON解析完成，耗时 ' + (Date.now() - startedAt) + 'ms');
+    return result;
+  } catch (e) {
+    console.log('[ChinaBroadnet-Hark] JSON解析失败，耗时 ' + (Date.now() - startedAt) + 'ms：' + String(e));
+    throw new Error('响应JSON解析失败：' + String(e));
+  }
 }
 
 function fmtTime(ts) {
@@ -295,8 +315,12 @@ async function loadData(ctx) {
     return { configured: false, data: null };
   }
 
+  let stage = '准备请求';
+  const queryStartedAt = Date.now();
   try {
+    stage = '请求广电接口';
     const result = await fetchData(ctx, access, data, url);
+    stage = '解析套餐字段';
     if (!result || result.status !== '000000' || !result.data) {
       throw new Error('API 返回异常');
     }
@@ -389,7 +413,7 @@ async function loadData(ctx) {
 
     return { configured: true, data: ds, fromCache: false };
   } catch (e) {
-    console.log('[ChinaBroadnet-Hark] query error: ' + e);
+    console.log('[ChinaBroadnet-Hark] query error [' + stage + ']，总耗时 ' + (Date.now() - queryStartedAt) + 'ms：' + String(e));
     return {
       configured: true,
       data: (() => {
