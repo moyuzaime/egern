@@ -785,74 +785,65 @@ function buildSmall(title, ds, fromCache) {
         ],
       },
 
-      {
-        type: 'stack',
-        direction: 'row',
-        alignItems: 'center',
-        gap: 5,
-        padding: [5, 7],
-        borderRadius: 12,
-        backgroundColor: C.glass,
-        borderWidth: 1,
-        borderColor: C.glassBorder,
-        children: [
-          {
-            type: 'stack',
-            direction: 'row',
-            alignItems: 'center',
-            gap: 3,
-            flex: 1,
-            children: [
-              {
-                type: 'image',
-                src: 'sf-symbol:phone.fill',
-                width: 9,
-                height: 9,
-                color: C.voice,
-              },
-              {
-                type: 'stack',
-                direction: 'column',
-                alignItems: 'start',
-                gap: 2,
-                children: [
-                  {
-                    type: 'stack',
-                    direction: 'row',
-                    alignItems: 'center',
-                    gap: 3,
-                    children: [
-                      { type: 'image', src: 'sf-symbol:phone.fill', width: 9, height: 9, color: C.voice },
-                      t('剩余语音', 8, 'medium', C.sub),
-                    ],
-                  },
-                  t(ds.voice.number + ' 分钟', 10, 'semibold', C.txt, { minScale: 0.55 }),
-                ],
-              },
-            ],
-          },
-          {
-            type: 'stack',
-            direction: 'column',
-            alignItems: 'end',
-            gap: 0,
-            children: [
-              t('套餐', 7, 'regular', C.sub),
-              t(total, 8, 'medium', C.sub, { minScale: 0.65 }),
-            ],
-          },
-          {
-            type: 'stack',
-            direction: 'column',
-            alignItems: 'end',
-            gap: 0,
-            children: [
-              t('已用', 7, 'regular', C.sub),
-              t(used, 8, 'medium', C.sub, { minScale: 0.65 }),
-            ],
-          },
-        ],
-      },
+      glass([
+        {
+          type: 'stack',
+          direction: 'row',
+          alignItems: 'center',
+          gap: 4,
+          children: [
+            { type: 'image', src: 'sf-symbol:phone.fill', width: 10, height: 10, color: C.voice },
+            t('通话时长', 9, 'semibold', C.sub),
+            { type: 'spacer' },
+            t('剩余语音', 8, 'medium', C.sub),
+          ],
+        },
+        {
+          type: 'stack',
+          direction: 'row',
+          alignItems: 'center',
+          gap: 8,
+          children: [
+            {
+              type: 'stack',
+              direction: 'row',
+              alignItems: 'end',
+              gap: 2,
+              flex: 1,
+              children: [
+                t(ds.voice.number, 18, 'bold', C.txt, { minScale: 0.5 }),
+                t('分钟', 9, 'semibold', C.sub),
+              ],
+            },
+            {
+              type: 'stack',
+              direction: 'column',
+              alignItems: 'end',
+              gap: 1,
+              children: [
+                t('套餐', 7, 'regular', C.sub),
+                t(total, 8, 'medium', C.txt, { minScale: 0.65 }),
+              ],
+            },
+            {
+              type: 'stack',
+              direction: 'column',
+              alignItems: 'end',
+              gap: 1,
+              children: [
+                t('已用', 7, 'regular', C.sub),
+                t(used, 8, 'medium', C.txt, { minScale: 0.65 }),
+              ],
+            },
+          ],
+        },
+      ], {
+        padding: [6, 8],
+        borderRadius: 14,
+        gap: 4,
+        backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
+        borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
+      })
     ],
   };
 }
