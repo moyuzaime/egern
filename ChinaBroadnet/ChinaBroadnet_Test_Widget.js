@@ -623,7 +623,7 @@ function feeCard(ds) {
       gap: 2,
       children: [
         t('¥', 13, 'semibold', low ? '#FF453A' : C.fee),
-        t(ds.fee.number, 26, 'bold', low ? '#FF453A' : C.txt, {
+        t(ds.fee.number, 24, 'bold', low ? '#FF453A' : C.txt, {
           minScale: 0.62,
         }),
       ],
@@ -654,7 +654,7 @@ function dataCard(icon, color, title, value, unit, detail) {
       alignItems: 'end',
       gap: 2,
       children: [
-        t(value, 19, 'bold', C.txt, { minScale: 0.55 }),
+        t(value, 24, 'bold', C.txt, { minScale: 0.55 }),
         t(unit, 9, 'semibold', C.sub),
       ],
     },
