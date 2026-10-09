@@ -157,6 +157,20 @@ function formatVoice(v) {
   return Number.isFinite(n) ? n.toFixed(0) : '--';
 }
 
+function detectCaptureSource(req) {
+  const headers = req && req.headers;
+  const hints = [
+    getHeader(headers, 'referer'),
+    getHeader(headers, 'origin'),
+    getHeader(headers, 'user-agent'),
+    getHeader(headers, 'x-requested-with'),
+  ].join(' ').toLowerCase();
+
+  if (/alipay|alipayclient|alipay\.com|mini\.alipay|my\.alipay/.test(hints)) return '支付宝小程序';
+  if (/weixin|micromessenger|wx\.qq\.com|servicewechat/.test(hints)) return '微信小程序';
+  return '中国广电 App 或未识别来源';
+}
+
 async function capture(ctx) {
   const req = ctx.request || {};
   const url = String(req.url || '');
@@ -228,11 +242,12 @@ async function capture(ctx) {
     ctx.storage.setJSON(KEY + '.data', body.data);
     ctx.storage.set(KEY + '.captureTime', String(Date.now()));
 
+    const source = url.startsWith(MINI_API_URL)
+      ? '微信小程序'
+      : detectCaptureSource(req);
     ctx.notify({
       title: '中国广电',
-      body: url.startsWith(MINI_API_URL)
-        ? '微信小程序数据捕获成功，正在查询套餐接口'
-        : '中国广电 App 数据捕获成功，正在侦察套餐接口',
+      body: source + '数据捕获成功，正在查询套餐接口',
       sound: false,
     });
   } catch (e) {
