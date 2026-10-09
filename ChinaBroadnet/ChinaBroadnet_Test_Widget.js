@@ -1,8 +1,9 @@
 'use strict';
 
 const API_URL = 'https://app.10099.com.cn/contact-web/api/busi/qryUserInfo';
+const MINI_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryUserInfo';
 const ALIPAY_API_URL = 'https://zfb.10099.com.cn/contact-web/api/busi/qryUserInfo';
-const SUPPORTED_API_URLS = [API_URL, ALIPAY_API_URL];
+const SUPPORTED_API_URLS = [API_URL, MINI_API_URL, ALIPAY_API_URL];
 const BLOCKED_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryNeedPaperLess';
 const KEY = 'ChinaBroadnetHarkTest';
 
@@ -34,26 +35,81 @@ function bg() {
 
 function readRequestBody(ctx) {
   const req = ctx.request || {};
+
+  function parseBody(raw) {
+    if (raw == null || raw === '') return null;
+
+    if (typeof raw === 'string') {
+      try {
+        return JSON.parse(raw);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Some runtimes expose the body as a byte buffer instead of a string.
+    if (typeof raw === 'object') {
+      try {
+        if (raw.data != null) return raw;
+        if (typeof raw.text === 'function') return null;
+        if (typeof raw.length === 'number' &&
+            (raw instanceof Uint8Array || Object.prototype.toString.call(raw) === '[object Uint8Array]')) {
+          let text = '';
+          for (let i = 0; i < raw.length; i++) text += String.fromCharCode(raw[i]);
+          try {
+            return JSON.parse(decodeURIComponent(escape(text)));
+          } catch (e) {
+            try { return JSON.parse(text); } catch (e2) { return null; }
+          }
+        }
+      } catch (e) {}
+      // An empty Request-like object is not the parsed payload. Let json()/text()
+      // read the actual body instead of returning {} and masking it.
+      try {
+        if (Object.keys(raw).length > 0) return raw;
+      } catch (e) {}
+      return null;
+    }
+
+    return null;
+  }
+
   return (async () => {
+    // Some Egern runtimes expose req.body as an empty Request-like object while
+    // the actual payload is available through req.json() or req.text().
+    try {
+      const body = parseBody(req.body);
+      if (body != null && (typeof body !== 'object' || Object.keys(body).length > 0)) return body;
+    } catch (e) {}
+
     try {
       if (typeof req.json === 'function') {
         const body = await req.json();
-        if (body && body.data != null) return body;
+        if (body != null) {
+          const parsed = parseBody(body);
+          if (parsed != null) return parsed;
+        }
       }
     } catch (e) {}
+
     try {
-      const raw = req.body;
-      if (typeof raw === 'string' && raw) return JSON.parse(raw);
-      if (raw && typeof raw === 'object') return raw;
-    } catch (e) {}
-    try {
-      if (typeof $request !== 'undefined' && $request && $request.body) {
-        return typeof $request.body === 'string' ? JSON.parse($request.body) : $request.body;
+      if (typeof req.text === 'function') {
+        const raw = await req.text();
+        const body = parseBody(raw);
+        if (body != null) return body;
       }
     } catch (e) {}
+
+    try {
+      if (typeof $request !== 'undefined' && $request && $request.body != null) {
+        const body = parseBody($request.body);
+        if (body != null) return body;
+      }
+    } catch (e) {}
+
     return null;
   })();
-};
+}
 
 function getHeader(headers, name) {
   if (!headers) return '';
@@ -188,7 +244,7 @@ async function capture(ctx) {
     return parsedBody;
   };
 
-  if (/^https:\/\/(?:app|zfb)\.10099\.com\.cn\//i.test(url)) {
+  if (/^https:\/\/(?:app|wx|zfb)\.10099\.com\.cn\//i.test(url)) {
     try {
       const body = await getParsedBody();
       const keys = [];
@@ -215,10 +271,28 @@ async function capture(ctx) {
       next.push(item);
       ctx.storage.setJSON(KEY + '.apiProbe', next.slice(-60));
 
+      // Log only the shape of the request context; never log header values or body contents.
+      let bodyType = body == null ? 'null' : (Array.isArray(body) ? 'array' : typeof body);
+      let bodyKeys = [];
+      try {
+        if (body && typeof body === 'object') bodyKeys = Object.keys(body).slice(0, 30);
+      } catch (e) {}
+      let requestKeys = [];
+      try { requestKeys = Object.keys(req).slice(0, 40); } catch (e) {}
+      let rawBodyType = 'missing';
+      try {
+        const rawBody = req.body;
+        rawBodyType = rawBody == null ? 'null' : (Array.isArray(rawBody) ? 'array' : typeof rawBody);
+      } catch (e) {}
+
       console.log(
         '[ChinaBroadnet] API侦察: ' +
         method + ' ' + url +
-        (keys.length ? ' | keys=' + keys.join(',') : '')
+        (keys.length ? ' | keys=' + keys.join(',') : '') +
+        ' | bodyType=' + bodyType +
+        ' | bodyKeys=' + bodyKeys.join(',') +
+        ' | rawBodyType=' + rawBodyType +
+        ' | requestKeys=' + requestKeys.join(',')
       );
     } catch (e) {
       console.log('[ChinaBroadnet] probe error: ' + e);
