@@ -1,8 +1,9 @@
 'use strict';
 
 const API_URL = 'https://app.10099.com.cn/contact-web/api/busi/qryUserInfo';
+const MINI_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryUserInfo';
 const ALIPAY_API_URL = 'https://zfb.10099.com.cn/contact-web/api/busi/qryUserInfo';
-const SUPPORTED_API_URLS = [API_URL, ALIPAY_API_URL];
+const SUPPORTED_API_URLS = [API_URL, MINI_API_URL, ALIPAY_API_URL];
 const BLOCKED_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryNeedPaperLess';
 const KEY = 'ChinaBroadnet';
 
@@ -188,7 +189,7 @@ async function capture(ctx) {
     return parsedBody;
   };
 
-  if (/^https:\/\/(?:app|zfb)\.10099\.com\.cn\//i.test(url)) {
+  if (/^https:\/\/(?:app|wx|zfb)\.10099\.com\.cn\//i.test(url)) {
     try {
       const body = await getParsedBody();
       const keys = [];
