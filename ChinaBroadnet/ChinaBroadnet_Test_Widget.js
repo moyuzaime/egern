@@ -807,8 +807,7 @@ function buildSmall(title, ds, fromCache) {
                     t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
                   ],
                 },
-                t('套餐 ' + total, 8, 'medium', C.sub, { minScale: 0.65 }),
-                t('已用 ' + used, 8, 'medium', C.sub, { minScale: 0.65 }),
+
               ],
             },
           ],
@@ -873,16 +872,7 @@ function buildMedium(title, ds, fromCache) {
         t('分', 8, 'semibold', C.sub),
       ],
     },
-    t(
-      ds.plan && ds.plan.voiceUsed != null
-        ? ('已用 ' + formatVoice(ds.plan.voiceUsed) + ' 分')
-        : (ds.plan && ds.plan.voiceTotal != null
-          ? ('套餐 ' + formatVoice(ds.plan.voiceTotal) + ' 分')
-          : '剩余语音'),
-      8,
-      'regular',
-      C.sub
-    ),
+
   ], {
     height: 50,
     padding: [6, 8],
@@ -953,9 +943,7 @@ function buildLarge(title, ds, fromCache) {
               feeCard(ds),
               dataCard(
                 'phone.fill', C.voice, '剩余语音', ds.voice.number, ds.voice.unit,
-                ds.plan && ds.plan.voiceUsed != null
-                  ? '已用 ' + formatVoice(ds.plan.voiceUsed) + ' 分钟'
-                  : (ds.plan && ds.plan.voiceTotal != null ? '套餐 ' + formatVoice(ds.plan.voiceTotal) + ' 分钟' : '')
+                ''
               ),
             ],
           },
