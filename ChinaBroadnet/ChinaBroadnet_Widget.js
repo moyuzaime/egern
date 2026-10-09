@@ -35,26 +35,72 @@ function bg() {
 
 function readRequestBody(ctx) {
   const req = ctx.request || {};
+
+  function parseBody(raw) {
+    if (raw == null || raw === '') return null;
+
+    if (typeof raw === 'string') {
+      try {
+        return JSON.parse(raw);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Some runtimes expose the body as a byte buffer instead of a string.
+    if (typeof raw === 'object') {
+      try {
+        if (raw.data != null) return raw;
+        if (typeof raw.text === 'function') return null;
+        if (typeof raw.length === 'number' &&
+            (raw instanceof Uint8Array || Object.prototype.toString.call(raw) === '[object Uint8Array]')) {
+          let text = '';
+          for (let i = 0; i < raw.length; i++) text += String.fromCharCode(raw[i]);
+          try {
+            return JSON.parse(decodeURIComponent(escape(text)));
+          } catch (e) {
+            try { return JSON.parse(text); } catch (e2) { return null; }
+          }
+        }
+      } catch (e) {}
+      return raw;
+    }
+
+    return null;
+  }
+
   return (async () => {
+    // Prefer a directly exposed body because calling json() may consume a stream.
+    try {
+      const body = parseBody(req.body);
+      if (body != null) return body;
+    } catch (e) {}
+
+    try {
+      if (typeof req.text === 'function') {
+        const raw = await req.text();
+        const body = parseBody(raw);
+        if (body != null) return body;
+      }
+    } catch (e) {}
+
     try {
       if (typeof req.json === 'function') {
         const body = await req.json();
-        if (body && body.data != null) return body;
+        if (body != null) return body;
       }
     } catch (e) {}
+
     try {
-      const raw = req.body;
-      if (typeof raw === 'string' && raw) return JSON.parse(raw);
-      if (raw && typeof raw === 'object') return raw;
-    } catch (e) {}
-    try {
-      if (typeof $request !== 'undefined' && $request && $request.body) {
-        return typeof $request.body === 'string' ? JSON.parse($request.body) : $request.body;
+      if (typeof $request !== 'undefined' && $request && $request.body != null) {
+        const body = parseBody($request.body);
+        if (body != null) return body;
       }
     } catch (e) {}
+
     return null;
   })();
-};
+}
 
 function getHeader(headers, name) {
   if (!headers) return '';
