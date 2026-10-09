@@ -841,6 +841,7 @@ function buildSmall(title, ds, fromCache) {
           }),
         ],
       }
+    ],
   };
 }
 
