@@ -1191,7 +1191,7 @@ async function handleWidget(ctx) {
   return buildSmall('中国广电', result.data, result.fromCache);
 }
 
-export default async function(ctx) {
+async function main(ctx) {
   if (ctx.request && ctx.request.url) {
     return capture(ctx);
   }
