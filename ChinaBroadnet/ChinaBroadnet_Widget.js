@@ -262,10 +262,28 @@ async function capture(ctx) {
       next.push(item);
       ctx.storage.setJSON(KEY + '.apiProbe', next.slice(-60));
 
+      // Log only the shape of the request context; never log header values or body contents.
+      let bodyType = body == null ? 'null' : (Array.isArray(body) ? 'array' : typeof body);
+      let bodyKeys = [];
+      try {
+        if (body && typeof body === 'object') bodyKeys = Object.keys(body).slice(0, 30);
+      } catch (e) {}
+      let requestKeys = [];
+      try { requestKeys = Object.keys(req).slice(0, 40); } catch (e) {}
+      let rawBodyType = 'missing';
+      try {
+        const rawBody = req.body;
+        rawBodyType = rawBody == null ? 'null' : (Array.isArray(rawBody) ? 'array' : typeof rawBody);
+      } catch (e) {}
+
       console.log(
         '[ChinaBroadnet] API侦察: ' +
         method + ' ' + url +
-        (keys.length ? ' | keys=' + keys.join(',') : '')
+        (keys.length ? ' | keys=' + keys.join(',') : '') +
+        ' | bodyType=' + bodyType +
+        ' | bodyKeys=' + bodyKeys.join(',') +
+        ' | rawBodyType=' + rawBodyType +
+        ' | requestKeys=' + requestKeys.join(',')
       );
     } catch (e) {
       console.log('[ChinaBroadnet] probe error: ' + e);
