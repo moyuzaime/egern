@@ -866,9 +866,11 @@ function buildMedium(title, ds, fromCache) {
       ],
     },
     t(
-      ds.plan && ds.plan.voiceTotal != null
-        ? ('套餐 ' + formatVoice(ds.plan.voiceTotal) + ' 分')
-        : '剩余语音',
+      ds.plan && ds.plan.voiceUsed != null
+        ? ('已用 ' + formatVoice(ds.plan.voiceUsed) + ' 分')
+        : (ds.plan && ds.plan.voiceTotal != null
+          ? ('套餐 ' + formatVoice(ds.plan.voiceTotal) + ' 分')
+          : '剩余语音'),
       8,
       'regular',
       C.sub
@@ -879,10 +881,6 @@ function buildMedium(title, ds, fromCache) {
     gap: 2,
     borderRadius: 16,
   });
-
-  const voiceDetail = ds.plan && ds.plan.voiceUsed != null
-    ? '已用 ' + formatVoice(ds.plan.voiceUsed) + ' 分钟'
-    : (ds.plan && ds.plan.voiceTotal != null ? '套餐 ' + formatVoice(ds.plan.voiceTotal) + ' 分钟' : '语音余量');
 
   const row = {
     type: 'stack',
