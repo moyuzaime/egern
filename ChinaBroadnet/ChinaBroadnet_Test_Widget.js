@@ -150,6 +150,7 @@ function formatFlow(v) {
   if (n >= mb) return { number: (n / mb).toFixed(2), unit: 'MB' };
   return { number: n.toFixed(2), unit: 'KB' };
 }
+
 function formatVoice(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n.toFixed(0) : '--';
@@ -204,25 +205,7 @@ async function capture(ctx) {
   try {
     const access = String(getHeader(req.headers, 'access') || '').trim();
     const body = await readRequestBody(ctx);
-
-    // 仅记录鉴权头和参数是否存在，不输出敏感值。
-    console.log(
-      '[ChinaBroadnet-Hark] 捕获检查: ' +
-      (url.startsWith(MINI_API_URL) ? '微信小程序' : '广电 App') +
-      ' | access=' + (access ? '有' : '无') +
-      ' | body.data=' + (body && body.data != null ? '有' : '无')
-    );
-
-    if (!access || !body || body.data == null) {
-      if (url.startsWith(MINI_API_URL)) {
-        ctx.notify({
-          title: '中国广电测试版',
-          body: !access ? '已发现微信接口，但请求头中没有 access' : '已发现微信接口，但没有读取到 body.data',
-          sound: false,
-        });
-      }
-      return;
-    }
+    if (!access || !body || body.data == null) return;
 
     ctx.storage.set(KEY + '.url', url);
     ctx.storage.set(KEY + '.access', access);
@@ -1189,9 +1172,9 @@ async function handleWidget(ctx) {
   return buildSmall('中国广电', result.data, result.fromCache);
 }
 
-(async function(ctx) {
+export default async function(ctx) {
   if (ctx.request && ctx.request.url) {
     return capture(ctx);
   }
   return handleWidget(ctx);
-})
+}
