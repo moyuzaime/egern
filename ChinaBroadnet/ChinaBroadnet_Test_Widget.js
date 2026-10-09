@@ -699,6 +699,7 @@ function buildSmall(title, ds, fromCache) {
           },
           t(title, 12, 'semibold', C.txt),
           { type: 'spacer' },
+          t(`${fromCache ? '缓存 · ' : ''}更新 ${fmtTime(ds.updatedAt)}`, 8, 'medium', C.sub, { minScale: 0.7 }),
         ],
       },
 
