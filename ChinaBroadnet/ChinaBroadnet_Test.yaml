@@ -25,7 +25,7 @@ scriptings:
       timeout: 10
 
   - http_request:
-      name: 中国广电 App / 小程序自动捕获
+      name: 中国广电 App / 支付宝小程序自动捕获
       match: '^https://(?:app|wx)\.10099\.com\.cn/contact-web/api/busi/qryUserInfo'
       script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Test_Widget.js
       body_required: true
@@ -37,6 +37,7 @@ mitm:
     includes:
       - app.10099.com.cn
       - wx.10099.com.cn
+      - zfb.10099.com.cn
 
 widgets:
   - name: china-broadnet-hark-test
