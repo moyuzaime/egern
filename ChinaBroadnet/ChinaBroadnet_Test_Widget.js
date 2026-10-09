@@ -771,7 +771,7 @@ function buildSmall(title, ds, fromCache) {
           gap: 4,
           children: [
             { type: 'image', src: 'sf-symbol:phone.fill', width: 10, height: 10, color: C.voice },
-            t('语音通话', 9, 'semibold', C.sub),
+            t('通信余量', 9, 'semibold', C.sub),
           ],
         },
         {
