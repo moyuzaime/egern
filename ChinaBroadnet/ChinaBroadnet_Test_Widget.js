@@ -161,6 +161,8 @@ async function capture(ctx) {
   const req = ctx.request || {};
   const url = String(req.url || '');
   const method = String(req.method || '').toUpperCase();
+  // Ignore this endpoint entirely; the widget must never query it.
+  if (url.startsWith(BLOCKED_API_URL)) return;
   // Parse the request body once and reuse it for both probing and capture.
   let parsedBody = null;
   let bodyRead = false;
@@ -239,7 +241,11 @@ async function capture(ctx) {
 }
 
 async function fetchData(ctx, access, data, url) {
-  const resp = await ctx.http.post(url || API_URL, {
+  const targetUrl = url || API_URL;
+  if (targetUrl.startsWith(BLOCKED_API_URL)) {
+    throw new Error('已禁用 qryNeedPaperLess 接口');
+  }
+  const resp = await ctx.http.post(targetUrl, {
     timeout: 10000,
     headers: {
       access,
