@@ -807,12 +807,12 @@ function buildSmall(title, ds, fromCache) {
             {
               type: 'stack',
               direction: 'row',
-              alignItems: 'end',
-              justifyContent: 'center',
+              alignItems: 'center',
               gap: 3,
+              width: 0,
               flex: 1,
               children: [
-                t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 19, 'bold', C.txt, { minScale: 0.35 }),
+                t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 22, 'bold', C.txt, { minScale: 0.45 }),
                 t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
               ],
             },
@@ -841,9 +841,9 @@ function buildSmall(title, ds, fromCache) {
       ], {
         width: 0,
         flex: 1,
-        padding: [5, 8],
+        padding: [7, 9],
         borderRadius: 14,
-        gap: 3,
+        gap: 5,
         backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
         borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
       })
