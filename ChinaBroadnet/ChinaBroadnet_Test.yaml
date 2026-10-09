@@ -39,3 +39,4 @@ mitm:
 
 widgets:
   - name: china-broadnet-hark-test
+    script_name: china-broadnet-hark-test
