@@ -599,11 +599,11 @@ function feeCard(ds) {
       type: 'stack',
       direction: 'row',
       alignItems: 'end',
-      gap: 3,
+      gap: 2,
       children: [
-        t('¥', 12, 'semibold', low ? '#FF453A' : C.fee),
-        t(ds.fee.number, 22, 'bold', low ? '#FF453A' : C.txt, {
-          minScale: 0.7,
+        t('¥', 13, 'semibold', low ? '#FF453A' : C.fee),
+        t(ds.fee.number, 26, 'bold', low ? '#FF453A' : C.txt, {
+          minScale: 0.62,
         }),
       ],
     },
