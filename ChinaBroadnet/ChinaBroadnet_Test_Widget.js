@@ -791,7 +791,7 @@ function buildSmall(title, ds, fromCache) {
         type: 'stack',
         direction: 'row',
         alignItems: 'stretch',
-        gap: 7,
+        gap: 4,
         children: [
           glass([
             {
@@ -801,7 +801,7 @@ function buildSmall(title, ds, fromCache) {
               gap: 4,
               children: [
                 { type: 'image', src: 'sf-symbol:phone.fill', width: 10, height: 10, color: C.voice },
-                t('剩余语音', 9, 'semibold', C.sub),
+                t('剩余语音', 8, 'semibold', C.sub),
               ],
             },
             {
@@ -810,14 +810,14 @@ function buildSmall(title, ds, fromCache) {
               alignItems: 'end',
               gap: 3,
               children: [
-                t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 22, 'bold', C.txt, { minScale: 0.45 }),
+                t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 17, 'bold', C.txt, { minScale: 0.35 }),
                 t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
               ],
             },
           ], {
             width: 0,
             flex: 1,
-            padding: [7, 9],
+            padding: [5, 5],
             borderRadius: 14,
             gap: 5,
             backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
@@ -834,7 +834,7 @@ function buildSmall(title, ds, fromCache) {
                 gap: 4,
                 children: [
                   { type: 'image', src: 'sf-symbol:chart.bar.fill', width: 10, height: 10, color: C.flow },
-                  t('今日已用流量', 9, 'semibold', C.sub),
+                  t('今日已用流量', 8, 'semibold', C.sub),
                 ],
               },
               {
@@ -843,14 +843,14 @@ function buildSmall(title, ds, fromCache) {
                 alignItems: 'end',
                 gap: 3,
                 children: [
-                  t(f.number, 22, 'bold', C.txt, { minScale: 0.45 }),
+                  t(f.number, 17, 'bold', C.txt, { minScale: 0.35 }),
                   t(f.unit, 9, 'semibold', C.sub),
                 ],
               },
             ], {
               width: 0,
               flex: 1,
-              padding: [7, 9],
+              padding: [5, 5],
               borderRadius: 14,
               gap: 5,
               backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
