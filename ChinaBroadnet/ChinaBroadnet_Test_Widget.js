@@ -699,16 +699,6 @@ function buildSmall(title, ds, fromCache) {
           },
           t(title, 12, 'semibold', C.txt),
           { type: 'spacer' },
-          {
-            type: 'stack',
-            direction: 'row',
-            alignItems: 'end',
-            gap: 2,
-            children: [
-              t('¥', 9, 'semibold', C.fee),
-              t(ds.fee.number, 13, 'bold', C.txt, { minScale: 0.7 }),
-            ],
-          },
         ],
       },
 
@@ -781,7 +771,7 @@ function buildSmall(title, ds, fromCache) {
           gap: 4,
           children: [
             { type: 'image', src: 'sf-symbol:phone.fill', width: 10, height: 10, color: C.voice },
-            t('剩余语音', 9, 'semibold', C.sub),
+            t('语音通话', 9, 'semibold', C.sub),
           ],
         },
         {
@@ -797,6 +787,7 @@ function buildSmall(title, ds, fromCache) {
               gap: 2,
               flex: 1,
               children: [
+                t('剩余语音', 8, 'medium', C.sub),
                 {
                   type: 'stack',
                   direction: 'row',
@@ -807,7 +798,26 @@ function buildSmall(title, ds, fromCache) {
                     t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
                   ],
                 },
-
+              ],
+            },
+            {
+              type: 'stack',
+              direction: 'column',
+              alignItems: 'start',
+              gap: 2,
+              flex: 1,
+              children: [
+                t('剩余话费', 8, 'medium', C.sub),
+                {
+                  type: 'stack',
+                  direction: 'row',
+                  alignItems: 'end',
+                  gap: 2,
+                  children: [
+                    t('¥', 12, 'semibold', C.fee),
+                    t(ds.fee.number, 22, 'bold', C.txt, { minScale: 0.45 }),
+                  ],
+                },
               ],
             },
           ],
