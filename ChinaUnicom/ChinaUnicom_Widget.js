@@ -431,20 +431,6 @@ function bg() {
   };
 }
 
-function bg() {
-  return {
-    type: 'radial',
-    colors: [
-      { light: '#EEF6FF', dark: '#405A70' },
-      { light: '#F8F4FF', dark: '#514761' },
-      { light: '#EEFCF6', dark: '#3E5E53' },
-    ],
-    stops: [0, 0.55, 1],
-    center: { x: 0.22, y: 0.12 },
-    startRadius: 0,
-    endRadius: 520,
-  };
-}
 
 
 function fmtTime(ts) {
