@@ -226,7 +226,7 @@ async function capture(ctx) {
 
 async function fetchData(ctx, access, data, url) {
   const resp = await ctx.http.post(url || API_URL, {
-    timeout: 3000,
+    timeout: 10000,
     headers: {
       access,
       'Content-Type': 'application/json',
