@@ -144,11 +144,12 @@ function formatFee(v) {
 function formatFlow(v) {
   const n = Number(v);
   if (!Number.isFinite(n)) return { number: '--', unit: 'GB' };
-
-  // 广电接口流量字段以 KB 返回，按 1024 KB = 1 MB、1024 MB = 1 GB 换算。
-  const kbPerGb = 1024 * 1024;
-  return { number: (n / kbPerGb).toFixed(2), unit: 'GB' };
-
+  const gb = 1024 * 1024;
+  const mb = 1024;
+  if (n >= gb) return { number: (n / gb).toFixed(2), unit: 'GB' };
+  if (n >= mb) return { number: (n / mb).toFixed(2), unit: 'MB' };
+  return { number: n.toFixed(2), unit: 'KB' };
+}
 function formatVoice(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n.toFixed(0) : '--';
