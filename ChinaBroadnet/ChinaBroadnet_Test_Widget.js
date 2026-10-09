@@ -668,7 +668,7 @@ function dataCard(icon, color, title, value, unit, detail) {
 }
 
 function buildSmall(title, ds, fromCache) {
-  const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : 0;
+  const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const remain = ds.flow.number + ' ' + ds.flow.unit;
   const used = ds.plan && ds.plan.used != null
     ? formatFlow(ds.plan.used).number + ' ' + formatFlow(ds.plan.used).unit
@@ -737,29 +737,17 @@ function buildSmall(title, ds, fromCache) {
                   t(ds.flow.unit, 10, 'semibold', C.sub),
                 ],
               },
-              {
-                type: 'stack',
-                direction: 'row',
-                alignItems: 'center',
-                gap: 4,
-                children: [
-                  {
-                    type: 'image',
-                    src: 'sf-symbol:chart.pie.fill',
-                    width: 8,
-                    height: 8,
-                    color: C.flow,
-                  },
-                  t(
-                    p != null
-                      ? Math.round((1 - p) * 100) + '% 剩余'
-                      : '套餐用量待确认',
-                    8,
-                    'semibold',
-                    C.flow
-                  ),
-                ],
-              },
+              t(
+                ds.plan && ds.plan.used != null && ds.plan.total != null
+                  ? '已用 ' + used + ' / 套餐 ' + total
+                  : (ds.plan && ds.plan.remain != null
+                    ? '套餐余量 ' + formatFlow(ds.plan.remain).number + ' ' + formatFlow(ds.plan.remain).unit
+                    : '套餐用量待确认'),
+                8,
+                'semibold',
+                C.flow,
+                { minScale: 0.55 }
+              ),
             ],
           },
           {
@@ -775,7 +763,7 @@ function buildSmall(title, ds, fromCache) {
                 height: 32,
               },
               t(
-                p != null ? Math.round(p * 100) + '% 已用' : '—',
+                p != null ? Math.round(p * 100) + '% 已用' : '套餐',
                 8,
                 'bold',
                 C.flow
