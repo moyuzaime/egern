@@ -1,12 +1,3 @@
-/**
- * 中国广电小组件 · iOS 27 Liquid Glass
- *
- * 数据层沿用正式版，UI 参考：
- * zhaohantao1360-hash/Hark/china-mobile-hark-dash.js
- *
- * 本测试版只调整 UI，不改变正式版文件。
- */
-
 'use strict';
 
 const API_URL = 'https://app.10099.com.cn/contact-web/api/busi/qryUserInfo';
@@ -16,10 +7,8 @@ const C = {
   fee: '#FF9F0A',
   flow: '#0A84FF',
   voice: '#30D158',
-  other: '#64D2FF',
   txt: { light: '#000000', dark: '#FFFFFF' },
   sub: { light: '#3C3C4399', dark: '#EBEBF599' },
-  // iOS 27 Ultra Clear：低不透明度 + 高光边缘 + 深色分离
   glass: { light: '#FFFFFF22', dark: '#FFFFFF30' },
   glassBorder: { light: '#FFFFFF70', dark: '#FFFFFF68' },
   glassShadow: { light: '#64748B06', dark: '#00000003' },
@@ -40,7 +29,6 @@ function bg() {
   };
 }
 
-// 兼容不同 Egern 版本：部分环境对 request.json() 的容错不同
 function readRequestBody(ctx) {
   const req = ctx.request || {};
   return (async () => {
@@ -85,8 +73,6 @@ function findValue(obj, keys) {
   return null;
 }
 
-// 只扫描“套餐资源”相关字段，避免把手机号、姓名等敏感字段写入调试信息。
-// 目标是定位广电接口里的：总量 / 已用 / 剩余 / 套餐资源字段。
 function scanPlanFields(root) {
   const out = [];
   const seen = new Set();
@@ -173,8 +159,6 @@ async function capture(ctx) {
   const url = String(req.url || '');
   const method = String(req.method || '').toUpperCase();
 
-  // 侦察中国广电 App 的所有 HTTPS API。
-  // 这里只保存 URL、方法和请求体字段名，不保存 Cookie/手机号/完整请求体。
   if (/^https:\/\/app\\.10099\\.com\\.cn\//i.test(url)) {
     try {
       const body = await readRequestBody(ctx);
@@ -198,7 +182,6 @@ async function capture(ctx) {
         keys: keys.slice(0, 80),
       };
 
-      // 同一个接口只保留最近一次，避免大量重复请求撑爆存储。
       const next = old.filter(x => !(x.url === url && x.method === method));
       next.push(item);
       ctx.storage.setJSON(KEY + '.apiProbe', next.slice(-60));
@@ -213,7 +196,6 @@ async function capture(ctx) {
     }
   }
 
-  // 正式数据捕获仍然只处理 qryUserInfo，不受侦察逻辑影响。
   if (!url.startsWith(API_URL)) return;
   if (method !== 'POST') return;
 
@@ -269,7 +251,6 @@ function saveHistory(ctx, flow) {
     const now = Date.now();
     const next = old.filter(x => now - Number(x.ts) < 7 * 86400000);
     const last = next[next.length - 1];
-    // 30 分钟刷新周期内不重复堆积相同快照
     if (!last || now - Number(last.ts) >= 25 * 60 * 1000 || Number(last.flowKB) !== n) {
       next.push({ ts: now, flowKB: n });
     }
@@ -298,7 +279,6 @@ async function loadData(ctx) {
 
     const user = result.data.userData || result.data;
 
-    // 自动探测套餐资源字段。只保存与套餐资源明显相关的数值字段。
     const planFields = scanPlanFields(result.data);
     const totalField = pickPlanMetric(planFields, 'total');
     const usedField = pickPlanMetric(planFields, 'used');
@@ -318,9 +298,6 @@ async function loadData(ctx) {
       percent: planPercent,
     });
 
-    // 已确认的中国广电套餐字段，优先使用真实接口字段；自动探测仅作为其他套餐/接口的兜底。
-    // 注意：flowAll / flowUserd / flow 均为字节（Byte）。
-    // flowUserd 是广电接口原始字段拼写，不能改成 used。
     const feeRaw = findValue(user, ['fee', 'balance', 'money', 'remainFee']);
     const flowTotalRaw = findValue(user, ['flowAll']);
     const flowUsedRaw = findValue(user, ['flowUserd']);
@@ -485,7 +462,6 @@ function historySvg(history, color, w, h) {
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 
-
 function heroFlowCard(ds) {
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const remain = ds.flow.number + ' ' + ds.flow.unit;
@@ -608,7 +584,6 @@ function feeCard(ds) {
           color: low ? '#FF453A' : C.fee,
         },
         t('剩余话费', 9, 'medium', C.sub),
-        t(low ? '余额偏低' : '可用余额', 8, 'medium', low ? '#FF453A' : C.sub),
       ],
     },
     {
@@ -621,7 +596,6 @@ function feeCard(ds) {
         t(ds.fee.number, 22, 'bold', low ? '#FF453A' : C.txt, {
           minScale: 0.7,
         }),
-        t('元', 8, 'medium', C.sub),
       ],
     },
   ], {
@@ -661,58 +635,6 @@ function dataCard(icon, color, title, value, unit) {
   });
 }
 
-function gaugeCard(icon, color, title, value, unit, percent) {
-  return glass([
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'center',
-      gap: 3,
-      children: [
-        { type: 'image', src: 'sf-symbol:' + icon, width: 10, height: 10, color },
-        t(title, 9, 'medium', C.sub),
-      ],
-    },
-    {
-      type: 'stack',
-      direction: 'column',
-      alignItems: 'center',
-      gap: -3,
-      children: [
-        {
-          type: 'image',
-          src: gaugeSvg(percent, color, 64),
-          width: 54,
-          height: 31,
-        },
-        t(
-          percent > 0 ? Math.round(percent * 100) + '%' : '—',
-          9,
-          'bold',
-          color
-        ),
-      ],
-    },
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'end',
-      gap: 2,
-      children: [
-        t(value, 18, 'bold', C.txt, { minScale: 0.55 }),
-        t(unit, 8, 'semibold', C.sub),
-      ],
-    },
-  ], {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-    padding: [8, 6],
-    borderRadius: 18,
-    height: 96,
-  });
-}
-
 function buildSmall(title, ds, fromCache) {
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : 0;
   const remain = ds.flow.number + ' ' + ds.flow.unit;
@@ -730,7 +652,6 @@ function buildSmall(title, ds, fromCache) {
     backgroundGradient: bg(),
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
-      // 顶部采用“品牌 + 余额”，避免重复占用底部空间
       {
         type: 'stack',
         direction: 'row',
@@ -759,7 +680,6 @@ function buildSmall(title, ds, fromCache) {
         ],
       },
 
-      // 主视觉：流量数字 + 半圆仪表
       {
         type: 'stack',
         direction: 'row',
@@ -833,7 +753,6 @@ function buildSmall(title, ds, fromCache) {
         ],
       },
 
-      // 底部做成轻量信息栏，不再把三项数据全部挤成一行。
       {
         type: 'stack',
         direction: 'row',
@@ -889,8 +808,6 @@ function buildSmall(title, ds, fromCache) {
 }
 
 function buildMedium(title, ds, fromCache) {
-  // 中号 Widget 高度有限：这里改为“固定行高 + 固定卡片高度”，
-  // 不再让右侧两张卡使用 flex:1，避免 Egern 在有限高度下发生重叠。
   const compactFee = glass([
     {
       type: 'stack',
@@ -910,7 +827,6 @@ function buildMedium(title, ds, fromCache) {
         t('¥' + ds.fee.number, 17, 'bold', C.txt, { minScale: 0.65 }),
       ],
     },
-    t('可用余额', 8, 'regular', C.sub),
   ], {
     height: 50,
     padding: [6, 8],
@@ -976,9 +892,6 @@ function buildMedium(title, ds, fromCache) {
     ],
   };
 
-  // 只保留核心三项，移除中号底部“流量快照”卡。
-  // 原布局总高度约 88 + 8 + 88，已经超过中号 Widget 可用高度，
-  // 再叠加 header/padding 后必然出现裁切/重叠。
   return {
     type: 'widget',
     padding: [10, 11],
@@ -990,17 +903,6 @@ function buildMedium(title, ds, fromCache) {
       row,
     ],
   };
-}
-
-function planText(ds) {
-  const p = ds.plan || {};
-  if (p.total != null && p.remain != null) {
-    return '套餐总量已探测 · 剩余 ' + p.remain + ' / 总量 ' + p.total;
-  }
-  if (p.total != null && p.used != null) {
-    return '套餐总量已探测 · 已用 ' + p.used + ' / 总量 ' + p.total;
-  }
-  return '等待接口返回套餐总量字段';
 }
 
 function buildLarge(title, ds, fromCache) {
@@ -1065,16 +967,7 @@ function buildLarge(title, ds, fromCache) {
           width: 290,
           height: 48,
         },
-        t(
-          ds.plan && ds.plan.total != null
-            ? ('套餐流量 · 已用 ' + (formatFlow(ds.plan.used).number) + formatFlow(ds.plan.used).unit +
-               ' / ' + (formatFlow(ds.plan.total).number) + formatFlow(ds.plan.total).unit)
-            : '等待接口返回套餐总量字段',
-          8,
-          'regular',
-          C.sub,
-          { maxLines: 2, minScale: 0.7 }
-        ),
+
       ], {
         width: 0,
         flex: 1,
@@ -1082,26 +975,6 @@ function buildLarge(title, ds, fromCache) {
         padding: [10, 13],
         borderRadius: 18,
       }),
-      {
-        type: 'stack',
-        direction: 'row',
-        alignItems: 'center',
-        gap: 5,
-        width: 0,
-        flex: 1,
-        children: [
-          {
-            type: 'image',
-            src: 'sf-symbol:clock.fill',
-            width: 10,
-            height: 10,
-            color: C.flow,
-          },
-          t('自动刷新 30 分钟', 9, 'medium', C.sub),
-          { type: 'spacer' },
-          t('iOS 27 Liquid Glass', 9, 'semibold', C.flow),
-        ],
-      },
     ],
   };
 }
@@ -1158,7 +1031,6 @@ function buildLock(title, ds, family) {
       t(`流量 ${ds.flow.number}${ds.flow.unit} · 语音 ${ds.voice.number}分`, 'caption2', 'semibold', C.txt, {
         minScale: 0.6,
       }),
-      t('iOS 27 Liquid Glass', 'caption2', 'regular', C.sub),
     ],
   };
 }
@@ -1184,7 +1056,6 @@ function buildError(title, message) {
         minScale: 0.7,
       }),
       { type: 'spacer' },
-      t('测试版：数据层沿用中国广电原接口', 'caption2', 'regular', C.sub),
     ],
   };
 }
