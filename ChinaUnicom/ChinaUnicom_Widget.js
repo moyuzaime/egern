@@ -32,7 +32,7 @@ const API_URL =
  * ========================================================= */
 
 const COLORS = {
-  bg: { light: '#EEF6FF', dark: '#405A70' },
+  unicomWidgetBackgroundGradient: { light: '#EEF6FF', dark: '#405A70' },
   border: { light: '#FFFFFF78', dark: '#FFFFFF70' },
   title: { light: '#3C3C4399', dark: '#EBEBF599' },
   value: { light: '#000000', dark: '#FFFFFF' },
@@ -416,7 +416,7 @@ const C = {
   glassShadow: { light: '#64748B06', dark: '#00000003' },
 };
 
-function bg() {
+function unicomWidgetBackgroundGradient() {
   return {
     type: 'radial',
     colors: [
@@ -747,7 +747,7 @@ function buildSmall(title, ds, fromCache) {
     type: 'widget',
     padding: 11,
     gap: 7,
-    backgroundGradient: bg(),
+    backgroundGradient: unicomWidgetBackgroundGradient(),
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
       {
@@ -984,7 +984,7 @@ function buildMedium(title, ds, fromCache) {
     type: 'widget',
     padding: [10, 11],
     gap: 6,
-    backgroundGradient: bg(),
+    backgroundGradient: unicomWidgetBackgroundGradient(),
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
       header(title, ds, fromCache),
@@ -998,7 +998,7 @@ function buildLarge(title, ds, fromCache) {
     type: 'widget',
     padding: 15,
     gap: 10,
-    backgroundGradient: bg(),
+    backgroundGradient: unicomWidgetBackgroundGradient(),
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
       header(title, ds, fromCache),
@@ -1179,7 +1179,7 @@ function buildError(title, message) {
     type: 'widget',
     padding: 14,
     gap: 6,
-    backgroundGradient: bg(),
+    backgroundGradient: unicomWidgetBackgroundGradient(),
     children: [
       t(title, 'footnote', 'semibold'),
       { type: 'spacer' },
