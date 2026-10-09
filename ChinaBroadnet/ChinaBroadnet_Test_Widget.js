@@ -773,55 +773,74 @@ function buildSmall(title, ds, fromCache) {
         ],
       },
 
-      glass([
-        {
-          type: 'stack',
-          direction: 'row',
-          alignItems: 'center',
-          gap: 4,
-          children: [
-            { type: 'image', src: 'sf-symbol:phone.fill', width: 10, height: 10, color: C.voice },
-            t('剩余语音', 9, 'semibold', C.sub),
-          ],
-        },
-        {
-          type: 'stack',
-          direction: 'row',
-          alignItems: 'center',
-          gap: 10,
-          children: [
+      {
+        type: 'stack',
+        direction: 'row',
+        alignItems: 'stretch',
+        gap: 6,
+        children: [
+          glass([
             {
               type: 'stack',
-              direction: 'column',
-              alignItems: 'start',
-              gap: 2,
-              flex: 1,
+              direction: 'row',
+              alignItems: 'center',
+              gap: 4,
               children: [
-                {
-                  type: 'stack',
-                  direction: 'row',
-                  alignItems: 'end',
-                  gap: 3,
-                  children: [
-                    t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 22, 'bold', C.txt, { minScale: 0.45 }),
-                    t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
-                  ],
-                },
-
+                { type: 'image', src: 'sf-symbol:yensign.circle.fill', width: 10, height: 10, color: C.fee },
+                t('剩余话费', 9, 'semibold', C.sub),
               ],
             },
-          ],
-        },
-      ], {
-        width: 0,
-        flex: 1,
-        padding: [7, 10],
-        borderRadius: 14,
-        gap: 4,
-        backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
-        borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
-      })
-    ],
+            {
+              type: 'stack',
+              direction: 'row',
+              alignItems: 'end',
+              gap: 2,
+              children: [
+                t('¥', 12, 'semibold', C.fee),
+                t(ds.fee.number, 20, 'bold', C.txt, { minScale: 0.45 }),
+              ],
+            },
+          ], {
+            width: 0,
+            flex: 1,
+            padding: [7, 8],
+            borderRadius: 14,
+            gap: 5,
+            backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
+            borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
+          }),
+          glass([
+            {
+              type: 'stack',
+              direction: 'row',
+              alignItems: 'center',
+              gap: 4,
+              children: [
+                { type: 'image', src: 'sf-symbol:phone.fill', width: 10, height: 10, color: C.voice },
+                t('剩余语音', 9, 'semibold', C.sub),
+              ],
+            },
+            {
+              type: 'stack',
+              direction: 'row',
+              alignItems: 'end',
+              gap: 3,
+              children: [
+                t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 20, 'bold', C.txt, { minScale: 0.4 }),
+                t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
+              ],
+            },
+          ], {
+            width: 0,
+            flex: 1,
+            padding: [7, 8],
+            borderRadius: 14,
+            gap: 5,
+            backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
+            borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
+          }),
+        ],
+      }
   };
 }
 
