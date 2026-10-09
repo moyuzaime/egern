@@ -810,7 +810,25 @@ function buildSmall(title, ds, fromCache) {
                 height: 9,
                 color: C.voice,
               },
-              t(ds.voice.number + ' 分钟', 9, 'semibold', C.txt, { minScale: 0.65 }),
+              {
+                type: 'stack',
+                direction: 'column',
+                alignItems: 'start',
+                gap: 2,
+                children: [
+                  {
+                    type: 'stack',
+                    direction: 'row',
+                    alignItems: 'center',
+                    gap: 3,
+                    children: [
+                      { type: 'image', src: 'sf-symbol:phone.fill', width: 9, height: 9, color: C.voice },
+                      t('剩余语音', 8, 'medium', C.sub),
+                    ],
+                  },
+                  t(ds.voice.number + ' 分钟', 10, 'semibold', C.txt, { minScale: 0.55 }),
+                ],
+              },
             ],
           },
           {
