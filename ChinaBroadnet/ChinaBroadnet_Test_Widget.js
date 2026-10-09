@@ -785,55 +785,69 @@ function buildSmall(title, ds, fromCache) {
         ],
       },
 
-      glass([
-        {
-          type: 'stack',
-          direction: 'row',
-          alignItems: 'center',
-          gap: 4,
-          children: [
-            { type: 'image', src: 'sf-symbol:phone.fill', width: 10, height: 10, color: C.voice },
-            t('剩余语音', 9, 'semibold', C.sub),
-          ],
-        },
-        {
-          type: 'stack',
-          direction: 'row',
-          alignItems: 'center',
-          gap: 10,
-          children: [
+      {
+        type: 'stack',
+        direction: 'row',
+        alignItems: 'stretch',
+        gap: 7,
+        children: [
+          glass([
             {
               type: 'stack',
-              direction: 'column',
-              alignItems: 'start',
-              gap: 2,
-              flex: 1,
+              direction: 'row',
+              alignItems: 'center',
+              gap: 4,
               children: [
-                {
-                  type: 'stack',
-                  direction: 'row',
-                  alignItems: 'end',
-                  gap: 3,
-                  children: [
-                    t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 22, 'bold', C.txt, { minScale: 0.45 }),
-                    t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
-                  ],
-                },
-                t('套餐 ' + total, 8, 'medium', C.sub, { minScale: 0.65 }),
-                t('已用 ' + used, 8, 'medium', C.sub, { minScale: 0.65 }),
+                { type: 'image', src: 'sf-symbol:phone.fill', width: 10, height: 10, color: C.voice },
+                t('剩余语音', 9, 'semibold', C.sub),
               ],
             },
-          ],
-        },
-      ], {
-        width: 0,
-        flex: 1,
-        padding: [7, 10],
-        borderRadius: 14,
-        gap: 4,
-        backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
-        borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
-      })
+            {
+              type: 'stack',
+              direction: 'row',
+              alignItems: 'end',
+              gap: 3,
+              children: [
+                t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 22, 'bold', C.txt, { minScale: 0.45 }),
+                t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
+              ],
+            },
+            t('套餐 ' + (ds.plan && ds.plan.voiceTotal != null ? formatVoice(ds.plan.voiceTotal) + ' 分钟' : '--'), 8, 'medium', C.sub, { minScale: 0.65 }),
+            t('已用 ' + (ds.plan && ds.plan.voiceUsed != null ? formatVoice(ds.plan.voiceUsed) + ' 分钟' : '--'), 8, 'medium', C.sub, { minScale: 0.65 }),
+          ], {
+            width: 0,
+            flex: 1,
+            padding: [7, 8],
+            borderRadius: 14,
+            gap: 4,
+            backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
+            borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
+          }),
+          glass([
+            {
+              type: 'stack',
+              direction: 'row',
+              alignItems: 'center',
+              gap: 4,
+              children: [
+                { type: 'image', src: 'sf-symbol:chart.pie.fill', width: 10, height: 10, color: C.flow },
+                t('流量套餐', 9, 'semibold', C.sub),
+              ],
+            },
+            t('总量 ' + total, 9, 'semibold', C.txt, { minScale: 0.65 }),
+            t('已用 ' + used, 9, 'medium', C.sub, { minScale: 0.65 }),
+            t('剩余 ' + remain, 9, 'bold', C.flow, { minScale: 0.65 }),
+          ], {
+            width: 0,
+            flex: 1,
+            padding: [7, 8],
+            borderRadius: 14,
+            gap: 4,
+            backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
+            borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
+          }),
+        ],
+      }
     ],
   };
 }
