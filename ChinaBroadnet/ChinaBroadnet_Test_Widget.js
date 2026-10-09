@@ -160,10 +160,20 @@ async function capture(ctx) {
   const req = ctx.request || {};
   const url = String(req.url || '');
   const method = String(req.method || '').toUpperCase();
+  // Parse the request body once and reuse it for both probing and capture.
+  let parsedBody = null;
+  let bodyRead = false;
+  const getParsedBody = async () => {
+    if (!bodyRead) {
+      parsedBody = await readRequestBody(ctx);
+      bodyRead = true;
+    }
+    return parsedBody;
+  };
 
   if (/^https:\/\/(?:app|wx)\.10099\.com\.cn\//i.test(url)) {
     try {
-      const body = await readRequestBody(ctx);
+      const body = await getParsedBody();
       const keys = [];
 
       function collectKeys(v, depth) {
@@ -204,8 +214,11 @@ async function capture(ctx) {
 
   try {
     const access = String(getHeader(req.headers, 'access') || '').trim();
-    const body = await readRequestBody(ctx);
-    if (!access || !body || body.data == null) return;
+    const body = await getParsedBody();
+    if (!access || !body || body.data == null) {
+      console.log('[ChinaBroadnet-Hark] 捕获未完成: ' + (!access ? '缺少 access 请求头' : '请求体中缺少 data'));
+      return;
+    }
 
     ctx.storage.set(KEY + '.url', url);
     ctx.storage.set(KEY + '.access', access);
