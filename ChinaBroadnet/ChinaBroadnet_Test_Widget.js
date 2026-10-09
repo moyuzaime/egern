@@ -438,6 +438,15 @@ function gaugeSvg(pct, color, w) {
     );
 }
 
+function historyDeltaText(history) {
+  const vals = (history || []).map(x => Number(x.flowKB)).filter(Number.isFinite);
+  if (vals.length < 2) return '采集中';
+  const delta = vals[vals.length - 1] - vals[vals.length - 2];
+  if (Math.abs(delta) < 1) return '余量基本稳定';
+  const f = formatFlow(Math.abs(delta));
+  return (delta < 0 ? '较上次减少 ' : '较上次增加 ') + f.number + ' ' + f.unit;
+}
+
 function historySvg(history, color, w, h) {
   const vals = (history || []).map(x => Number(x.flowKB)).filter(Number.isFinite);
   if (!vals.length) {
@@ -606,7 +615,7 @@ function feeCard(ds) {
     gap: 5,
   });
 }
-function dataCard(icon, color, title, value, unit) {
+function dataCard(icon, color, title, value, unit, detail) {
   return glass([
     {
       type: 'stack',
@@ -628,10 +637,12 @@ function dataCard(icon, color, title, value, unit) {
         t(unit, 9, 'semibold', C.sub),
       ],
     },
+    ...(detail ? [t(detail, 8, 'medium', C.sub, { minScale: 0.6 })] : []),
   ], {
-    padding: [8, 8],
+    padding: [7, 8],
     borderRadius: 18,
     height: 70,
+    gap: 3,
   });
 }
 
@@ -869,6 +880,10 @@ function buildMedium(title, ds, fromCache) {
     borderRadius: 16,
   });
 
+  const voiceDetail = ds.plan && ds.plan.voiceUsed != null
+    ? '已用 ' + formatVoice(ds.plan.voiceUsed) + ' 分钟'
+    : (ds.plan && ds.plan.voiceTotal != null ? '套餐 ' + formatVoice(ds.plan.voiceTotal) + ' 分钟' : '语音余量');
+
   const row = {
     type: 'stack',
     direction: 'row',
@@ -930,7 +945,12 @@ function buildLarge(title, ds, fromCache) {
             gap: 8,
             children: [
               feeCard(ds),
-              dataCard('phone.fill', C.voice, '剩余语音', ds.voice.number, ds.voice.unit),
+              dataCard(
+                'phone.fill', C.voice, '剩余语音', ds.voice.number, ds.voice.unit,
+                ds.plan && ds.plan.voiceUsed != null
+                  ? '已用 ' + formatVoice(ds.plan.voiceUsed) + ' 分钟'
+                  : (ds.plan && ds.plan.voiceTotal != null ? '套餐 ' + formatVoice(ds.plan.voiceTotal) + ' 分钟' : '')
+              ),
             ],
           },
         ],
@@ -949,12 +969,12 @@ function buildLarge(title, ds, fromCache) {
               height: 10,
               color: C.flow,
             },
-            t('流量变化', 10, 'semibold', C.txt),
+            t('流量余量趋势', 10, 'semibold', C.txt),
             { type: 'spacer' },
             t(
               ds.plan && ds.plan.total != null
                 ? ('已用 ' + Math.round((ds.plan.percent || 0) * 100) + '%')
-                : '最近捕获快照',
+                : historyDeltaText(ds.history),
               9,
               'medium',
               ds.plan && ds.plan.total != null ? C.voice : C.sub
@@ -967,7 +987,7 @@ function buildLarge(title, ds, fromCache) {
           width: 290,
           height: 48,
         },
-
+        t(historyDeltaText(ds.history), 9, 'medium', C.sub),
       ], {
         width: 0,
         flex: 1,
