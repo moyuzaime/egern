@@ -1097,80 +1097,6 @@ function buildMedium(title, ds, fromCache) {
 }
 
 
-function insightCard(ds) {
-  const history = (ds.history || [])
-    .filter(x => Number.isFinite(Number(x.ts)) && Number.isFinite(Number(x.flowKB)))
-    .sort((a, b) => Number(a.ts) - Number(b.ts));
-  const now = Date.now();
-  const day = history.filter(x => now - Number(x.ts) <= 24 * 60 * 60 * 1000);
-  const current = day.length ? Number(day[day.length - 1].flowKB) : null;
-  const start = day.length ? Number(day[0].flowKB) : null;
-  const used = current != null && start != null ? Math.max(0, start - current) : null;
-  const spanDays = day.length > 1
-    ? Math.max(1 / 24, (Number(day[day.length - 1].ts) - Number(day[0].ts)) / 86400000)
-    : 0;
-  const daily = used != null && spanDays > 0 ? used / spanDays : null;
-  const remain = Number(ds.plan && ds.plan.remain != null ? ds.plan.remain : NaN);
-  const daysLeft = daily != null && daily > 0 && Number.isFinite(remain)
-    ? Math.floor(remain / daily)
-    : null;
-  const usedFmt = used == null ? null : formatFlow(used);
-  const forecast = daysLeft == null
-    ? '持续记录后显示预计可用天数'
-    : (daysLeft >= 30 ? '预计可覆盖未来 30 天' : '按近期用量，约还能用 ' + daysLeft + ' 天');
-  return glass([
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'center',
-      gap: 4,
-      children: [
-        { type: 'image', src: 'sf-symbol:chart.xyaxis.line', width: 11, height: 11, color: C.flow },
-        t('用量洞察', 10, 'semibold', C.txt),
-        { type: 'spacer' },
-        t('近 24 小时 · ' + flowStatus(ds.plan && ds.plan.percent).label, 9, 'semibold', flowStatus(ds.plan && ds.plan.percent).color),
-      ],
-    },
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'center',
-      gap: 8,
-      children: [
-        {
-          type: 'stack',
-          direction: 'column',
-          alignItems: 'start',
-          gap: 2,
-          flex: 1,
-          children: [
-            t('估算消耗', 9, 'medium', C.sub),
-            t(usedFmt ? usedFmt.number + ' ' + usedFmt.unit : '采集中', 19, 'bold', C.flow),
-          ],
-        },
-        {
-          type: 'stack',
-          direction: 'column',
-          alignItems: 'start',
-          gap: 2,
-          flex: 1,
-          children: [
-            t('余量预测', 9, 'medium', C.sub),
-            t(forecast, 10, 'semibold', C.txt, { maxLines: 2, minScale: 0.65 }),
-          ],
-        },
-      ],
-    },
-    t('根据已记录的剩余流量变化估算，数据不足时会显示采集中', 8, 'medium', C.sub, { maxLines: 2 }),
-  ], {
-    width: 0,
-    flex: 1,
-    padding: [9, 12],
-    borderRadius: 18,
-    gap: 6,
-  });
-}
-
 function buildLarge(title, ds, fromCache) {
   return {
     type: 'widget',
@@ -1180,7 +1106,6 @@ function buildLarge(title, ds, fromCache) {
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
       header(title, ds, fromCache),
-      insightCard(ds),
       {
         type: 'stack',
         direction: 'row',
