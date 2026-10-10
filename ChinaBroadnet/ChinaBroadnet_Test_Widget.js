@@ -635,26 +635,30 @@ function trendStrip(ds) {
 }
 
 function historySvg(history, color, w, h) {
-  const vals = (history || []).map(x => Number(x.flowKB)).filter(Number.isFinite);
+  const vals = (history || []).map(x => Number(x.flowKB)).filter(Number.isFinite).slice(-12);
+  const empty = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${w} ${h}'><path d='M 2 ${h-3} H ${w-2}' stroke='${color}' stroke-opacity='.18' stroke-width='1.5' stroke-linecap='round' stroke-dasharray='3 4'/></svg>`;
   if (!vals.length) {
-    return 'data:image/svg+xml,' +
-      encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${w} ${h}'></svg>`);
+    return 'data:image/svg+xml,' + encodeURIComponent(empty);
   }
 
   const max = Math.max(...vals);
   const min = Math.min(...vals);
   const range = Math.max(1, max - min);
-  const points = vals.slice(-12).map((v, i, a) => {
-    const x = a.length === 1 ? w / 2 : (i / (a.length - 1)) * w;
-    const y = h - ((v - min) / range) * (h - 4) - 2;
-    return x.toFixed(1) + ',' + y.toFixed(1);
-  }).join(' ');
-
-  const svg =
-    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${w} ${h}'>
-      <polyline points='${points}' fill='none' stroke='${color}' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/>
-    </svg>`;
-
+  const padX = Math.min(3, w * 0.02);
+  const padY = Math.min(4, h * 0.12);
+  const points = vals.map((v, i) => {
+    const x = vals.length === 1 ? w / 2 : padX + (i / (vals.length - 1)) * (w - padX * 2);
+    const y = h - padY - ((v - min) / range) * (h - padY * 2);
+    return [x, y];
+  });
+  // A single sample should look like a sample, not a misleading flat trend.
+  const line = points.length > 1
+    ? `<polyline points='${points.map(p => p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}' fill='none' stroke='${color}' stroke-width='${Math.max(2, Math.min(3, h * 0.075))}' stroke-linecap='round' stroke-linejoin='round'/>`
+    : `<circle cx='${points[0][0].toFixed(1)}' cy='${points[0][1].toFixed(1)}' r='${Math.max(2, Math.min(3.5, h * 0.09))}' fill='${color}'/>`;
+  const dots = points.length > 1
+    ? `<circle cx='${points[points.length-1][0].toFixed(1)}' cy='${points[points.length-1][1].toFixed(1)}' r='${Math.max(2, Math.min(3, h * 0.07))}' fill='${color}'/>`
+    : '';
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${w} ${h}'><path d='M 1 ${h-1} H ${w-1}' stroke='${color}' stroke-opacity='.12' stroke-width='1'/>${line}${dots}</svg>`;
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 
@@ -742,24 +746,20 @@ function header(title, ds, fromCache) {
     type: 'stack',
     direction: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     children: [
       {
         type: 'image',
         src: 'sf-symbol:antenna.radiowaves.left.and.right',
-        width: 12,
-        height: 12,
+        width: 13,
+        height: 13,
         color: C.flow,
       },
-      t(title, 'footnote', 'semibold'),
+      t(title, 'footnote', 'semibold', C.txt),
       { type: 'spacer' },
-      t(
-        `${fromCache ? '缓存 · ' : ''}更新 ${fmtTime(ds.updatedAt)}`,
-        9,
-        'regular',
-        C.sub,
-        { minScale: 1 }
-      ),
+      t(`${fromCache ? '缓存数据' : '更新'} ${fmtTime(ds.updatedAt)}`, 9, 'medium', C.sub, {
+        minScale: 0.8,
+      }),
     ],
   };
 }
@@ -892,7 +892,7 @@ function buildSmall(title, ds, fromCache) {
                 alignItems: 'end',
                 gap: 2,
                 children: [
-                  t(ds.flow.number, 27, 'bold', C.txt, { minScale: 0.58 }),
+                  t(ds.flow.number, 27, 'bold', C.txt, { minScale: 0.48 }),
                   t(ds.flow.unit, 10, 'semibold', C.sub),
                 ],
               },
@@ -984,7 +984,7 @@ function buildSmall(title, ds, fromCache) {
                   gap: 2,
                   children: [
                     t('¥', 12, 'semibold', C.fee),
-                    t(ds.fee.number, 22, 'bold', C.txt, { minScale: 0.45 }),
+                    t(ds.fee.number, 21, 'bold', C.txt, { minScale: 0.4 }),
                   ],
                 },
               ],
