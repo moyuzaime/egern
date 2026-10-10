@@ -1097,6 +1097,39 @@ function buildMedium(title, ds, fromCache) {
 }
 
 
+function todayFlowUsage(history) {
+  const now = new Date();
+  const todayKey = now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate();
+  const today = (history || [])
+    .filter(x => {
+      const ts = Number(x.ts);
+      if (!Number.isFinite(ts)) return false;
+      const d = new Date(ts);
+      return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate() === todayKey;
+    })
+    .sort((a, b) => Number(a.ts) - Number(b.ts));
+
+  if (today.length < 2) {
+    return { value: null, history: today, label: '今日数据采集中' };
+  }
+
+  const first = Number(today[0].flowKB);
+  const last = Number(today[today.length - 1].flowKB);
+  if (!Number.isFinite(first) || !Number.isFinite(last)) {
+    return { value: null, history: today, label: '今日数据采集中' };
+  }
+
+  const value = Math.max(0, first - last);
+  return {
+    value,
+    history: today.map(x => ({
+      ts: x.ts,
+      flowKB: Math.max(0, first - Number(x.flowKB)),
+    })),
+    label: value < 1 ? '今日暂无明显消耗' : '按今日已记录余量变化估算',
+  };
+}
+
 function buildLarge(title, ds, fromCache) {
   return {
     type: 'widget',
@@ -1173,46 +1206,48 @@ function buildLarge(title, ds, fromCache) {
           }),
         ],
       },
-      glass([
-        {
-          type: 'stack',
-          direction: 'row',
-          alignItems: 'center',
-          gap: 4,
-          children: [
-            {
-              type: 'image',
-              src: 'sf-symbol:chart.bar.fill',
-              width: 10,
-              height: 10,
-              color: C.flow,
-            },
-            t('流量余量趋势', 10, 'semibold', C.txt),
-            { type: 'spacer' },
-            t(
-              ds.plan && ds.plan.total != null
-                ? ('已用 ' + Math.round((ds.plan.percent || 0) * 100) + '%')
-                : historyDeltaText(ds.history),
-              9,
-              'medium',
-              ds.plan && ds.plan.total != null ? C.voice : C.sub
-            ),
-          ],
-        },
-        {
-          type: 'image',
-          src: historySvg(ds.history, C.flow, 290, 45),
-          width: 290,
-          height: 48,
-        },
-        t(historyDeltaText(ds.history), 9, 'medium', C.sub),
-      ], {
-        width: 0,
-        flex: 1,
-        gap: 6,
-        padding: [10, 13],
-        borderRadius: 18,
-      }),
+      (() => {
+        const today = todayFlowUsage(ds.history);
+        const used = today.value == null ? null : formatFlow(today.value);
+        return glass([
+          {
+            type: 'stack',
+            direction: 'row',
+            alignItems: 'center',
+            gap: 4,
+            children: [
+              {
+                type: 'image',
+                src: 'sf-symbol:chart.bar.fill',
+                width: 10,
+                height: 10,
+                color: C.flow,
+              },
+              t('今日流量使用', 10, 'semibold', C.txt),
+              { type: 'spacer' },
+              t(
+                used ? used.number + ' ' + used.unit : '采集中',
+                10,
+                'bold',
+                C.flow
+              ),
+            ],
+          },
+          {
+            type: 'image',
+            src: historySvg(today.history.map(x => ({ flowKB: x.flowKB })), C.flow, 290, 45),
+            width: 290,
+            height: 48,
+          },
+          t(today.label, 9, 'medium', C.sub),
+        ], {
+          width: 0,
+          flex: 1,
+          gap: 6,
+          padding: [10, 13],
+          borderRadius: 18,
+        });
+      })(),
     ],
   };
 }
