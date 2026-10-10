@@ -582,6 +582,58 @@ function historyDeltaText(history) {
   return (delta < 0 ? '较上次减少 ' : '较上次增加 ') + f.number + ' ' + f.unit;
 }
 
+function flowStatus(pct) {
+  if (pct == null || !Number.isFinite(Number(pct))) {
+    return { color: C.flow, label: '套餐用量' };
+  }
+  const p = Number(pct);
+  if (p >= 0.9) return { color: '#FF453A', label: '用量偏高' };
+  if (p >= 0.7) return { color: C.fee, label: '注意余量' };
+  return { color: C.voice, label: '用量正常' };
+}
+
+function trendStrip(ds) {
+  const history = ds.history || [];
+  const status = flowStatus(ds.plan && ds.plan.percent);
+  const label = ds.plan && ds.plan.percent != null
+    ? Math.round(ds.plan.percent * 100) + '% 已用'
+    : historyDeltaText(history);
+  return glass([
+    {
+      type: 'stack',
+      direction: 'row',
+      alignItems: 'center',
+      gap: 6,
+      children: [
+        {
+          type: 'image',
+          src: historySvg(history, status.color, 100, 24),
+          width: 62,
+          height: 18,
+        },
+        {
+          type: 'stack',
+          direction: 'column',
+          alignItems: 'start',
+          gap: 1,
+          flex: 1,
+          children: [
+            t('流量趋势', 9, 'semibold', C.txt),
+            t(historyDeltaText(history), 8, 'medium', C.sub, { minScale: 0.65 }),
+          ],
+        },
+        t(label, 9, 'bold', status.color, { minScale: 0.7 }),
+      ],
+    },
+  ], {
+    padding: [6, 9],
+    borderRadius: 13,
+    gap: 0,
+    backgroundColor: { light: '#FFFFFF50', dark: '#FFFFFF24' },
+    borderColor: { light: '#FFFFFF80', dark: '#FFFFFF60' },
+  });
+}
+
 function historySvg(history, color, w, h) {
   const vals = (history || []).map(x => Number(x.flowKB)).filter(Number.isFinite);
   if (!vals.length) {
@@ -608,6 +660,7 @@ function historySvg(history, color, w, h) {
 
 function heroFlowCard(ds) {
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
+  const flowStyle = flowStatus(p);
   const remain = ds.flow.number + ' ' + ds.flow.unit;
   const usedText = ds.plan && ds.plan.used != null
     ? '已用 ' + formatFlow(ds.plan.used).number + ' ' + formatFlow(ds.plan.used).unit
@@ -632,7 +685,7 @@ function heroFlowCard(ds) {
         },
         t('流量主卡', 10, 'semibold', C.txt),
         { type: 'spacer' },
-        t(p != null ? Math.round((1 - p) * 100) + '% 剩余' : '实时套餐', 9, 'semibold', C.flow),
+        t(p != null ? Math.round((1 - p) * 100) + '% 剩余' : '实时套餐', 9, 'semibold', flowStyle.color),
       ],
     },
     {
@@ -649,11 +702,11 @@ function heroFlowCard(ds) {
           children: [
             {
               type: 'image',
-              src: gaugeSvg(p != null ? p : 0, C.flow, 110),
+              src: gaugeSvg(p != null ? p : 0, flowStyle.color, 110),
               width: 82,
               height: 43,
             },
-            t(p != null ? Math.round(p * 100) + '% 已用' : '—', 10, 'bold', C.flow),
+            t(p != null ? Math.round(p * 100) + '% 已用' : '—', 10, 'bold', flowStyle.color),
           ],
         },
         {
@@ -783,6 +836,7 @@ function dataCard(icon, color, title, value, unit, detail) {
 
 function buildSmall(title, ds, fromCache) {
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
+  const flowStyle = flowStatus(p);
   const remain = ds.flow.number + ' ' + ds.flow.unit;
   const used = ds.plan && ds.plan.used != null
     ? formatFlow(ds.plan.used).number + ' ' + formatFlow(ds.plan.used).unit
@@ -850,7 +904,7 @@ function buildSmall(title, ds, fromCache) {
                     : '套餐用量待确认'),
                 8,
                 'semibold',
-                C.flow,
+                flowStyle.color,
                 { minScale: 0.55 }
               ),
             ],
@@ -863,7 +917,7 @@ function buildSmall(title, ds, fromCache) {
             children: [
               {
                 type: 'image',
-                src: gaugeSvg(p, C.flow, 82),
+                src: gaugeSvg(p, flowStyle.color, 82),
                 width: 56,
                 height: 32,
               },
@@ -871,7 +925,7 @@ function buildSmall(title, ds, fromCache) {
                 p != null ? Math.round(p * 100) + '% 已用' : '套餐',
                 8,
                 'bold',
-                C.flow
+                flowStyle.color
               ),
             ],
           },
@@ -1037,6 +1091,7 @@ function buildMedium(title, ds, fromCache) {
     children: [
       header(title, ds, fromCache),
       row,
+      trendStrip(ds),
     ],
   };
 }
@@ -1073,7 +1128,7 @@ function insightCard(ds) {
         { type: 'image', src: 'sf-symbol:chart.xyaxis.line', width: 11, height: 11, color: C.flow },
         t('用量洞察', 10, 'semibold', C.txt),
         { type: 'spacer' },
-        t('近 24 小时', 9, 'medium', C.sub),
+        t('近 24 小时 · ' + flowStatus(ds.plan && ds.plan.percent).label, 9, 'semibold', flowStatus(ds.plan && ds.plan.percent).color),
       ],
     },
     {
