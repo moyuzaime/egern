@@ -1,5 +1,5 @@
 name: 中国广电仪表盘测试版
-description: 中国广电话费、语音、流量仪表盘测试版（独立存储，不影响正式版）｜更新时间：2026-10-12 19:32（北京时间）
+description: 中国广电话费、语音、流量仪表盘测试版（独立存储，不影响正式版）｜更新时间：2026-10-12 19:39（北京时间）
 author: wuhuhuuuu
 icon: https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/03CNSoft/ChinaBroadcastNetwork.png
 
@@ -14,13 +14,15 @@ compat_arguments_schema:
     options:
       - 'true'
       - 'false'
-  cbTransparent:
+
+env_schema:
+  CB_TRANSPARENT:
     name: 透明背景（测试版）
     description: 开启后隐藏组件背景及玻璃卡片底色；关闭则恢复浅色渐变与玻璃效果
     default_value: 'false'
     options:
-      - 'false'
       - 'true'
+      - 'false'
 
 dns: {}
 
@@ -29,8 +31,6 @@ scriptings:
       name: china-broadnet-test
       script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Test_Widget.js
       update_interval: 60
-      env:
-        CB_TRANSPARENT: "{{{cbTransparent}}}"
       timeout: 20
 
   - http_request:
