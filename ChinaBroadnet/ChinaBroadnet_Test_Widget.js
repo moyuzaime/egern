@@ -633,8 +633,8 @@ function trendStrip(ds) {
     padding: [6, 9],
     borderRadius: 13,
     gap: 0,
-    backgroundColor: { light: '#FFFFFF50', dark: '#FFFFFF24' },
-    borderColor: { light: '#FFFFFF80', dark: '#FFFFFF60' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF50', dark: '#FFFFFF24' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF80', dark: '#FFFFFF60' },
   });
 }
 
@@ -1205,8 +1205,8 @@ function buildLarge(title, ds, fromCache) {
             padding: [9, 10],
             borderRadius: 18,
             gap: 5,
-            backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
-            borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
+            backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF45', dark: '#FFFFFF28' },
+            borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF85', dark: '#FFFFFF70' },
           }),
         ],
       },
