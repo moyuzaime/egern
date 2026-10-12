@@ -1338,8 +1338,8 @@ function buildError(title, message) {
 }
 
 async function handleWidget(ctx) {
-  const args = (ctx && (ctx.args || ctx.arguments || ctx.compatArguments || ctx.widgetArguments)) || {};
-  transparentMode = String(args.cbTransparent == null ? 'false' : args.cbTransparent).toLowerCase() === 'true';
+  const env = (ctx && ctx.env) || {};
+  transparentMode = String(env.CB_TRANSPARENT == null ? 'false' : env.CB_TRANSPARENT).toLowerCase() === 'true';
   const result = await loadData(ctx);
 
   if (!result.configured) {
