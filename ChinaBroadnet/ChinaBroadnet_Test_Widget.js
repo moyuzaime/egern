@@ -18,7 +18,11 @@ const C = {
   glassShadow: { light: '#64748B06', dark: '#00000003' },
 };
 
+// 测试版透明背景开关：由 YAML compat_arguments 的 cbTransparent 控制。
+let transparentMode = false;
+
 function broadnetBackgroundGradient() {
+  if (transparentMode) return undefined;
   return {
     type: 'radial',
     colors: [
@@ -532,11 +536,11 @@ function glass(children, extra) {
     gap: 6,
     padding: 10,
     borderRadius: 18,
-    backgroundColor: C.glass,
-    borderWidth: 1,
-    borderColor: C.glassBorder,
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : C.glass,
+    borderWidth: transparentMode ? 0 : 1,
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : C.glassBorder,
     shadowColor: C.glassShadow,
-    shadowRadius: 8,
+    shadowRadius: transparentMode ? 0 : 8,
     shadowOffset: { x: 0, y: 3 },
     children,
   }, extra || {});
@@ -733,8 +737,8 @@ function heroFlowCard(ds) {
     padding: [8, 10],
     borderRadius: 18,
     gap: 4,
-    backgroundColor: { light: '#FFFFFF28', dark: '#FFFFFF3A' },
-    borderColor: { light: '#FFFFFF78', dark: '#FFFFFF70' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF28', dark: '#FFFFFF3A' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF78', dark: '#FFFFFF70' },
     shadowColor: { light: '#64748B04', dark: '#00000000' },
     shadowRadius: 2,
     shadowOffset: { x: 0, y: 1 },
@@ -997,8 +1001,8 @@ function buildSmall(title, ds, fromCache) {
         padding: [7, 10],
         borderRadius: 14,
         gap: 4,
-        backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
-        borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
+        backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF45', dark: '#FFFFFF28' },
+        borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF85', dark: '#FFFFFF70' },
       })
     ],
   };
@@ -1334,6 +1338,8 @@ function buildError(title, message) {
 }
 
 async function handleWidget(ctx) {
+  const args = (ctx && (ctx.args || ctx.arguments || ctx.compatArguments || ctx.widgetArguments)) || {};
+  transparentMode = String(args.cbTransparent == null ? 'false' : args.cbTransparent).toLowerCase() === 'true';
   const result = await loadData(ctx);
 
   if (!result.configured) {
