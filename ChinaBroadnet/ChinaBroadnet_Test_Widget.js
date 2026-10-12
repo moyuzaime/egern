@@ -18,8 +18,8 @@ const C = {
   glassShadow: { light: '#64748B06', dark: '#00000003' },
 };
 
-// 测试版透明背景开关：由 YAML compat_arguments 的 cbTransparent 控制。
-let transparentMode = false;
+// 测试版默认始终使用透明背景。
+const transparentMode = true;
 
 function broadnetBackgroundGradient() {
   if (transparentMode) return undefined;
@@ -1338,8 +1338,6 @@ function buildError(title, message) {
 }
 
 async function handleWidget(ctx) {
-  const env = (ctx && ctx.env) || {};
-  transparentMode = String(env.CB_TRANSPARENT == null ? 'false' : env.CB_TRANSPARENT).toLowerCase() === 'true';
   const result = await loadData(ctx);
 
   if (!result.configured) {
