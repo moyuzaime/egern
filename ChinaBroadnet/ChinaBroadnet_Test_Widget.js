@@ -417,9 +417,12 @@ async function loadData(ctx) {
         ? Object.keys(result.data).slice(0, 30)
         : [];
       console.log(
-        '[ChinaBroadnet-Hark] API响应诊断[v20261019-2313]: ' +
+        '[ChinaBroadnet-Hark] API响应诊断[v20261019-2318]: ' +
         'resultType=' + (result === null ? 'null' : typeof result) +
         ' | status=' + String(result && result.status).slice(0, 40) +
+        ' | message=' + String(result && result.message || '').replace(/[\\r\\n]+/g, ' ').slice(0, 120) +
+        ' | updateMes=' + String(result && result.updateMes || '').replace(/[\\r\\n]+/g, ' ').slice(0, 120) +
+        ' | ok=' + String(result && result.ok) +
         ' | resultKeys=' + resultKeys.join(',') +
         ' | dataPresent=' + Boolean(result && result.data) +
         ' | dataType=' + (result && result.data === null ? 'null' : typeof (result && result.data)) +
