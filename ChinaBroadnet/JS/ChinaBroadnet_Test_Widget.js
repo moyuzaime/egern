@@ -1060,9 +1060,9 @@ function buildMedium(title, ds, fromCache) {
       ],
     },
   ], {
-    height: 42,
-    padding: [5, 7],
-    gap: 2,
+    height: 43,
+    padding: [4, 7],
+    gap: 1,
     borderRadius: 14,
     justifyContent: 'center',
   });
@@ -1106,7 +1106,7 @@ function buildMedium(title, ds, fromCache) {
         type: 'stack',
         direction: 'column',
         alignItems: 'start',
-        gap: 5,
+        gap: 4,
         width: 108,
         height: 94,
         children: [
