@@ -578,7 +578,6 @@ function glass(children, extra) {
   return Object.assign({
     type: 'stack',
     direction: 'column',
-    alignItems: 'stretch',
     width: 0,
     flex: 1,
     gap: 6,
@@ -1141,7 +1140,6 @@ function buildMedium(title, ds, fromCache) {
   const row = {
     type: 'stack',
     direction: 'row',
-    alignItems: 'stretch',
     gap: 7,
     height: 104,
     width: 0,
@@ -1223,7 +1221,6 @@ function buildLarge(title, ds, fromCache) {
       {
         type: 'stack',
         direction: 'row',
-        alignItems: 'stretch',
         gap: 8,
         width: 0,
         flex: 1,
@@ -1402,7 +1399,6 @@ function liquidGlassWidget(widget) {
   widget.children = [{
     type: 'stack',
     direction: 'column',
-    alignItems: 'stretch',
     gap: 0,
     width: 0,
     height: 0,
