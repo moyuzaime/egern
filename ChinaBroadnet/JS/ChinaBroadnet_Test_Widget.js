@@ -1167,6 +1167,53 @@ function todayFlowUsage(history) {
 }
 
 function buildLarge(title, ds, fromCache) {
+  const largeFee = glass([
+    {
+      type: 'stack',
+      direction: 'row',
+      alignItems: 'center',
+      gap: 5,
+      children: [
+        { type: 'image', src: 'sf-symbol:yensign.circle.fill', width: 12, height: 12, color: C.fee },
+        t('剩余话费', 10, 'medium', C.sub),
+        { type: 'spacer' },
+        t('¥' + ds.fee.number, 19, 'bold', C.txt, { minScale: 0.55 }),
+      ],
+    },
+  ], {
+    width: 0,
+    flex: 1,
+    height: 62,
+    padding: [7, 9],
+    gap: 2,
+    borderRadius: 16,
+    justifyContent: 'center',
+  });
+
+  const largeVoice = glass([
+    {
+      type: 'stack',
+      direction: 'row',
+      alignItems: 'center',
+      gap: 5,
+      children: [
+        { type: 'image', src: 'sf-symbol:phone.fill', width: 12, height: 12, color: C.voice },
+        t('剩余语音', 10, 'medium', C.sub),
+        { type: 'spacer' },
+        t(ds.voice.number === '--' ? '暂无' : ds.voice.number, 19, 'bold', C.txt, { minScale: 0.55 }),
+        t(ds.voice.number === '--' ? '' : '分', 9, 'semibold', C.sub),
+      ],
+    },
+  ], {
+    width: 0,
+    flex: 1,
+    height: 62,
+    padding: [7, 9],
+    gap: 2,
+    borderRadius: 16,
+    justifyContent: 'center',
+  });
+
   return {
     type: 'widget',
     padding: [12, 13],
@@ -1189,28 +1236,10 @@ function buildLarge(title, ds, fromCache) {
             flex: 1,
             height: 136,
             children: [
-              glass([
-                { type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children: [
-                  { type: 'image', src: 'sf-symbol:phone.fill', width: 10, height: 10, color: C.voice },
-                  t('剩余语音', 9, 'medium', C.sub),
-                ]},
-                { type: 'stack', direction: 'row', alignItems: 'end', gap: 3, children: [
-                  t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 21, 'bold', C.txt, { minScale: 0.45 }),
-                  t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
-                ]},
-              ], { width: 0, flex: 1, padding: [8, 9], gap: 5, borderRadius: 16 }),
-              glass([
-                { type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children: [
-                  { type: 'image', src: 'sf-symbol:yensign.circle.fill', width: 10, height: 10, color: C.fee },
-                  t('剩余话费', 9, 'medium', C.sub),
-                ]},
-                { type: 'stack', direction: 'row', alignItems: 'end', gap: 2, children: [
-                  t('¥', 12, 'semibold', C.fee),
-                  t(ds.fee.number, 21, 'bold', C.txt, { minScale: 0.45 }),
-                ]},
-              ], { width: 0, flex: 1, padding: [8, 9], gap: 5, borderRadius: 16 }),
+              largeFee,
+              largeVoice,
             ],
-          }
+          },
         ],
       },
       (() => {
