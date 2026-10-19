@@ -894,8 +894,8 @@ function buildSmall(title, ds, fromCache) {
 
   return {
     type: 'widget',
-    padding: 11,
-    gap: 7,
+    padding: [9, 10],
+    gap: 6,
     backgroundColor: '#00000000',
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
@@ -914,7 +914,7 @@ function buildSmall(title, ds, fromCache) {
           },
           t(title, 12, 'semibold', C.txt),
           { type: 'spacer' },
-          t(`${fromCache ? '缓存 · ' : ''}更新 ${fmtTime(ds.updatedAt)}`, 8, 'medium', C.sub, { minScale: 0.7 }),
+          t(`${fromCache ? '缓存 · ' : ''}${fmtTime(ds.updatedAt)}`, 8, 'medium', C.sub, { minScale: 0.65 }),
         ],
       },
 
@@ -922,14 +922,14 @@ function buildSmall(title, ds, fromCache) {
         type: 'stack',
         direction: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 6,
         flex: 1,
         children: [
           {
             type: 'stack',
             direction: 'column',
             alignItems: 'start',
-            gap: 1,
+            gap: 2,
             flex: 1,
             children: [
               t('剩余流量', 9, 'medium', C.sub),
@@ -982,8 +982,8 @@ function buildSmall(title, ds, fromCache) {
               {
                 type: 'image',
                 src: gaugeSvg(p, flowStyle.color, 82),
-                width: 56,
-                height: 32,
+                width: 52,
+                height: 30,
               },
               t(
                 p != null ? Math.round(p * 100) + '% 已用' : '套餐',
@@ -1070,9 +1070,9 @@ function buildSmall(title, ds, fromCache) {
       ], {
         width: 0,
         flex: 1,
-        padding: [7, 10],
-        borderRadius: 14,
-        gap: 4,
+        padding: [8, 10],
+        borderRadius: 16,
+        gap: 5,
         backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#E6F6FFB8', dark: '#164E63A0' },
         borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFD0', dark: '#A5F3FC70' },
       })
@@ -1101,10 +1101,11 @@ function buildMedium(title, ds, fromCache) {
       ],
     },
   ], {
-    height: 50,
+    height: 48,
     padding: [6, 8],
     gap: 2,
-    borderRadius: 16,
+    borderRadius: 15,
+    justifyContent: 'center',
   });
 
   const compactVoice = glass([
@@ -1138,9 +1139,9 @@ function buildMedium(title, ds, fromCache) {
   const row = {
     type: 'stack',
     direction: 'row',
-    alignItems: 'start',
+    alignItems: 'center',
     gap: 7,
-    height: 106,
+    height: 104,
     children: [
       heroFlowCard(ds),
       {
@@ -1148,8 +1149,8 @@ function buildMedium(title, ds, fromCache) {
         direction: 'column',
         alignItems: 'start',
         gap: 6,
-        width: 112,
-        height: 106,
+        width: 108,
+        height: 104,
         children: [
           compactFee,
           compactVoice,
@@ -1160,7 +1161,7 @@ function buildMedium(title, ds, fromCache) {
 
   return {
     type: 'widget',
-    padding: [10, 11],
+    padding: [9, 10],
     gap: 6,
     backgroundColor: '#00000000',
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
@@ -1209,8 +1210,8 @@ function todayFlowUsage(history) {
 function buildLarge(title, ds, fromCache) {
   return {
     type: 'widget',
-    padding: 15,
-    gap: 10,
+    padding: [12, 13],
+    gap: 8,
     backgroundColor: '#00000000',
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
@@ -1219,7 +1220,7 @@ function buildLarge(title, ds, fromCache) {
         type: 'stack',
         direction: 'row',
         alignItems: 'start',
-        gap: 10,
+        gap: 8,
         children: [
           heroFlowCard(ds),
           glass([
@@ -1272,11 +1273,12 @@ function buildLarge(title, ds, fromCache) {
               ],
             },
           ], {
-            width: 132,
-            height: 148,
-            padding: [9, 10],
+            width: 126,
+            height: 144,
+            padding: [9, 9],
             borderRadius: 18,
-            gap: 5,
+            gap: 6,
+            justifyContent: 'center',
             backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF45', dark: '#FFFFFF28' },
             borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF85', dark: '#FFFFFF70' },
           }),
@@ -1311,16 +1313,16 @@ function buildLarge(title, ds, fromCache) {
           },
           {
             type: 'image',
-            src: historySvg(today.history.map(x => ({ flowKB: x.flowKB })), C.flow, 290, 45),
-            width: 290,
-            height: 48,
+            src: historySvg(today.history.map(x => ({ flowKB: x.flowKB })), C.flow, 270, 42),
+            width: 270,
+            height: 42,
           },
           t(today.label, 9, 'medium', C.sub),
         ], {
           width: 0,
           flex: 1,
           gap: 6,
-          padding: [10, 13],
+          padding: [9, 12],
           borderRadius: 18,
         });
       })(),
