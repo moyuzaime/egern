@@ -706,6 +706,7 @@ function historySvg(history, color, w, h) {
 }
 
 function heroFlowCard(ds) {
+  const remain = ds.flow.number + ' ' + ds.flow.unit;
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const flowStyle = flowStatus(p);
     const usedText = ds.plan && ds.plan.used != null
