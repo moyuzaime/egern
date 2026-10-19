@@ -773,7 +773,7 @@ function heroFlowCard(ds, cardHeight) {
   ], {
     width: 0,
     flex: 1,
-    ...(cardHeight ? { height: cardHeight } : {}),
+    ...(cardHeight ? { height: cardHeight, maxWidth: 300 } : {}),
     padding: [8, 10],
     borderRadius: 18,
     gap: 4,
@@ -1023,7 +1023,7 @@ function buildSmall(title, ds, fromCache) {
               t(ds.voice.number === '--' ? '暂无' : ds.voice.number, 18, 'bold', C.txt, { minScale: 0.4 }),
               t(ds.voice.number === '--' ? '' : '分钟', 8, 'semibold', C.sub),
             ]},
-          ], { flex: 1, height: 46, padding: [7, 7], gap: 4, borderRadius: 15 }),
+          ], { flex: 1, height: 48, padding: [7, 7], gap: 4, borderRadius: 15 }),
           glass([
             { type: 'stack', direction: 'row', alignItems: 'center', gap: 3, children: [
               { type: 'image', src: 'sf-symbol:yensign.circle.fill', width: 10, height: 10, color: C.fee },
@@ -1061,7 +1061,7 @@ function buildMedium(title, ds, fromCache) {
       ],
     },
   ], {
-    height: 43,
+    height: 44,
     padding: [4, 7],
     gap: 1,
     borderRadius: 14,
@@ -1090,7 +1090,7 @@ function buildMedium(title, ds, fromCache) {
     },
 
   ], {
-    height: 43,
+    height: 44,
     padding: [4, 7],
     gap: 2,
     borderRadius: 14,
@@ -1179,15 +1179,15 @@ function buildLarge(title, ds, fromCache) {
         type: 'stack',
         direction: 'row',
         gap: 8,
-        height: 160,
+        height: 136,
         children: [
-          heroFlowCard(ds, 160),
+          heroFlowCard(ds, 136),
           {
             type: 'stack',
             direction: 'column',
             gap: 6,
             flex: 1,
-            height: 160,
+            height: 136,
             children: [
               glass([
                 { type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children: [
