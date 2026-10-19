@@ -1358,7 +1358,7 @@ function liquidGlassWidget(widget) {
     flex: 1,
     padding: [10, 11],
     borderRadius: 26,
-    backgroundColor: { light: '#FFFFFF20', dark: '#07130F48' },
+    backgroundColor: '#00000000',
     borderWidth: 1,
     borderColor: { light: '#FFFFFFA0', dark: '#FFFFFF70' },
     shadowColor: { light: '#64748B18', dark: '#00000035' },
