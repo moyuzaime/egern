@@ -410,6 +410,21 @@ async function loadData(ctx) {
   try {
     const result = await fetchData(ctx, access, data, url);
     if (!result || result.status !== '000000' || !result.data) {
+      const resultKeys = result && typeof result === 'object'
+        ? Object.keys(result).slice(0, 20)
+        : [];
+      const responseDataKeys = result && result.data && typeof result.data === 'object'
+        ? Object.keys(result.data).slice(0, 30)
+        : [];
+      console.log(
+        '[ChinaBroadnet-Hark] API响应诊断[v20261019-2313]: ' +
+        'resultType=' + (result === null ? 'null' : typeof result) +
+        ' | status=' + String(result && result.status).slice(0, 40) +
+        ' | resultKeys=' + resultKeys.join(',') +
+        ' | dataPresent=' + Boolean(result && result.data) +
+        ' | dataType=' + (result && result.data === null ? 'null' : typeof (result && result.data)) +
+        ' | dataKeys=' + responseDataKeys.join(',')
+      );
       throw new Error('API 返回异常');
     }
 
