@@ -1353,7 +1353,7 @@ function liquidGlassWidget(widget) {
   widget.children = [{
     type: 'stack',
     direction: 'column',
-    alignItems: 'stretch',
+    alignItems: 'start',
     gap: 0,
     flex: 1,
     padding: [10, 11],
