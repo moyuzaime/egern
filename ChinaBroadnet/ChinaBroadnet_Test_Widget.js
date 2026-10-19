@@ -8,15 +8,15 @@ const BLOCKED_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryNeedPap
 const KEY = 'ChinaBroadnetHarkTest';
 
 const C = {
-  // 液态玻璃主题：所有尺寸统一使用高对比浅色文字与青绿强调色。
-  fee: '#FFD166',
-  flow: '#35F0B5',
-  voice: '#62E6C4',
-  txt: '#F8FFFD',
-  sub: '#D7E7E3',
-  glass: { light: '#102C2A58', dark: '#071D1B66' },
-  glassBorder: { light: '#E5FFFA9C', dark: '#C9FFF080' },
-  glassShadow: { light: '#062A2518', dark: '#00000038' },
+  // 实机当前显示为浅色底：优先保证所有尺寸文字清晰，避免浅色字融入白底。
+  fee: '#A76500',
+  flow: '#087F68',
+  voice: '#087F68',
+  txt: '#172B2A',
+  sub: '#405B58',
+  glass: { light: '#EAF7F2D9', dark: '#102C2AE8' },
+  glassBorder: { light: '#FFFFFFD9', dark: '#C9FFF080' },
+  glassShadow: { light: '#64748B18', dark: '#00000038' },
 };
 
 // 测试版默认始终使用透明背景。
