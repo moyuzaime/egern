@@ -1213,6 +1213,79 @@ function buildLarge(title, ds, fromCache) {
         ],
       },
       (() => {
+        const plan = ds.plan || {};
+        const total = plan.total != null ? formatFlow(plan.total) : null;
+        const usedFlow = plan.used != null ? formatFlow(plan.used) : null;
+        const remain = plan.remain != null ? formatFlow(plan.remain) : null;
+        const voicePct = plan.voicePercent != null
+          ? Math.max(0, Math.min(1, Number(plan.voicePercent)))
+          : null;
+        const voiceUsed = plan.voiceUsed != null ? formatVoice(plan.voiceUsed) : null;
+        const voiceTotal = plan.voiceTotal != null ? formatVoice(plan.voiceTotal) : null;
+        return glass([
+          {
+            type: 'stack',
+            direction: 'row',
+            alignItems: 'center',
+            gap: 4,
+            children: [
+              { type: 'image', src: 'sf-symbol:chart.bar.xaxis', width: 11, height: 11, color: C.flow },
+              t('套餐用量明细', 10, 'semibold', C.txt),
+              { type: 'spacer' },
+              t(plan.percent != null ? Math.round(Number(plan.percent) * 100) + '% 已用' : '用量统计', 9, 'medium', C.sub),
+            ],
+          },
+          {
+            type: 'stack',
+            direction: 'row',
+            gap: 4,
+            children: [
+              glass([
+                t('套餐总量', 8, 'medium', C.sub),
+                t(total ? total.number + ' ' + total.unit : '--', 13, 'bold', C.txt, { minScale: 0.55 }),
+              ], { flex: 1, padding: [6, 7], gap: 3, borderRadius: 12, shadowRadius: 0 }),
+              glass([
+                t('累计已用', 8, 'medium', C.sub),
+                t(usedFlow ? usedFlow.number + ' ' + usedFlow.unit : '--', 13, 'bold', C.flow, { minScale: 0.55 }),
+              ], { flex: 1, padding: [6, 7], gap: 3, borderRadius: 12, shadowRadius: 0 }),
+              glass([
+                t('剩余流量', 8, 'medium', C.sub),
+                t(remain ? remain.number + ' ' + remain.unit : (ds.flow.number + ' ' + ds.flow.unit), 13, 'bold', C.txt, { minScale: 0.55 }),
+              ], { flex: 1, padding: [6, 7], gap: 3, borderRadius: 12, shadowRadius: 0 }),
+            ],
+          },
+          {
+            type: 'stack',
+            direction: 'row',
+            alignItems: 'center',
+            gap: 5,
+            children: [
+              t('语音使用', 8, 'medium', C.sub),
+              { type: 'spacer' },
+              t(voiceUsed != null && voiceTotal != null
+                ? '已用 ' + voiceUsed + ' / ' + voiceTotal + ' 分钟'
+                : '套餐分钟明细暂不可用', 8, 'medium', C.sub, { minScale: 0.65 }),
+              ...(voicePct != null ? [t(Math.round(voicePct * 100) + '%', 8, 'bold', C.voice)] : []),
+            ],
+          },
+          ...(voicePct != null ? [{
+            type: 'stack',
+            direction: 'row',
+            height: 4,
+            borderRadius: 4,
+            backgroundColor: { light: '#8B5CF626', dark: '#8B5CF640' },
+            children: [{
+              type: 'stack',
+              width: Math.max(1, Math.round(voicePct * 100)) + '%',
+              height: 4,
+              borderRadius: 4,
+              backgroundColor: C.voice,
+              children: [],
+            }],
+          }] : []),
+        ], { gap: 5, padding: [7, 10], borderRadius: 16 });
+      })(),
+      (() => {
         const today = todayFlowUsage(ds.history);
         const used = today.value == null ? null : formatFlow(today.value);
         return glass([
@@ -1246,6 +1319,18 @@ function buildLarge(title, ds, fromCache) {
             height: 42,
           },
           t(today.label, 9, 'medium', C.sub),
+          {
+            type: 'stack',
+            direction: 'row',
+            alignItems: 'center',
+            gap: 4,
+            children: [
+              { type: 'image', src: 'sf-symbol:clock', width: 9, height: 9, color: C.sub },
+              t((fromCache ? '缓存数据 · ' : '最近更新 · ') + fmtTime(ds.updatedAt), 8, 'medium', C.sub),
+              { type: 'spacer' },
+              t(fromCache ? '数据可能过期' : '每 30 分钟刷新', 8, 'medium', C.sub),
+            ],
+          },
         ], {
           gap: 6,
           padding: [9, 12],
