@@ -708,8 +708,7 @@ function historySvg(history, color, w, h) {
 function heroFlowCard(ds) {
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const flowStyle = flowStatus(p);
-  const remain = ds.flow.number + ' ' + ds.flow.unit;
-  const usedText = ds.plan && ds.plan.used != null
+    const usedText = ds.plan && ds.plan.used != null
     ? '已用 ' + formatFlow(ds.plan.used).number + ' ' + formatFlow(ds.plan.used).unit
     : '套餐用量待确认';
   const totalText = ds.plan && ds.plan.total != null
@@ -939,8 +938,8 @@ function buildSmall(title, ds, fromCache) {
                 alignItems: 'end',
                 gap: 2,
                 children: [
-                  t(ds.flow.number, 27, 'bold', C.txt, { minScale: 0.48 }),
-                  t(ds.flow.unit, 10, 'semibold', C.sub),
+                  t(ds.flow.number, 23, 'bold', C.txt, { minScale: 0.35 }),
+                  t(ds.flow.unit, 9, 'semibold', C.sub, { minScale: 0.7 }),
                 ],
               },
               {
