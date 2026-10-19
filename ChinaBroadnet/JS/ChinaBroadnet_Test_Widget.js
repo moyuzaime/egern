@@ -1056,14 +1056,14 @@ function buildMedium(title, ds, fromCache) {
         },
         t('话费', 9, 'medium', C.sub),
         { type: 'spacer' },
-        t('¥' + ds.fee.number, 17, 'bold', C.txt, { minScale: 0.65 }),
+        t('¥' + ds.fee.number, 15, 'bold', C.txt, { minScale: 0.6 }),
       ],
     },
   ], {
-    height: 48,
-    padding: [6, 8],
+    height: 42,
+    padding: [5, 7],
     gap: 2,
-    borderRadius: 15,
+    borderRadius: 14,
     justifyContent: 'center',
   });
 
@@ -1083,16 +1083,16 @@ function buildMedium(title, ds, fromCache) {
         },
         t('语音', 9, 'medium', C.sub),
         { type: 'spacer' },
-        t(ds.voice.number, 17, 'bold', C.txt, { minScale: 0.65 }),
+        t(ds.voice.number, 15, 'bold', C.txt, { minScale: 0.6 }),
         t('分', 8, 'semibold', C.sub),
       ],
     },
 
   ], {
-    height: 50,
-    padding: [6, 8],
+    height: 42,
+    padding: [5, 7],
     gap: 2,
-    borderRadius: 16,
+    borderRadius: 14,
   });
 
   const row = {
