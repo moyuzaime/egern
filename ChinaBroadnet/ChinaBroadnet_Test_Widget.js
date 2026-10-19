@@ -205,11 +205,15 @@ function formatFee(v) {
 function formatFlow(v) {
   const n = Number(v);
   if (!Number.isFinite(n)) return { number: '--', unit: 'GB' };
+
+  // 广电 qryUserInfo 的 flowAll / flowUserd / flow 字段单位为 KB。
+  // 采用 1024 进制换算，保证总量、已用、剩余及历史记录显示一致。
   const gb = 1024 * 1024;
   const mb = 1024;
   if (n >= gb) return { number: (n / gb).toFixed(2), unit: 'GB' };
   if (n >= mb) return { number: (n / mb).toFixed(2), unit: 'MB' };
-  return { number: n.toFixed(2), unit: 'KB' };
+  if (n >= 1) return { number: n.toFixed(2), unit: 'KB' };
+  return { number: (n * 1024).toFixed(2), unit: 'B' };
 }
 
 function formatVoice(v) {
