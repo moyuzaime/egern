@@ -8,28 +8,33 @@ const BLOCKED_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryNeedPap
 const KEY = 'ChinaBroadnetHarkTest';
 
 const C = {
-  // 实机当前显示为浅色底：优先保证所有尺寸文字清晰，避免浅色字融入白底。
-  fee: '#A76500',
-  flow: '#087F68',
-  voice: '#087F68',
-  txt: '#172B2A',
-  sub: '#405B58',
-  glass: { light: '#EAF7F2D9', dark: '#102C2AE8' },
-  glassBorder: { light: '#FFFFFFD9', dark: '#C9FFF080' },
-  glassShadow: { light: '#64748B18', dark: '#00000038' },
+  // 高饱和但控制明度的多色系：余额琥珀、流量湖蓝、语音紫罗兰，文字保持高对比。
+  fee: '#B45309',
+  flow: '#007FAD',
+  voice: '#7C3AED',
+  txt: '#172554',
+  sub: '#475569',
+  title: '#0F766E',
+  cyan: '#0891B2',
+  violet: '#7C3AED',
+  pink: '#DB2777',
+  green: '#15803D',
+  glass: { light: '#E5F7F4D9', dark: '#102A43E8' },
+  glassBorder: { light: '#FFFFFFE8', dark: '#8BE9F080' },
+  glassShadow: { light: '#0F766E24', dark: '#00000048' },
 };
 
-// 测试版默认始终使用透明背景。
-const transparentMode = true;
+// 测试版使用有色半透明玻璃底，保留背景层次与文字对比。
+const transparentMode = false;
 
 function broadnetBackgroundGradient() {
   if (transparentMode) return undefined;
   return {
     type: 'radial',
     colors: [
-      { light: '#EEF6FF', dark: '#405A70' },
-      { light: '#F8F4FF', dark: '#514761' },
-      { light: '#EEFCF6', dark: '#3E5E53' },
+      { light: '#D9F4FF', dark: '#123A56' },
+      { light: '#F0E5FF', dark: '#35245B' },
+      { light: '#D7FBEA', dark: '#12483F' },
     ],
     stops: [0, 0.55, 1],
     center: { x: 0.22, y: 0.12 },
@@ -632,7 +637,7 @@ function flowStatus(pct) {
     return { color: C.flow, label: '套餐用量' };
   }
   const p = Number(pct);
-  if (p >= 0.9) return { color: '#FF453A', label: '用量偏高' };
+  if (p >= 0.9) return { color: '#E11D48', label: '用量偏高' };
   if (p >= 0.7) return { color: C.fee, label: '注意余量' };
   return { color: C.voice, label: '用量正常' };
 }
@@ -671,8 +676,8 @@ function trendStrip(ds) {
     padding: [6, 9],
     borderRadius: 13,
     gap: 0,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF50', dark: '#FFFFFF24' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF80', dark: '#FFFFFF60' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF78', dark: '#FFFFFF18' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFD0', dark: '#8BE9F055' },
   });
 }
 
@@ -770,9 +775,9 @@ function heroFlowCard(ds) {
     padding: [8, 10],
     borderRadius: 18,
     gap: 4,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF28', dark: '#FFFFFF3A' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF78', dark: '#FFFFFF70' },
-    shadowColor: { light: '#64748B04', dark: '#00000000' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#DDF7F080', dark: '#123B4C88' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#8BE9F060' },
+    shadowColor: { light: '#0F766E16', dark: '#00000022' },
     shadowRadius: 2,
     shadowOffset: { x: 0, y: 1 },
   });
@@ -815,7 +820,7 @@ function feeCard(ds) {
           src: 'sf-symbol:yensign.circle.fill',
           width: 11,
           height: 11,
-          color: low ? '#FF453A' : C.fee,
+          color: low ? '#E11D48' : C.fee,
         },
         t('剩余话费', 9, 'medium', C.sub),
       ],
@@ -826,8 +831,8 @@ function feeCard(ds) {
       alignItems: 'end',
       gap: 2,
       children: [
-        t('¥', 13, 'semibold', low ? '#FF453A' : C.fee),
-        t(ds.fee.number, 24, 'bold', low ? '#FF453A' : C.txt, {
+        t('¥', 13, 'semibold', low ? '#E11D48' : C.fee),
+        t(ds.fee.number, 24, 'bold', low ? '#E11D48' : C.txt, {
           minScale: 0.62,
         }),
       ],
@@ -1063,8 +1068,8 @@ function buildSmall(title, ds, fromCache) {
         padding: [7, 10],
         borderRadius: 14,
         gap: 4,
-        backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF45', dark: '#FFFFFF28' },
-        borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF85', dark: '#FFFFFF70' },
+        backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#E6F6FFB8', dark: '#164E63A0' },
+        borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFD0', dark: '#A5F3FC70' },
       })
     ],
   };
