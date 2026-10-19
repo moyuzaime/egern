@@ -1472,12 +1472,18 @@ async function handleWidget(ctx) {
 export default async function(ctx) {
   // Generic 小组件上下文优先渲染 Widget DSL；HTTP 请求上下文只执行捕获并透传请求。
   // 该脚本同时被 generic 与 http_request 引用，避免 generic 意外返回 undefined。
-  if (ctx && ctx.widgetFamily) {
-    return handleWidget(ctx);
-  }
   if (ctx && ctx.request && ctx.request.url) {
     await capture(ctx);
     return;
   }
-  return handleWidget(ctx);
+
+  // Generic 脚本必须始终返回以 type: 'widget' 为根的 DSL。
+  // 不依赖尺寸字段是否存在；并对意外的空返回做兜底，避免根节点缺少 type。
+  try {
+    const widget = await handleWidget(ctx || {});
+    if (widget && widget.type === 'widget') return widget;
+    return buildError('中国广电', '组件返回内容异常，请刷新测试版模块');
+  } catch (e) {
+    return buildError('中国广电', '组件渲染异常：' + String(e && e.message ? e.message : e).slice(0, 80));
+  }
 }
