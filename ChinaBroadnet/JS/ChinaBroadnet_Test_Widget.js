@@ -1412,12 +1412,12 @@ function liquidGlassWidget(widget) {
     gap: 8,
     padding: [7, 7],
     borderRadius: 26,
-    backgroundColor: transparentMode ? '#00000000' : { light: '#F8FAFCD9', dark: '#172638D9' },
+    backgroundColor: transparentMode ? '#00000000' : { light: '#FFFFFFB8', dark: '#263D55B8' },
     borderWidth: transparentMode ? 0 : 1,
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
-    shadowColor: { light: '#52677A18', dark: '#00000028' },
-    shadowRadius: 12,
-    shadowOffset: { x: 0, y: 4 },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFA8', dark: '#D8F1FF78' },
+    shadowColor: { light: '#45678212', dark: '#00000022' },
+    shadowRadius: 10,
+    shadowOffset: { x: 0, y: 3 },
     children: content,
   }];
   return widget;
