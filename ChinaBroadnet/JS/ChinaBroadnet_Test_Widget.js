@@ -578,8 +578,6 @@ function glass(children, extra) {
   return Object.assign({
     type: 'stack',
     direction: 'column',
-    width: 0,
-    flex: 1,
     gap: 6,
     padding: 10,
     borderRadius: 18,
@@ -1142,7 +1140,6 @@ function buildMedium(title, ds, fromCache) {
     direction: 'row',
     gap: 7,
     height: 104,
-    width: 0,
     flex: 1,
     children: [
       heroFlowCard(ds),
@@ -1222,8 +1219,7 @@ function buildLarge(title, ds, fromCache) {
         type: 'stack',
         direction: 'row',
         gap: 8,
-        width: 0,
-        flex: 1,
+        height: 144,
         children: [
           heroFlowCard(ds),
           glass([
@@ -1276,7 +1272,6 @@ function buildLarge(title, ds, fromCache) {
               ],
             },
           ], {
-            width: 0,
             flex: 1,
             height: 144,
             padding: [9, 9],
@@ -1323,8 +1318,6 @@ function buildLarge(title, ds, fromCache) {
           },
           t(today.label, 9, 'medium', C.sub),
         ], {
-          width: 0,
-          flex: 1,
           gap: 6,
           padding: [9, 12],
           borderRadius: 18,
@@ -1399,10 +1392,7 @@ function liquidGlassWidget(widget) {
   widget.children = [{
     type: 'stack',
     direction: 'column',
-    gap: 0,
-    width: 0,
-    height: 0,
-    flex: 1,
+    gap: 8,
     padding: [7, 7],
     borderRadius: 26,
     backgroundColor: '#00000000',
