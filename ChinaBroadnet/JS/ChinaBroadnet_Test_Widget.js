@@ -1023,7 +1023,7 @@ function buildSmall(title, ds, fromCache) {
               t(ds.voice.number === '--' ? '暂无' : ds.voice.number, 18, 'bold', C.txt, { minScale: 0.4 }),
               t(ds.voice.number === '--' ? '' : '分钟', 8, 'semibold', C.sub),
             ]},
-          ], { flex: 1, height: 48, padding: [7, 7], gap: 4, borderRadius: 15 }),
+          ], { width: 0, flex: 1, height: 48, padding: [7, 7], gap: 4, borderRadius: 15 }),
           glass([
             { type: 'stack', direction: 'row', alignItems: 'center', gap: 3, children: [
               { type: 'image', src: 'sf-symbol:yensign.circle.fill', width: 10, height: 10, color: C.fee },
@@ -1033,7 +1033,7 @@ function buildSmall(title, ds, fromCache) {
               t('¥', 10, 'semibold', C.fee),
               t(ds.fee.number, 18, 'bold', C.txt, { minScale: 0.4 }),
             ]},
-          ], { flex: 1, height: 48, padding: [7, 7], gap: 4, borderRadius: 15 }),
+          ], { width: 0, flex: 1, height: 48, padding: [7, 7], gap: 4, borderRadius: 15 }),
         ],
       }
     ],
@@ -1198,7 +1198,7 @@ function buildLarge(title, ds, fromCache) {
                   t(ds.voice.number === '--' ? '暂无数据' : ds.voice.number, 21, 'bold', C.txt, { minScale: 0.45 }),
                   t(ds.voice.number === '--' ? '' : '分钟', 9, 'semibold', C.sub),
                 ]},
-              ], { flex: 1, padding: [8, 9], gap: 5, borderRadius: 16 }),
+              ], { width: 0, flex: 1, padding: [8, 9], gap: 5, borderRadius: 16 }),
               glass([
                 { type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children: [
                   { type: 'image', src: 'sf-symbol:yensign.circle.fill', width: 10, height: 10, color: C.fee },
@@ -1208,7 +1208,7 @@ function buildLarge(title, ds, fromCache) {
                   t('¥', 12, 'semibold', C.fee),
                   t(ds.fee.number, 21, 'bold', C.txt, { minScale: 0.45 }),
                 ]},
-              ], { flex: 1, padding: [8, 9], gap: 5, borderRadius: 16 }),
+              ], { width: 0, flex: 1, padding: [8, 9], gap: 5, borderRadius: 16 }),
             ],
           }
         ],
