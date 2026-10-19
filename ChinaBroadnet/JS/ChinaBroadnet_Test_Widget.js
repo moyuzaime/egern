@@ -705,7 +705,7 @@ function historySvg(history, color, w, h) {
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 
-function heroFlowCard(ds) {
+function heroFlowCard(ds, cardHeight) {
   const remain = ds.flow.number + ' ' + ds.flow.unit;
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const flowStyle = flowStatus(p);
@@ -773,6 +773,7 @@ function heroFlowCard(ds) {
   ], {
     width: 0,
     flex: 1,
+    ...(cardHeight ? { height: cardHeight } : {}),
     padding: [8, 10],
     borderRadius: 18,
     gap: 4,
@@ -1022,7 +1023,7 @@ function buildSmall(title, ds, fromCache) {
               t(ds.voice.number === '--' ? '暂无' : ds.voice.number, 18, 'bold', C.txt, { minScale: 0.4 }),
               t(ds.voice.number === '--' ? '' : '分钟', 8, 'semibold', C.sub),
             ]},
-          ], { flex: 1, padding: [7, 7], gap: 4, borderRadius: 15 }),
+          ], { flex: 1, height: 46, padding: [7, 7], gap: 4, borderRadius: 15 }),
           glass([
             { type: 'stack', direction: 'row', alignItems: 'center', gap: 3, children: [
               { type: 'image', src: 'sf-symbol:yensign.circle.fill', width: 10, height: 10, color: C.fee },
@@ -1089,8 +1090,8 @@ function buildMedium(title, ds, fromCache) {
     },
 
   ], {
-    height: 42,
-    padding: [5, 7],
+    height: 43,
+    padding: [4, 7],
     gap: 2,
     borderRadius: 14,
   });
@@ -1178,15 +1179,15 @@ function buildLarge(title, ds, fromCache) {
         type: 'stack',
         direction: 'row',
         gap: 8,
-        height: 144,
+        height: 160,
         children: [
-          heroFlowCard(ds),
+          heroFlowCard(ds, 160),
           {
             type: 'stack',
             direction: 'column',
             gap: 6,
             flex: 1,
-            height: 144,
+            height: 160,
             children: [
               glass([
                 { type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children: [
