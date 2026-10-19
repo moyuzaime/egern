@@ -922,7 +922,7 @@ function buildSmall(title, ds, fromCache) {
         type: 'stack',
         direction: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 4,
         flex: 1,
         children: [
           {
@@ -960,14 +960,14 @@ function buildSmall(title, ds, fromCache) {
                   ),
                   t(
                     ds.plan && ds.plan.total != null
-                      ? '套餐总量 ' + total
+                      ? '总量 ' + total
                       : (ds.plan && ds.plan.remain != null
-                        ? '套餐余量 ' + formatFlow(ds.plan.remain).number + ' ' + formatFlow(ds.plan.remain).unit
-                        : '套餐总量待确认'),
+                        ? '余量 ' + formatFlow(ds.plan.remain).number + ' ' + formatFlow(ds.plan.remain).unit
+                        : '总量待确认'),
                     8,
                     'medium',
                     C.sub,
-                    { minScale: 0.65 }
+                    { minScale: 0.45 }
                   ),
                 ],
               },
@@ -982,8 +982,8 @@ function buildSmall(title, ds, fromCache) {
               {
                 type: 'image',
                 src: gaugeSvg(p, flowStyle.color, 82),
-                width: 52,
-                height: 30,
+                width: 44,
+                height: 27,
               },
               t(
                 p != null ? Math.round(p * 100) + '% 已用' : '套餐',
