@@ -1344,6 +1344,31 @@ function buildLock(title, ds, family) {
   };
 }
 
+function liquidGlassWidget(widget) {
+  if (!widget || widget.type !== 'widget' || !Array.isArray(widget.children)) return widget;
+
+  // 外层统一使用轻透玻璃面板；内部数据卡保持透明，让壁纸贯穿整个组件。
+  const content = widget.children;
+  widget.backgroundColor = '#00000000';
+  widget.children = [{
+    type: 'stack',
+    direction: 'column',
+    alignItems: 'stretch',
+    gap: 0,
+    flex: 1,
+    padding: [10, 11],
+    borderRadius: 26,
+    backgroundColor: { light: '#FFFFFF20', dark: '#07130F48' },
+    borderWidth: 1,
+    borderColor: { light: '#FFFFFFA0', dark: '#FFFFFF70' },
+    shadowColor: { light: '#64748B18', dark: '#00000035' },
+    shadowRadius: 12,
+    shadowOffset: { x: 0, y: 4 },
+    children: content,
+  }];
+  return widget;
+}
+
 function buildError(title, message) {
   return {
     type: 'widget',
@@ -1389,18 +1414,18 @@ async function handleWidget(ctx) {
   const family = ctx.widgetFamily || 'systemSmall';
 
   if (family === 'systemMedium') {
-    return buildMedium('中国广电', result.data, result.fromCache);
+    return liquidGlassWidget(buildMedium('中国广电', result.data, result.fromCache));
   }
 
   if (family === 'systemLarge' || family === 'systemExtraLarge') {
-    return buildLarge('中国广电', result.data, result.fromCache);
+    return liquidGlassWidget(buildLarge('中国广电', result.data, result.fromCache));
   }
 
   if (family.startsWith('accessory')) {
     return buildLock('中国广电', result.data, family);
   }
 
-  return buildSmall('中国广电', result.data, result.fromCache);
+  return liquidGlassWidget(buildSmall('中国广电', result.data, result.fromCache));
 }
 
 export default async function(ctx) {
