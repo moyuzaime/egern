@@ -1268,21 +1268,6 @@ function buildLarge(title, ds, fromCache) {
               ...(voicePct != null ? [t(Math.round(voicePct * 100) + '%', 8, 'bold', C.voice)] : []),
             ],
           },
-          ...(voicePct != null ? [{
-            type: 'stack',
-            direction: 'row',
-            height: 4,
-            borderRadius: 4,
-            backgroundColor: { light: '#8B5CF626', dark: '#8B5CF640' },
-            children: [{
-              type: 'stack',
-              width: Math.max(1, Math.round(voicePct * 100)) + '%',
-              height: 4,
-              borderRadius: 4,
-              backgroundColor: C.voice,
-              children: [],
-            }],
-          }] : []),
         ], { gap: 5, padding: [7, 10], borderRadius: 16 });
       })(),
       (() => {
