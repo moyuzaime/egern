@@ -597,11 +597,8 @@ function flowStatus(pct) {
 }
 
 function trendStrip(ds) {
-  const history = ds.history || [];
-  const status = flowStatus(ds.plan && ds.plan.percent);
-  const label = ds.plan && ds.plan.percent != null
-    ? Math.round(ds.plan.percent * 100) + '% 已用'
-    : historyDeltaText(history);
+  const today = todayFlowUsage(ds.history);
+  const used = today.value == null ? null : formatFlow(today.value);
   return glass([
     {
       type: 'stack',
@@ -611,9 +608,9 @@ function trendStrip(ds) {
       children: [
         {
           type: 'image',
-          src: historySvg(history, status.color, 100, 24),
-          width: 62,
-          height: 18,
+          src: historySvg(today.history, C.flow, 100, 30),
+          width: 72,
+          height: 22,
         },
         {
           type: 'stack',
@@ -622,11 +619,11 @@ function trendStrip(ds) {
           gap: 1,
           flex: 1,
           children: [
-            t('流量趋势', 9, 'semibold', C.txt),
-            t(historyDeltaText(history), 8, 'medium', C.sub, { minScale: 0.65 }),
+            t('今日流量使用', 9, 'semibold', C.txt),
+            t(today.label, 8, 'medium', C.sub, { minScale: 0.65 }),
           ],
         },
-        t(label, 9, 'bold', status.color, { minScale: 0.7 }),
+        t(used ? used.number + ' ' + used.unit : '采集中', 9, 'bold', C.flow, { minScale: 0.7 }),
       ],
     },
   ], {
@@ -640,29 +637,24 @@ function trendStrip(ds) {
 
 function historySvg(history, color, w, h) {
   const vals = (history || []).map(x => Number(x.flowKB)).filter(Number.isFinite).slice(-12);
-  const empty = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${w} ${h}'><path d='M 2 ${h-3} H ${w-2}' stroke='${color}' stroke-opacity='.18' stroke-width='1.5' stroke-linecap='round' stroke-dasharray='3 4'/></svg>`;
-  if (!vals.length) {
-    return 'data:image/svg+xml,' + encodeURIComponent(empty);
-  }
+  const baseline = h - 2;
+  const empty = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${w} ${h}'><path d='M 2 ${baseline} H ${w-2}' stroke='${color}' stroke-opacity='.22' stroke-width='1.5' stroke-linecap='round' stroke-dasharray='3 4'/></svg>`;
+  if (!vals.length) return 'data:image/svg+xml,' + encodeURIComponent(empty);
 
-  const max = Math.max(...vals);
-  const min = Math.min(...vals);
-  const range = Math.max(1, max - min);
-  const padX = Math.min(3, w * 0.02);
-  const padY = Math.min(4, h * 0.12);
-  const points = vals.map((v, i) => {
-    const x = vals.length === 1 ? w / 2 : padX + (i / (vals.length - 1)) * (w - padX * 2);
-    const y = h - padY - ((v - min) / range) * (h - padY * 2);
-    return [x, y];
-  });
-  // A single sample should look like a sample, not a misleading flat trend.
-  const line = points.length > 1
-    ? `<polyline points='${points.map(p => p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}' fill='none' stroke='${color}' stroke-width='${Math.max(2, Math.min(3, h * 0.075))}' stroke-linecap='round' stroke-linejoin='round'/>`
-    : `<circle cx='${points[0][0].toFixed(1)}' cy='${points[0][1].toFixed(1)}' r='${Math.max(2, Math.min(3.5, h * 0.09))}' fill='${color}'/>`;
-  const dots = points.length > 1
-    ? `<circle cx='${points[points.length-1][0].toFixed(1)}' cy='${points[points.length-1][1].toFixed(1)}' r='${Math.max(2, Math.min(3, h * 0.07))}' fill='${color}'/>`
-    : '';
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${w} ${h}'><path d='M 1 ${h-1} H ${w-1}' stroke='${color}' stroke-opacity='.12' stroke-width='1'/>${line}${dots}</svg>`;
+  const max = Math.max(1, ...vals);
+  const padX = Math.min(3, w * 0.025);
+  const gap = Math.max(2, Math.min(5, w * 0.035));
+  const count = vals.length;
+  const barW = Math.max(2, (w - padX * 2 - gap * (count - 1)) / count);
+  const usableH = h - 5;
+  const bars = vals.map((v, i) => {
+    const bh = Math.max(2, (Math.max(0, v) / max) * usableH);
+    const x = padX + i * (barW + gap);
+    const y = baseline - bh;
+    const opacity = i === count - 1 ? 1 : 0.48 + 0.42 * ((i + 1) / count);
+    return `<rect x='${x.toFixed(1)}' y='${y.toFixed(1)}' width='${barW.toFixed(1)}' height='${bh.toFixed(1)}' rx='${Math.min(2, barW / 2).toFixed(1)}' fill='${color}' fill-opacity='${opacity.toFixed(2)}'/>`;
+  }).join('');
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${w} ${h}'><path d='M 1 ${baseline} H ${w-1}' stroke='${color}' stroke-opacity='.12' stroke-width='1'/>${bars}</svg>`;
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 
