@@ -677,8 +677,8 @@ function trendStrip(ds) {
     padding: [5, 8],
     borderRadius: 13,
     gap: 0,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFC70', dark: '#17263878' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB0', dark: '#D7E7F060' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFCD9', dark: '#172638D9' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
   });
 }
 
@@ -776,8 +776,8 @@ function heroFlowCard(ds) {
     padding: [8, 10],
     borderRadius: 18,
     gap: 4,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFC70', dark: '#17263878' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB0', dark: '#D7E7F060' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFCD9', dark: '#172638D9' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
     shadowColor: { light: '#52677A18', dark: '#00000028' },
     shadowRadius: 2,
     shadowOffset: { x: 0, y: 1 },
@@ -844,8 +844,8 @@ function feeCard(ds) {
     borderRadius: 18,
     height: 70,
     gap: 5,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFC70', dark: '#17263878' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB0', dark: '#D7E7F060' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFCD9', dark: '#172638D9' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
   });
 }
 function dataCard(icon, color, title, value, unit, detail) {
@@ -876,8 +876,8 @@ function dataCard(icon, color, title, value, unit, detail) {
     borderRadius: 18,
     height: 70,
     gap: 3,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFC70', dark: '#17263878' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB0', dark: '#D7E7F060' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFCD9', dark: '#172638D9' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
   });
 }
 
@@ -1324,9 +1324,9 @@ function liquidGlassWidget(widget) {
     gap: 8,
     padding: [7, 7],
     borderRadius: 26,
-    backgroundColor: '#00000000',
-    borderWidth: 1,
-    borderColor: { light: '#FFFFFFA8', dark: '#D7E7F060' },
+    backgroundColor: transparentMode ? '#00000000' : { light: '#F8FAFCD9', dark: '#172638D9' },
+    borderWidth: transparentMode ? 0 : 1,
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
     shadowColor: { light: '#52677A18', dark: '#00000028' },
     shadowRadius: 12,
     shadowOffset: { x: 0, y: 4 },
