@@ -709,13 +709,6 @@ function heroFlowCard(ds, cardHeight, cardFlex) {
   const remain = ds.flow.number + ' ' + ds.flow.unit;
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const flowStyle = flowStatus(p);
-    const usedText = ds.plan && ds.plan.used != null
-    ? '已用 ' + formatFlow(ds.plan.used).number + ' ' + formatFlow(ds.plan.used).unit
-    : '套餐用量待确认';
-  const totalText = ds.plan && ds.plan.total != null
-    ? '套餐 ' + formatFlow(ds.plan.total).number + ' ' + formatFlow(ds.plan.total).unit
-    : '等待套餐总量';
-
   return glass([
     {
       type: 'stack',
@@ -764,8 +757,7 @@ function heroFlowCard(ds, cardHeight, cardFlex) {
           flex: 1,
           children: [
             t(remain, 23, 'bold', C.txt, { minScale: 0.55 }),
-            t(usedText, 9, 'medium', C.sub),
-            t(totalText, 9, 'medium', C.sub, { minScale: 0.65 }),
+            t('当前剩余', 9, 'medium', C.sub),
           ],
         },
       ],
@@ -1277,10 +1269,6 @@ function buildLarge(title, ds, fromCache) {
               glass([
                 t('累计已用', 8, 'medium', C.sub),
                 t(usedFlow ? usedFlow.number + ' ' + usedFlow.unit : '--', 13, 'bold', C.flow, { minScale: 0.55 }),
-              ], { flex: 1, padding: [6, 7], gap: 3, borderRadius: 12, shadowRadius: 0 }),
-              glass([
-                t('剩余流量', 8, 'medium', C.sub),
-                t(remain ? remain.number + ' ' + remain.unit : (ds.flow.number + ' ' + ds.flow.unit), 13, 'bold', C.txt, { minScale: 0.55 }),
               ], { flex: 1, padding: [6, 7], gap: 3, borderRadius: 12, shadowRadius: 0 }),
             ],
           },
