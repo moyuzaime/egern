@@ -8,7 +8,7 @@ const BLOCKED_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryNeedPap
 const KEY = 'ChinaBroadnetHarkTest';
 
 const C = {
-  // 高饱和但控制明度的多色系：余额琥珀、流量湖蓝、语音紫罗兰，文字保持高对比。
+  // 低饱和环境渐变 + 统一中性色玻璃；主题色只用于图标、关键数字和进度。
   fee: '#B45309',
   flow: '#007FAD',
   voice: '#7C3AED',
@@ -24,7 +24,7 @@ const C = {
   glassShadow: { light: '#0F766E24', dark: '#00000048' },
 };
 
-// 测试版使用有色半透明玻璃底，保留背景层次与文字对比。
+// 测试版采用统一的清透磨砂玻璃，避免不同卡片各自铺色造成视觉杂乱。
 const transparentMode = false;
 
 function broadnetBackgroundGradient() {
@@ -583,9 +583,9 @@ function glass(children, extra) {
     padding: 10,
     borderRadius: 18,
     // 参考 Hark 仪表盘：柔和的半透明玻璃、亮边与轻阴影；外层组件仍保持透明。
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFFB8', dark: '#10243AC7' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFF78', dark: '#10243A88' },
     borderWidth: transparentMode ? 0 : 1,
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFE8', dark: '#A5F3FC70' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#D9F3FF60' },
     shadowColor: C.glassShadow,
     shadowRadius: transparentMode ? 0 : 7,
     shadowOffset: { x: 0, y: 3 },
@@ -677,8 +677,8 @@ function trendStrip(ds) {
     padding: [6, 9],
     borderRadius: 13,
     gap: 0,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#DFF6FFB8', dark: '#12334CC9' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFE8', dark: '#7DD3FC70' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFF78', dark: '#10243A88' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#D9F3FF60' },
   });
 }
 
@@ -776,8 +776,8 @@ function heroFlowCard(ds) {
     padding: [8, 10],
     borderRadius: 18,
     gap: 4,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#D8F7F4C9', dark: '#123B4CD9' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFE8', dark: '#67E8F980' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFF78', dark: '#10243A88' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#D9F3FF60' },
     shadowColor: { light: '#0F766E24', dark: '#00000035' },
     shadowRadius: 2,
     shadowOffset: { x: 0, y: 1 },
@@ -844,8 +844,8 @@ function feeCard(ds) {
     borderRadius: 18,
     height: 70,
     gap: 5,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFF1D6D9', dark: '#54371FD9' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FDE68ABF', dark: '#FBBF2466' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFF78', dark: '#10243A88' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#D9F3FF60' },
   });
 }
 function dataCard(icon, color, title, value, unit, detail) {
@@ -876,8 +876,8 @@ function dataCard(icon, color, title, value, unit, detail) {
     borderRadius: 18,
     height: 70,
     gap: 3,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#EDE9FECC', dark: '#30245BCC' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#DDD6FCE8', dark: '#C4B5FD70' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFF78', dark: '#10243A88' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#D9F3FF60' },
   });
 }
 
@@ -1073,8 +1073,8 @@ function buildSmall(title, ds, fromCache) {
         padding: [8, 10],
         borderRadius: 16,
         gap: 5,
-        backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#E6F6FFB8', dark: '#164E63A0' },
-        borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFD0', dark: '#A5F3FC70' },
+        backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFF78', dark: '#10243A88' },
+        borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#D9F3FF60' },
       })
     ],
   };
@@ -1279,8 +1279,8 @@ function buildLarge(title, ds, fromCache) {
             borderRadius: 18,
             gap: 6,
             justifyContent: 'center',
-            backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF45', dark: '#FFFFFF28' },
-            borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF85', dark: '#FFFFFF70' },
+            backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFF78', dark: '#10243A88' },
+            borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#D9F3FF60' },
           }),
         ],
       },
