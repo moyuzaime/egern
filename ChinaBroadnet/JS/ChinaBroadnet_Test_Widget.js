@@ -705,7 +705,7 @@ function historySvg(history, color, w, h) {
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 
-function heroFlowCard(ds, cardHeight) {
+function heroFlowCard(ds, cardHeight, cardFlex) {
   const remain = ds.flow.number + ' ' + ds.flow.unit;
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const flowStyle = flowStatus(p);
@@ -772,8 +772,8 @@ function heroFlowCard(ds, cardHeight) {
     },
   ], {
     width: 0,
-    flex: 1,
-    ...(cardHeight ? { height: cardHeight, maxWidth: 300 } : {}),
+    flex: cardFlex || 1,
+    ...(cardHeight ? { height: cardHeight, maxWidth: 360 } : {}),
     padding: [8, 10],
     borderRadius: 18,
     gap: 4,
@@ -1228,12 +1228,12 @@ function buildLarge(title, ds, fromCache) {
         gap: 8,
         height: 136,
         children: [
-          heroFlowCard(ds, 136),
+          heroFlowCard(ds, 136, 1.35),
           {
             type: 'stack',
             direction: 'column',
             gap: 6,
-            flex: 1,
+            flex: 0.85,
             height: 136,
             children: [
               largeFee,
