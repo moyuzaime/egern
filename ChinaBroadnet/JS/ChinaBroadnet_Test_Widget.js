@@ -1470,8 +1470,14 @@ async function handleWidget(ctx) {
 }
 
 export default async function(ctx) {
-  if (ctx.request && ctx.request.url) {
-    return capture(ctx);
+  // Generic 小组件上下文优先渲染 Widget DSL；HTTP 请求上下文只执行捕获并透传请求。
+  // 该脚本同时被 generic 与 http_request 引用，避免 generic 意外返回 undefined。
+  if (ctx && ctx.widgetFamily) {
+    return handleWidget(ctx);
+  }
+  if (ctx && ctx.request && ctx.request.url) {
+    await capture(ctx);
+    return;
   }
   return handleWidget(ctx);
 }
