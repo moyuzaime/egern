@@ -582,11 +582,12 @@ function glass(children, extra) {
     gap: 6,
     padding: 10,
     borderRadius: 18,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : C.glass,
+    // 参考 Hark 仪表盘：柔和的半透明玻璃、亮边与轻阴影；外层组件仍保持透明。
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFFB8', dark: '#10243AC7' },
     borderWidth: transparentMode ? 0 : 1,
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : C.glassBorder,
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFE8', dark: '#A5F3FC70' },
     shadowColor: C.glassShadow,
-    shadowRadius: transparentMode ? 0 : 8,
+    shadowRadius: transparentMode ? 0 : 7,
     shadowOffset: { x: 0, y: 3 },
     children,
   }, extra || {});
@@ -676,8 +677,8 @@ function trendStrip(ds) {
     padding: [6, 9],
     borderRadius: 13,
     gap: 0,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFF78', dark: '#FFFFFF18' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFD0', dark: '#8BE9F055' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#DFF6FFB8', dark: '#12334CC9' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFE8', dark: '#7DD3FC70' },
   });
 }
 
@@ -775,9 +776,9 @@ function heroFlowCard(ds) {
     padding: [8, 10],
     borderRadius: 18,
     gap: 4,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#DDF7F080', dark: '#123B4C88' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#8BE9F060' },
-    shadowColor: { light: '#0F766E16', dark: '#00000022' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#D8F7F4C9', dark: '#123B4CD9' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFE8', dark: '#67E8F980' },
+    shadowColor: { light: '#0F766E24', dark: '#00000035' },
     shadowRadius: 2,
     shadowOffset: { x: 0, y: 1 },
   });
@@ -843,6 +844,8 @@ function feeCard(ds) {
     borderRadius: 18,
     height: 70,
     gap: 5,
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFF1D6D9', dark: '#54371FD9' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FDE68ABF', dark: '#FBBF2466' },
   });
 }
 function dataCard(icon, color, title, value, unit, detail) {
@@ -873,6 +876,8 @@ function dataCard(icon, color, title, value, unit, detail) {
     borderRadius: 18,
     height: 70,
     gap: 3,
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#EDE9FECC', dark: '#30245BCC' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#DDD6FCE8', dark: '#C4B5FD70' },
   });
 }
 
