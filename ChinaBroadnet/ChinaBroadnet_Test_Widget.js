@@ -289,12 +289,24 @@ async function capture(ctx) {
         rawBodyType = rawBody == null ? 'null' : (Array.isArray(rawBody) ? 'array' : typeof rawBody);
       } catch (e) {}
 
+      // 只记录是否存在关键字段及 data 的结构，不输出 access 或业务数据本身。
+      let hasAccess = false;
+      try { hasAccess = !!String(getHeader(req.headers, 'access') || '').trim(); } catch (e) {}
+      let dataType = body && body.data == null ? 'missing' : (body && Array.isArray(body.data) ? 'array' : typeof (body && body.data));
+      let dataKeys = [];
+      try {
+        if (body && body.data && typeof body.data === 'object') dataKeys = Object.keys(body.data).slice(0, 30);
+      } catch (e) {}
+
       console.log(
         '[ChinaBroadnet] API侦察: ' +
         method + ' ' + url +
         (keys.length ? ' | keys=' + keys.join(',') : '') +
         ' | bodyType=' + bodyType +
         ' | bodyKeys=' + bodyKeys.join(',') +
+        ' | dataType=' + dataType +
+        ' | dataKeys=' + dataKeys.join(',') +
+        ' | accessPresent=' + hasAccess +
         ' | rawBodyType=' + rawBodyType +
         ' | requestKeys=' + requestKeys.join(',')
       );
