@@ -9,19 +9,19 @@ const KEY = 'ChinaBroadnetHarkTest';
 
 const C = {
   // 低饱和环境渐变 + 统一中性色玻璃；主题色只用于图标、关键数字和进度。
-  fee: '#9A6700',
-  flow: '#087EA4',
-  voice: '#7657B8',
-  txt: '#203047',
-  sub: '#68778A',
-  title: '#347C78',
-  cyan: '#398FA3',
-  violet: '#8873B8',
-  pink: '#B96D91',
-  green: '#47876A',
-  glass: { light: '#F7FAFCB0', dark: '#192A3CB8' },
-  glassBorder: { light: '#FFFFFFC9', dark: '#D2E7F080' },
-  glassShadow: { light: '#52677A18', dark: '#00000030' },
+  fee: '#E28A16',
+  flow: '#079ACB',
+  voice: '#8B5CF6',
+  txt: '#172B45',
+  sub: '#586D84',
+  title: '#0F9F91',
+  cyan: '#22B8CF',
+  violet: '#9B7BFF',
+  pink: '#EC6FA7',
+  green: '#27A879',
+  glass: { light: '#FFFFFFD9', dark: '#263D55D9' },
+  glassBorder: { light: '#FFFFFFF2', dark: '#D8F1FFFF' },
+  glassShadow: { light: '#45678224', dark: '#00000038' },
 };
 
 // 测试版采用统一的清透磨砂玻璃，避免不同卡片各自铺色造成视觉杂乱。
@@ -32,9 +32,9 @@ function broadnetBackgroundGradient() {
   return {
     type: 'radial',
     colors: [
-      { light: '#DCECF4', dark: '#1B3042' },
-      { light: '#EAE5F1', dark: '#303044' },
-      { light: '#DDEFE7', dark: '#1D3A37' },
+      { light: '#BFEAFF', dark: '#193B60' },
+      { light: '#E7D9FF', dark: '#3C2E63' },
+      { light: '#C8F7E6', dark: '#174D48' },
     ],
     stops: [0, 0.55, 1],
     center: { x: 0.22, y: 0.12 },
@@ -578,14 +578,16 @@ function glass(children, extra) {
   return Object.assign({
     type: 'stack',
     direction: 'column',
-    alignItems: 'start',
+    alignItems: 'stretch',
+    width: 0,
+    flex: 1,
     gap: 6,
     padding: 10,
     borderRadius: 18,
     // 参考 Hark 仪表盘：柔和的半透明玻璃、亮边与轻阴影；外层组件仍保持透明。
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFC70', dark: '#17263878' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFD9', dark: '#263D55D9' },
     borderWidth: transparentMode ? 0 : 1,
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB0', dark: '#D7E7F060' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D8F1FFB0' },
     shadowColor: C.glassShadow,
     shadowRadius: transparentMode ? 0 : 7,
     shadowOffset: { x: 0, y: 3 },
@@ -1139,9 +1141,11 @@ function buildMedium(title, ds, fromCache) {
   const row = {
     type: 'stack',
     direction: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     gap: 7,
     height: 104,
+    width: 0,
+    flex: 1,
     children: [
       heroFlowCard(ds),
       {
@@ -1219,8 +1223,10 @@ function buildLarge(title, ds, fromCache) {
       {
         type: 'stack',
         direction: 'row',
-        alignItems: 'start',
+        alignItems: 'stretch',
         gap: 8,
+        width: 0,
+        flex: 1,
         children: [
           heroFlowCard(ds),
           glass([
@@ -1273,7 +1279,8 @@ function buildLarge(title, ds, fromCache) {
               ],
             },
           ], {
-            width: 126,
+            width: 0,
+            flex: 1,
             height: 144,
             padding: [9, 9],
             borderRadius: 18,
@@ -1395,10 +1402,12 @@ function liquidGlassWidget(widget) {
   widget.children = [{
     type: 'stack',
     direction: 'column',
-    alignItems: 'start',
+    alignItems: 'stretch',
     gap: 0,
+    width: 0,
+    height: 0,
     flex: 1,
-    padding: [10, 11],
+    padding: [7, 7],
     borderRadius: 26,
     backgroundColor: '#00000000',
     borderWidth: 1,
