@@ -707,6 +707,11 @@ function historySvg(history, color, w, h) {
 
 function heroFlowCard(ds, cardHeight, cardFlex) {
   const remain = ds.flow.number + ' ' + ds.flow.unit;
+  const total = ds.plan && ds.plan.total != null ? formatFlow(ds.plan.total) : null;
+  const used = ds.plan && ds.plan.used != null ? formatFlow(ds.plan.used) : null;
+  const compactFlowDetail = !cardHeight
+    ? '总量 ' + (total ? total.number + ' ' + total.unit : '--') + ' · 已用 ' + (used ? used.number + ' ' + used.unit : '--')
+    : '';
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const flowStyle = flowStatus(p);
   return glass([
@@ -756,8 +761,9 @@ function heroFlowCard(ds, cardHeight, cardFlex) {
           gap: 1,
           flex: 1,
           children: [
-            t(remain, 23, 'bold', C.txt, { minScale: 0.55 }),
+            t(remain, cardHeight ? 23 : 20, 'bold', C.txt, { minScale: 0.55 }),
             t('当前剩余', 9, 'medium', C.sub),
+            ...(!cardHeight ? [t(compactFlowDetail, 8, 'medium', C.sub, { minScale: 0.45 })] : []),
           ],
         },
       ],
