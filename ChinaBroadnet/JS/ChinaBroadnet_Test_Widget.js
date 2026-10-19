@@ -9,19 +9,19 @@ const KEY = 'ChinaBroadnetHarkTest';
 
 const C = {
   // 低饱和环境渐变 + 统一中性色玻璃；主题色只用于图标、关键数字和进度。
-  fee: '#B45309',
-  flow: '#007FAD',
-  voice: '#7C3AED',
-  txt: '#172554',
-  sub: '#475569',
-  title: '#0F766E',
-  cyan: '#0891B2',
-  violet: '#7C3AED',
-  pink: '#DB2777',
-  green: '#15803D',
-  glass: { light: '#E5F7F4D9', dark: '#102A43E8' },
-  glassBorder: { light: '#FFFFFFE8', dark: '#8BE9F080' },
-  glassShadow: { light: '#0F766E24', dark: '#00000048' },
+  fee: '#9A6700',
+  flow: '#087EA4',
+  voice: '#7657B8',
+  txt: '#203047',
+  sub: '#68778A',
+  title: '#347C78',
+  cyan: '#398FA3',
+  violet: '#8873B8',
+  pink: '#B96D91',
+  green: '#47876A',
+  glass: { light: '#F7FAFCB0', dark: '#192A3CB8' },
+  glassBorder: { light: '#FFFFFFC9', dark: '#D2E7F080' },
+  glassShadow: { light: '#52677A18', dark: '#00000030' },
 };
 
 // 测试版采用统一的清透磨砂玻璃，避免不同卡片各自铺色造成视觉杂乱。
@@ -32,9 +32,9 @@ function broadnetBackgroundGradient() {
   return {
     type: 'radial',
     colors: [
-      { light: '#D9F4FF', dark: '#123A56' },
-      { light: '#F0E5FF', dark: '#35245B' },
-      { light: '#D7FBEA', dark: '#12483F' },
+      { light: '#DCECF4', dark: '#1B3042' },
+      { light: '#EAE5F1', dark: '#303044' },
+      { light: '#DDEFE7', dark: '#1D3A37' },
     ],
     stops: [0, 0.55, 1],
     center: { x: 0.22, y: 0.12 },
@@ -583,9 +583,9 @@ function glass(children, extra) {
     padding: 10,
     borderRadius: 18,
     // 参考 Hark 仪表盘：柔和的半透明玻璃、亮边与轻阴影；外层组件仍保持透明。
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFF78', dark: '#10243A88' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFC70', dark: '#17263878' },
     borderWidth: transparentMode ? 0 : 1,
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#D9F3FF60' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB0', dark: '#D7E7F060' },
     shadowColor: C.glassShadow,
     shadowRadius: transparentMode ? 0 : 7,
     shadowOffset: { x: 0, y: 3 },
@@ -638,7 +638,7 @@ function flowStatus(pct) {
     return { color: C.flow, label: '套餐用量' };
   }
   const p = Number(pct);
-  if (p >= 0.9) return { color: '#E11D48', label: '用量偏高' };
+  if (p >= 0.9) return { color: '#C4475B', label: '用量偏高' };
   if (p >= 0.7) return { color: C.fee, label: '注意余量' };
   return { color: C.voice, label: '用量正常' };
 }
@@ -677,8 +677,8 @@ function trendStrip(ds) {
     padding: [6, 9],
     borderRadius: 13,
     gap: 0,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFF78', dark: '#10243A88' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#D9F3FF60' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFC70', dark: '#17263878' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB0', dark: '#D7E7F060' },
   });
 }
 
@@ -776,9 +776,9 @@ function heroFlowCard(ds) {
     padding: [8, 10],
     borderRadius: 18,
     gap: 4,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFF78', dark: '#10243A88' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#D9F3FF60' },
-    shadowColor: { light: '#0F766E24', dark: '#00000035' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFC70', dark: '#17263878' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB0', dark: '#D7E7F060' },
+    shadowColor: { light: '#52677A18', dark: '#00000028' },
     shadowRadius: 2,
     shadowOffset: { x: 0, y: 1 },
   });
@@ -821,7 +821,7 @@ function feeCard(ds) {
           src: 'sf-symbol:yensign.circle.fill',
           width: 11,
           height: 11,
-          color: low ? '#E11D48' : C.fee,
+          color: low ? '#C4475B' : C.fee,
         },
         t('剩余话费', 9, 'medium', C.sub),
       ],
@@ -832,8 +832,8 @@ function feeCard(ds) {
       alignItems: 'end',
       gap: 2,
       children: [
-        t('¥', 13, 'semibold', low ? '#E11D48' : C.fee),
-        t(ds.fee.number, 24, 'bold', low ? '#E11D48' : C.txt, {
+        t('¥', 13, 'semibold', low ? '#C4475B' : C.fee),
+        t(ds.fee.number, 24, 'bold', low ? '#C4475B' : C.txt, {
           minScale: 0.62,
         }),
       ],
@@ -844,8 +844,8 @@ function feeCard(ds) {
     borderRadius: 18,
     height: 70,
     gap: 5,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFF78', dark: '#10243A88' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#D9F3FF60' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFC70', dark: '#17263878' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB0', dark: '#D7E7F060' },
   });
 }
 function dataCard(icon, color, title, value, unit, detail) {
@@ -876,8 +876,8 @@ function dataCard(icon, color, title, value, unit, detail) {
     borderRadius: 18,
     height: 70,
     gap: 3,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFF78', dark: '#10243A88' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#D9F3FF60' },
+    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFC70', dark: '#17263878' },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB0', dark: '#D7E7F060' },
   });
 }
 
@@ -1073,8 +1073,8 @@ function buildSmall(title, ds, fromCache) {
         padding: [8, 10],
         borderRadius: 16,
         gap: 5,
-        backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFF78', dark: '#10243A88' },
-        borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#D9F3FF60' },
+        backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFC70', dark: '#17263878' },
+        borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB0', dark: '#D7E7F060' },
       })
     ],
   };
@@ -1279,8 +1279,8 @@ function buildLarge(title, ds, fromCache) {
             borderRadius: 18,
             gap: 6,
             justifyContent: 'center',
-            backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FCFF78', dark: '#10243A88' },
-            borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB8', dark: '#D9F3FF60' },
+            backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFC70', dark: '#17263878' },
+            borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFB0', dark: '#D7E7F060' },
           }),
         ],
       },
@@ -1402,8 +1402,8 @@ function liquidGlassWidget(widget) {
     borderRadius: 26,
     backgroundColor: '#00000000',
     borderWidth: 1,
-    borderColor: { light: '#FFFFFFA0', dark: '#FFFFFF70' },
-    shadowColor: { light: '#64748B18', dark: '#00000035' },
+    borderColor: { light: '#FFFFFFA8', dark: '#D7E7F060' },
+    shadowColor: { light: '#52677A18', dark: '#00000028' },
     shadowRadius: 12,
     shadowOffset: { x: 0, y: 4 },
     children: content,
