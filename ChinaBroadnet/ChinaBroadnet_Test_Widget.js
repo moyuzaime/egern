@@ -932,17 +932,34 @@ function buildSmall(title, ds, fromCache) {
                   t(ds.flow.unit, 10, 'semibold', C.sub),
                 ],
               },
-              t(
-                ds.plan && ds.plan.used != null && ds.plan.total != null
-                  ? '已用 ' + used + ' / 套餐 ' + total
-                  : (ds.plan && ds.plan.remain != null
-                    ? '套餐余量 ' + formatFlow(ds.plan.remain).number + ' ' + formatFlow(ds.plan.remain).unit
-                    : '套餐用量待确认'),
-                8,
-                'semibold',
-                flowStyle.color,
-                { minScale: 0.55 }
-              ),
+              {
+                type: 'stack',
+                direction: 'column',
+                alignItems: 'start',
+                gap: 2,
+                children: [
+                  t(
+                    ds.plan && ds.plan.used != null
+                      ? '已用 ' + used
+                      : '已用量待确认',
+                    8,
+                    'semibold',
+                    flowStyle.color,
+                    { minScale: 0.65 }
+                  ),
+                  t(
+                    ds.plan && ds.plan.total != null
+                      ? '套餐总量 ' + total
+                      : (ds.plan && ds.plan.remain != null
+                        ? '套餐余量 ' + formatFlow(ds.plan.remain).number + ' ' + formatFlow(ds.plan.remain).unit
+                        : '套餐总量待确认'),
+                    8,
+                    'medium',
+                    C.sub,
+                    { minScale: 0.65 }
+                  ),
+                ],
+              },
             ],
           },
           {
@@ -962,6 +979,18 @@ function buildSmall(title, ds, fromCache) {
                 8,
                 'bold',
                 flowStyle.color
+              ),
+              t(
+                (() => {
+                  const today = todayFlowUsage(ds.history);
+                  return today.value != null
+                    ? '今日 ' + formatFlow(today.value).number + formatFlow(today.value).unit
+                    : '今日采集中';
+                })(),
+                8,
+                'medium',
+                C.sub,
+                { minScale: 0.6 }
               ),
             ],
           },
