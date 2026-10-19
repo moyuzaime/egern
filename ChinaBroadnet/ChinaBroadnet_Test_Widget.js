@@ -283,6 +283,11 @@ async function capture(ctx) {
       } catch (e) {}
       let requestKeys = [];
       try { requestKeys = Object.keys(req).slice(0, 40); } catch (e) {}
+      let headerKeys = [];
+      try {
+        const hs = req.headers;
+        if (hs && typeof hs === 'object') headerKeys = Object.keys(hs).slice(0, 40);
+      } catch (e) {}
       let rawBodyType = 'missing';
       try {
         const rawBody = req.body;
@@ -299,7 +304,7 @@ async function capture(ctx) {
       } catch (e) {}
 
       console.log(
-        '[ChinaBroadnet] API侦察: ' +
+        '[ChinaBroadnet] API侦察[v20261019-2254]: ' +
         method + ' ' + url +
         (keys.length ? ' | keys=' + keys.join(',') : '') +
         ' | bodyType=' + bodyType +
@@ -308,7 +313,8 @@ async function capture(ctx) {
         ' | dataKeys=' + dataKeys.join(',') +
         ' | accessPresent=' + hasAccess +
         ' | rawBodyType=' + rawBodyType +
-        ' | requestKeys=' + requestKeys.join(',')
+        ' | requestKeys=' + requestKeys.join(',') +
+        ' | headerKeys=' + headerKeys.join(',')
       );
     } catch (e) {
       console.log('[ChinaBroadnet] probe error: ' + e);
