@@ -1033,7 +1033,7 @@ function buildSmall(title, ds, fromCache) {
               t('¥', 10, 'semibold', C.fee),
               t(ds.fee.number, 18, 'bold', C.txt, { minScale: 0.4 }),
             ]},
-          ], { flex: 1, height: 46, padding: [7, 7], gap: 4, borderRadius: 15 }),
+          ], { flex: 1, height: 48, padding: [7, 7], gap: 4, borderRadius: 15 }),
         ],
       }
     ],
