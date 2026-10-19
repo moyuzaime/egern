@@ -673,7 +673,8 @@ function trendStrip(ds) {
       ],
     },
   ], {
-    padding: [6, 9],
+    height: 42,
+    padding: [5, 8],
     borderRadius: 13,
     gap: 0,
     backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFC70', dark: '#17263878' },
@@ -1139,17 +1140,16 @@ function buildMedium(title, ds, fromCache) {
     type: 'stack',
     direction: 'row',
     gap: 7,
-    height: 104,
-    flex: 1,
+    height: 94,
     children: [
       heroFlowCard(ds),
       {
         type: 'stack',
         direction: 'column',
         alignItems: 'start',
-        gap: 6,
+        gap: 5,
         width: 108,
-        height: 104,
+        height: 94,
         children: [
           compactFee,
           compactVoice,
