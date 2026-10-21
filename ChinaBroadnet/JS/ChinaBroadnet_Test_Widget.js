@@ -309,18 +309,32 @@ async function capture(ctx) {
       try { hasAccess = !!String(getHeader(req.headers, 'access') || '').trim(); } catch (e) {}
       let dataType = body && body.data == null ? 'missing' : (body && Array.isArray(body.data) ? 'array' : typeof (body && body.data));
       let dataKeys = [];
+      let dataLength = 0;
+      let dataLooksBase64 = false;
+      let dataParsesAsJson = false;
       try {
         if (body && body.data && typeof body.data === 'object') dataKeys = Object.keys(body.data).slice(0, 30);
+        if (typeof (body && body.data) === 'string') {
+          const dataText = body.data.trim();
+          dataLength = dataText.length;
+          dataLooksBase64 = dataText.length > 0 &&
+            dataText.length % 4 === 0 &&
+            /^[A-Za-z0-9+/]+={0,2}$/.test(dataText);
+          try { JSON.parse(dataText); dataParsesAsJson = true; } catch (e) {}
+        }
       } catch (e) {}
 
       console.log(
-        '[ChinaBroadnet] API侦察[v20261019-2254]: ' +
+        '[ChinaBroadnet] API侦察[v20261022-0055]: ' +
         method + ' ' + url +
         (keys.length ? ' | keys=' + keys.join(',') : '') +
         ' | bodyType=' + bodyType +
         ' | bodyKeys=' + bodyKeys.join(',') +
         ' | dataType=' + dataType +
         ' | dataKeys=' + dataKeys.join(',') +
+        ' | dataLength=' + dataLength +
+        ' | dataLooksBase64=' + dataLooksBase64 +
+        ' | dataParsesAsJson=' + dataParsesAsJson +
         ' | accessPresent=' + hasAccess +
         ' | rawBodyType=' + rawBodyType +
         ' | requestKeys=' + requestKeys.join(',') +
@@ -419,6 +433,29 @@ async function loadData(ctx) {
 
   try {
     const result = await fetchData(ctx, access, data, url);
+    // 仅记录响应结构与字段是否存在，不记录手机号、令牌或业务字段原值。
+    const responseUser = result && result.data && (result.data.userData || result.data);
+    const responseKeys = result && typeof result === 'object' ? Object.keys(result).slice(0, 20) : [];
+    const responseDataKeys = result && result.data && typeof result.data === 'object'
+      ? Object.keys(result.data).slice(0, 30)
+      : [];
+    const responseUserKeys = responseUser && typeof responseUser === 'object'
+      ? Object.keys(responseUser).filter(k => /^(voice|flow|flowUserd|flowAll|voiceAll|voiceUsed|fee|finBalance|packName)$/.test(k))
+      : [];
+    console.log(
+      '[ChinaBroadnet-Hark] API响应诊断[v20261022-0055]: ' +
+      'status=' + String(result && result.status) +
+      ' | ok=' + String(result && result.ok) +
+      ' | resultKeys=' + responseKeys.join(',') +
+      ' | dataType=' + (result && result.data === null ? 'null' : typeof (result && result.data)) +
+      ' | dataKeys=' + responseDataKeys.join(',') +
+      ' | userDataPresent=' + Boolean(result && result.data && result.data.userData) +
+      ' | userDataKeys=' + responseUserKeys.join(',') +
+      ' | flowFieldsComplete=' + Boolean(responseUser &&
+        responseUser.flowAll != null && responseUser.flowUserd != null && responseUser.flow != null) +
+      ' | flowSumMatches=' + Boolean(responseUser &&
+        Number(responseUser.flowUserd) + Number(responseUser.flow) === Number(responseUser.flowAll))
+    );
     if (!result || result.status !== '000000' || !result.data) {
       const resultKeys = result && typeof result === 'object'
         ? Object.keys(result).slice(0, 20)
