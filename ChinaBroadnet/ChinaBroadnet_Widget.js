@@ -325,7 +325,7 @@ async function capture(ctx) {
       } catch (e) {}
 
       console.log(
-        '[ChinaBroadnet] API侦察[v20261022-0121]: ' +
+        '[ChinaBroadnet] API侦察[v20261022-0155]: ' +
         method + ' ' + url +
         (keys.length ? ' | keys=' + keys.join(',') : '') +
         ' | bodyType=' + bodyType +
@@ -443,7 +443,7 @@ async function loadData(ctx) {
       ? Object.keys(responseUser).filter(k => /^(voice|flow|flowUserd|flowAll|voiceAll|voiceUsed|fee|finBalance|packName)$/.test(k))
       : [];
     console.log(
-      '[ChinaBroadnet-Hark] API响应诊断[v20261022-0121]: ' +
+      '[ChinaBroadnet-Hark] API响应诊断[v20261022-0155]: ' +
       'status=' + String(result && result.status) +
       ' | ok=' + String(result && result.ok) +
       ' | resultKeys=' + responseKeys.join(',') +
@@ -616,21 +616,24 @@ function t(text, size, weight, color, extra) {
 }
 
 function glass(children, extra) {
+  // 所有尺寸共用单一外层玻璃；此 helper 只负责透明布局，不再绘制内层卡片。
   return Object.assign({
     type: 'stack',
     direction: 'column',
     gap: 6,
-    padding: 10,
-    borderRadius: 18,
-    // 参考 Hark 仪表盘：柔和的半透明玻璃、亮边与轻阴影；外层组件仍保持透明。
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFD9', dark: '#263D55D9' },
-    borderWidth: transparentMode ? 0 : 1,
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D8F1FFB0' },
-    shadowColor: C.glassShadow,
-    shadowRadius: transparentMode ? 0 : 7,
-    shadowOffset: { x: 0, y: 3 },
+    padding: 0,
+    borderRadius: 0,
+    backgroundColor: { light: '#00000000', dark: '#00000000' },
+    borderWidth: 0,
+    borderColor: { light: '#00000000', dark: '#00000000' },
+    shadowRadius: 0,
     children,
-  }, extra || {});
+  }, extra || {}, {
+    backgroundColor: { light: '#00000000', dark: '#00000000' },
+    borderWidth: 0,
+    borderColor: { light: '#00000000', dark: '#00000000' },
+    shadowRadius: 0,
+  });
 }
 
 function gaugeSvg(pct, color, w) {
@@ -1206,57 +1209,25 @@ function todayFlowUsage(history) {
 }
 
 function buildLarge(title, ds, fromCache) {
-  const largeFee = glass([
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'center',
-      gap: 5,
-      children: [
-        { type: 'image', src: 'sf-symbol:yensign.circle.fill', width: 12, height: 12, color: C.fee },
-        t('剩余话费', 10, 'medium', C.sub),
-        { type: 'spacer' },
-        t('¥' + ds.fee.number, 19, 'bold', C.txt, { minScale: 0.55 }),
-      ],
-    },
-  ], {
-    width: 0,
-    flex: 1,
-    height: 62,
-    padding: [7, 9],
-    gap: 2,
-    borderRadius: 16,
-    justifyContent: 'center',
-  });
+  const plan = ds.plan || {};
+  const total = plan.total != null ? formatFlow(plan.total) : null;
+  const usedFlow = plan.used != null ? formatFlow(plan.used) : null;
+  const remain = plan.remain != null ? formatFlow(plan.remain) : null;
+  const voicePct = plan.voicePercent != null
+    ? Math.max(0, Math.min(1, Number(plan.voicePercent)))
+    : null;
+  const voiceUsed = plan.voiceUsed != null ? formatVoice(plan.voiceUsed) : null;
+  const voiceTotal = plan.voiceTotal != null ? formatVoice(plan.voiceTotal) : null;
+  const p = plan.percent != null ? Math.max(0, Math.min(1, Number(plan.percent))) : null;
+  const flowStyle = flowStatus(p);
+  const today = todayFlowUsage(ds.history);
+  const todayUsed = today.value == null ? null : formatFlow(today.value);
 
-  const largeVoice = glass([
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'center',
-      gap: 5,
-      children: [
-        { type: 'image', src: 'sf-symbol:phone.fill', width: 12, height: 12, color: C.voice },
-        t('剩余语音', 10, 'medium', C.sub),
-        { type: 'spacer' },
-        t(ds.voice.number === '--' ? '暂无' : ds.voice.number, 19, 'bold', C.txt, { minScale: 0.55 }),
-        t(ds.voice.number === '--' ? '' : '分', 9, 'semibold', C.sub),
-      ],
-    },
-  ], {
-    width: 0,
-    flex: 1,
-    height: 62,
-    padding: [7, 9],
-    gap: 2,
-    borderRadius: 16,
-    justifyContent: 'center',
-  });
-
+  // 大号组件内部只排版内容，不创建子卡片；玻璃背景由 liquidGlassWidget 统一提供。
   return {
     type: 'widget',
     padding: [12, 13],
-    gap: 8,
+    gap: 9,
     backgroundColor: '#00000000',
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
@@ -1264,111 +1235,149 @@ function buildLarge(title, ds, fromCache) {
       {
         type: 'stack',
         direction: 'row',
-        gap: 8,
-        height: 136,
+        alignItems: 'center',
+        gap: 12,
+        height: 112,
         children: [
-          heroFlowCard(ds, 136, 1.35),
           {
             type: 'stack',
             direction: 'column',
-            gap: 6,
-            flex: 0.85,
-            height: 136,
+            alignItems: 'start',
+            justifyContent: 'center',
+            gap: 7,
+            flex: 1.25,
             children: [
-              largeFee,
-              largeVoice,
+              {
+                type: 'stack',
+                direction: 'row',
+                alignItems: 'center',
+                gap: 5,
+                children: [
+                  { type: 'image', src: 'sf-symbol:chart.pie.fill', width: 13, height: 13, color: C.flow },
+                  t('剩余流量', 10, 'semibold', C.sub),
+                  { type: 'spacer' },
+                  t(p != null ? Math.round((1 - p) * 100) + '% 剩余' : '套餐流量', 9, 'semibold', flowStyle.color),
+                ],
+              },
+              {
+                type: 'stack',
+                direction: 'row',
+                alignItems: 'end',
+                gap: 3,
+                children: [
+                  t(ds.flow.number, 29, 'bold', C.txt, { minScale: 0.45 }),
+                  t(ds.flow.unit, 11, 'semibold', C.sub),
+                ],
+              },
+              {
+                type: 'stack',
+                direction: 'row',
+                gap: 4,
+                height: 5,
+                children: [
+                  {
+                    type: 'stack',
+                    flex: p == null ? 1 : Math.max(0.03, p),
+                    backgroundColor: flowStyle.color,
+                    borderRadius: 4,
+                    children: [],
+                  },
+                  {
+                    type: 'stack',
+                    flex: p == null ? 0.001 : Math.max(0.03, 1 - p),
+                    backgroundColor: { light: '#7890A52B', dark: '#FFFFFF2B' },
+                    borderRadius: 4,
+                    children: [],
+                  },
+                ],
+              },
+              t('总量 ' + (total ? total.number + ' ' + total.unit : '--') +
+                '  ·  已用 ' + (usedFlow ? usedFlow.number + ' ' + usedFlow.unit : '--'), 9, 'medium', C.sub, { minScale: 0.55 }),
+            ],
+          },
+          {
+            type: 'stack',
+            direction: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 0,
+            width: 90,
+            children: [
+              { type: 'image', src: gaugeSvg(p, flowStyle.color, 110), width: 76, height: 40 },
+              t(p != null ? Math.round(p * 100) + '% 已用' : '用量统计', 9, 'bold', flowStyle.color),
             ],
           },
         ],
       },
-      (() => {
-        const plan = ds.plan || {};
-        const total = plan.total != null ? formatFlow(plan.total) : null;
-        const usedFlow = plan.used != null ? formatFlow(plan.used) : null;
-        const remain = plan.remain != null ? formatFlow(plan.remain) : null;
-        const voicePct = plan.voicePercent != null
-          ? Math.max(0, Math.min(1, Number(plan.voicePercent)))
-          : null;
-        const voiceUsed = plan.voiceUsed != null ? formatVoice(plan.voiceUsed) : null;
-        const voiceTotal = plan.voiceTotal != null ? formatVoice(plan.voiceTotal) : null;
-        return glass([
+      {
+        type: 'stack',
+        direction: 'row',
+        alignItems: 'center',
+        gap: 10,
+        padding: [8, 0],
+        children: [
           {
             type: 'stack',
-            direction: 'row',
-            alignItems: 'center',
+            direction: 'column',
             gap: 4,
+            flex: 1,
             children: [
-              { type: 'image', src: 'sf-symbol:chart.bar.xaxis', width: 11, height: 11, color: C.flow },
-              t('套餐用量明细', 10, 'semibold', C.txt),
-              { type: 'spacer' },
-              t(plan.percent != null ? Math.round(Number(plan.percent) * 100) + '% 已用' : '用量统计', 9, 'medium', C.sub),
+              { type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children: [
+                { type: 'image', src: 'sf-symbol:yensign.circle.fill', width: 12, height: 12, color: C.fee },
+                t('剩余话费', 10, 'medium', C.sub),
+              ]},
+              { type: 'stack', direction: 'row', alignItems: 'end', gap: 2, children: [
+                t('¥' + ds.fee.number, 21, 'bold', C.txt, { minScale: 0.5 }),
+                t('元', 9, 'medium', C.sub),
+              ]},
             ],
           },
           {
             type: 'stack',
-            direction: 'row',
+            direction: 'column',
             gap: 4,
+            flex: 1,
             children: [
-              glass([
-                t('套餐总量', 8, 'medium', C.sub),
-                t(total ? total.number + ' ' + total.unit : '--', 13, 'bold', C.txt, { minScale: 0.55 }),
-              ], { flex: 1, padding: [6, 7], gap: 3, borderRadius: 12, shadowRadius: 0 }),
-              glass([
-                t('累计已用', 8, 'medium', C.sub),
-                t(usedFlow ? usedFlow.number + ' ' + usedFlow.unit : '--', 13, 'bold', C.flow, { minScale: 0.55 }),
-              ], { flex: 1, padding: [6, 7], gap: 3, borderRadius: 12, shadowRadius: 0 }),
-            ],
-          },
-          {
-            type: 'stack',
-            direction: 'row',
-            alignItems: 'center',
-            gap: 5,
-            children: [
-              t('语音使用', 8, 'medium', C.sub),
-              { type: 'spacer' },
+              { type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children: [
+                { type: 'image', src: 'sf-symbol:phone.fill', width: 12, height: 12, color: C.voice },
+                t('剩余语音', 10, 'medium', C.sub),
+              ]},
+              { type: 'stack', direction: 'row', alignItems: 'end', gap: 2, children: [
+                t(ds.voice.number === '--' ? '暂无' : ds.voice.number, 21, 'bold', C.txt, { minScale: 0.5 }),
+                t(ds.voice.number === '--' ? '' : '分钟', 9, 'medium', C.sub),
+              ]},
               t(voiceUsed != null && voiceTotal != null
                 ? '已用 ' + voiceUsed + ' / ' + voiceTotal + ' 分钟'
-                : '套餐分钟明细暂不可用', 8, 'medium', C.sub, { minScale: 0.65 }),
-              ...(voicePct != null ? [t(Math.round(voicePct * 100) + '%', 8, 'bold', C.voice)] : []),
+                : '套餐分钟明细暂不可用', 8, 'medium', C.sub, { minScale: 0.55 }),
             ],
           },
-        ], { gap: 5, padding: [7, 10], borderRadius: 16 });
-      })(),
-      (() => {
-        const today = todayFlowUsage(ds.history);
-        const used = today.value == null ? null : formatFlow(today.value);
-        return glass([
+        ],
+      },
+      {
+        type: 'stack',
+        direction: 'column',
+        gap: 5,
+        padding: [7, 0, 0, 0],
+        children: [
           {
             type: 'stack',
             direction: 'row',
             alignItems: 'center',
             gap: 4,
             children: [
-              {
-                type: 'image',
-                src: 'sf-symbol:chart.bar.fill',
-                width: 10,
-                height: 10,
-                color: C.flow,
-              },
+              { type: 'image', src: 'sf-symbol:chart.bar.fill', width: 10, height: 10, color: C.flow },
               t('今日流量使用', 10, 'semibold', C.txt),
               { type: 'spacer' },
-              t(
-                used ? used.number + ' ' + used.unit : '采集中',
-                10,
-                'bold',
-                C.flow
-              ),
+              t(todayUsed ? todayUsed.number + ' ' + todayUsed.unit : '采集中', 10, 'bold', C.flow),
             ],
           },
           {
             type: 'image',
-            src: historySvg(today.history.map(x => ({ flowKB: x.flowKB })), C.flow, 270, 42),
+            src: historySvg(today.history.map(x => ({ flowKB: x.flowKB })), C.flow, 270, 38),
             width: 270,
-            height: 42,
+            height: 38,
           },
-          t(today.label, 9, 'medium', C.sub),
+          t(today.label, 8, 'medium', C.sub),
           {
             type: 'stack',
             direction: 'row',
@@ -1381,12 +1390,8 @@ function buildLarge(title, ds, fromCache) {
               t(fromCache ? '数据可能过期' : '每 30 分钟刷新', 8, 'medium', C.sub),
             ],
           },
-        ], {
-          gap: 6,
-          padding: [9, 12],
-          borderRadius: 18,
-        });
-      })(),
+        ],
+      },
     ],
   };
 }
@@ -1450,14 +1455,14 @@ function buildLock(title, ds, family) {
 function liquidGlassWidget(widget) {
   if (!widget || widget.type !== 'widget' || !Array.isArray(widget.children)) return widget;
 
-  // 外层统一使用轻透玻璃面板；内部数据卡保持透明，让壁纸贯穿整个组件。
+  // 全部尺寸统一只绘制一张外层玻璃主卡片；内部所有布局容器均透明、无边框、无阴影。
   const content = widget.children;
   widget.backgroundColor = '#00000000';
   widget.children = [{
     type: 'stack',
     direction: 'column',
-    gap: 8,
-    padding: [7, 7],
+    gap: 9,
+    padding: [12, 12],
     borderRadius: 26,
     backgroundColor: transparentMode ? '#00000000' : { light: '#FFFFFFB8', dark: '#263D55B8' },
     borderWidth: transparentMode ? 0 : 1,
