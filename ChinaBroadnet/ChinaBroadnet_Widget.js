@@ -827,11 +827,12 @@ function heroFlowCard(ds, cardHeight, cardFlex) {
   });
 }
 
-function header(title, ds, fromCache) {
+function header(title, ds, fromCache, mediumInset) {
   return {
     type: 'stack',
     direction: 'row',
     alignItems: 'center',
+    padding: mediumInset ? [4, 6] : 0,
     gap: 5,
     children: [
       {
@@ -1169,7 +1170,7 @@ function buildMedium(title, ds, fromCache) {
     backgroundColor: '#00000000',
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     children: [
-      header(title, ds, fromCache),
+      header(title, ds, fromCache, true),
       row,
       trendStrip(ds),
     ],
