@@ -1163,7 +1163,8 @@ function buildMedium(title, ds, fromCache) {
 
   return {
     type: 'widget',
-    padding: [14, 16],
+    padding: [0, 0],
+    glassContentPadding: [18, 16],
     gap: 6,
     backgroundColor: '#00000000',
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
@@ -1458,12 +1459,14 @@ function liquidGlassWidget(widget) {
 
   // 全部尺寸统一只绘制一张外层玻璃主卡片；内部所有布局容器均透明、无边框、无阴影。
   const content = widget.children;
+  const contentPadding = widget.glassContentPadding || [12, 12];
+  delete widget.glassContentPadding;
   widget.backgroundColor = '#00000000';
   widget.children = [{
     type: 'stack',
     direction: 'column',
     gap: 9,
-    padding: [12, 12],
+    padding: contentPadding,
     borderRadius: 26,
     backgroundColor: transparentMode ? '#00000000' : { light: '#FFFFFFB8', dark: '#263D55B8' },
     borderWidth: transparentMode ? 0 : 1,
