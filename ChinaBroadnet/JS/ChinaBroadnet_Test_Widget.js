@@ -567,12 +567,6 @@ async function loadData(ctx) {
       ', userData.flow=' + String(user.flow)
     );
 
-    if (planFields.length) {
-      console.log(
-        '[ChinaBroadnet-Hark] 套餐候选字段扫描: ' +
-        planFields.map(x => x.path + '=' + x.value).join(', ')
-      );
-    }
 
     return { configured: true, data: ds, fromCache: false };
   } catch (e) {
