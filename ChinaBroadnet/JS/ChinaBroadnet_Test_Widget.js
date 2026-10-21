@@ -325,7 +325,7 @@ async function capture(ctx) {
       } catch (e) {}
 
       console.log(
-        '[ChinaBroadnet] API侦察[v20261022-0141]: ' +
+        '[ChinaBroadnet] API侦察[v20261022-0147]: ' +
         method + ' ' + url +
         (keys.length ? ' | keys=' + keys.join(',') : '') +
         ' | bodyType=' + bodyType +
@@ -443,7 +443,7 @@ async function loadData(ctx) {
       ? Object.keys(responseUser).filter(k => /^(voice|flow|flowUserd|flowAll|voiceAll|voiceUsed|fee|finBalance|packName)$/.test(k))
       : [];
     console.log(
-      '[ChinaBroadnet-Hark] API响应诊断[v20261022-0141]: ' +
+      '[ChinaBroadnet-Hark] API响应诊断[v20261022-0147]: ' +
       'status=' + String(result && result.status) +
       ' | ok=' + String(result && result.ok) +
       ' | resultKeys=' + responseKeys.join(',') +
@@ -616,21 +616,24 @@ function t(text, size, weight, color, extra) {
 }
 
 function glass(children, extra) {
+  // 所有尺寸共用单一外层玻璃；此 helper 只负责透明布局，不再绘制内层卡片。
   return Object.assign({
     type: 'stack',
     direction: 'column',
     gap: 6,
-    padding: 10,
-    borderRadius: 18,
-    // 参考 Hark 仪表盘：柔和的半透明玻璃、亮边与轻阴影；外层组件仍保持透明。
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFD9', dark: '#263D55D9' },
-    borderWidth: transparentMode ? 0 : 1,
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D8F1FFB0' },
-    shadowColor: C.glassShadow,
-    shadowRadius: transparentMode ? 0 : 7,
-    shadowOffset: { x: 0, y: 3 },
+    padding: 0,
+    borderRadius: 0,
+    backgroundColor: { light: '#00000000', dark: '#00000000' },
+    borderWidth: 0,
+    borderColor: { light: '#00000000', dark: '#00000000' },
+    shadowRadius: 0,
     children,
-  }, extra || {});
+  }, extra || {}, {
+    backgroundColor: { light: '#00000000', dark: '#00000000' },
+    borderWidth: 0,
+    borderColor: { light: '#00000000', dark: '#00000000' },
+    shadowRadius: 0,
+  });
 }
 
 function gaugeSvg(pct, color, w) {
@@ -1452,7 +1455,7 @@ function buildLock(title, ds, family) {
 function liquidGlassWidget(widget) {
   if (!widget || widget.type !== 'widget' || !Array.isArray(widget.children)) return widget;
 
-  // 外层只创建一张完整玻璃主卡片；内部仅保留透明排版容器，不再嵌套子卡片。
+  // 全部尺寸统一只绘制一张外层玻璃主卡片；内部所有布局容器均透明、无边框、无阴影。
   const content = widget.children;
   widget.backgroundColor = '#00000000';
   widget.children = [{
