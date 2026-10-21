@@ -555,13 +555,23 @@ async function loadData(ctx) {
 
     ctx.storage.setJSON(KEY + '.datasource', ds);
 
+    // 直接输出接口已确认的套餐字段，避免依赖递归扫描结果而漏掉字段。
+    console.log(
+      '[ChinaBroadnet-Hark] 套餐字段探测: ' +
+      'userData.voice=' + String(user.voice) +
+      ', userData.flowUserd=' + String(user.flowUserd) +
+      ', userData.voiceAll=' + String(user.voiceAll) +
+      ', userData.fee=' + String(user.fee) +
+      ', userData.flowAll=' + String(user.flowAll) +
+      ', userData.voiceUsed=' + String(user.voiceUsed) +
+      ', userData.flow=' + String(user.flow)
+    );
+
     if (planFields.length) {
       console.log(
-        '[ChinaBroadnet-Hark] 套餐字段探测: ' +
+        '[ChinaBroadnet-Hark] 套餐候选字段扫描: ' +
         planFields.map(x => x.path + '=' + x.value).join(', ')
       );
-    } else {
-      console.log('[ChinaBroadnet-Hark] 未发现明显的套餐资源数值字段');
     }
 
     return { configured: true, data: ds, fromCache: false };
