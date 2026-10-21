@@ -1083,6 +1083,7 @@ function buildSmall(title, ds, fromCache) {
 }
 
 function buildMedium(title, ds, fromCache) {
+  // 中号内容增加内缩留白，避免标题与信息区贴近玻璃卡片边缘。
   const compactFee = glass([
     {
       type: 'stack',
@@ -1162,7 +1163,7 @@ function buildMedium(title, ds, fromCache) {
 
   return {
     type: 'widget',
-    padding: [9, 10],
+    padding: [14, 16],
     gap: 6,
     backgroundColor: '#00000000',
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
