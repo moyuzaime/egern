@@ -1164,7 +1164,7 @@ function buildMedium(title, ds, fromCache) {
   return {
     type: 'widget',
     padding: [0, 0],
-    glassContentPadding: [18, 16],
+    glassContentPadding: [24, 20],
     gap: 6,
     backgroundColor: '#00000000',
     refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
