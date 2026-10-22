@@ -429,9 +429,9 @@ async function loadData(ctx) {
   }
   // 同一份捕获请求成功查询过，就直接返回缓存，避免小组件每次刷新都等待广电接口。
   const cachedData = ctx.storage.getJSON(KEY + '.datasource') || null;
-  const captureTime = String(ctx.storage.get(KEY + '.captureTime') || '');
+  const currentCaptureTime = String(ctx.storage.get(KEY + '.captureTime') || '');
   const queriedCaptureTime = String(ctx.storage.get(KEY + '.queriedCaptureTime') || '');
-  if (cachedData && captureTime && captureTime === queriedCaptureTime) {
+  if (cachedData && currentCaptureTime && currentCaptureTime === queriedCaptureTime) {
     cachedData.stale = false;
     return { configured: true, data: cachedData, fromCache: true };
   }
@@ -439,7 +439,7 @@ async function loadData(ctx) {
   // 请求失败后短暂冷却，避免组件频繁刷新时连续重试慢接口。
   const lastAttemptCaptureTime = String(ctx.storage.get(KEY + '.lastAttemptCaptureTime') || '');
   const lastAttemptAt = Number(ctx.storage.get(KEY + '.lastAttemptAt') || 0);
-  if (cachedData && captureTime && captureTime === lastAttemptCaptureTime &&
+  if (cachedData && currentCaptureTime && currentCaptureTime === lastAttemptCaptureTime &&
       Date.now() - lastAttemptAt < 30000) {
     cachedData.stale = true;
     return { configured: true, data: cachedData, fromCache: true };
@@ -454,7 +454,7 @@ async function loadData(ctx) {
   }
 
   try {
-    ctx.storage.set(KEY + '.lastAttemptCaptureTime', captureTime);
+    ctx.storage.set(KEY + '.lastAttemptCaptureTime', currentCaptureTime);
     ctx.storage.set(KEY + '.lastAttemptAt', String(Date.now()));
     const result = await fetchData(ctx, access, data, url);
     // 仅记录响应结构与字段是否存在，不记录手机号、令牌或业务字段原值。
@@ -578,7 +578,7 @@ async function loadData(ctx) {
     };
 
     ctx.storage.setJSON(KEY + '.datasource', ds);
-    if (captureTime) ctx.storage.set(KEY + '.queriedCaptureTime', captureTime);
+    if (currentCaptureTime) ctx.storage.set(KEY + '.queriedCaptureTime', currentCaptureTime);
 
     // 每次新捕获只发送一次完整套餐通知；小组件每分钟刷新不会重复打扰。
     const captureTime = String(ctx.storage.get(KEY + '.captureTime') || '');
