@@ -242,6 +242,11 @@ function detectCaptureSource(req) {
 }
 
 async function capture(ctx) {
+  // cbCapture is injected by the module argument into ctx.env. Default to enabled for older installs.
+  if (ctx.env && String(ctx.env.cbCapture).toLowerCase() === 'false') {
+    console.log('[ChinaBroadnet] 数据抓取已关闭，跳过 HTTP 捕获');
+    return;
+  }
   const req = ctx.request || {};
   const url = String(req.url || '');
   const method = String(req.method || '').toUpperCase();
@@ -423,6 +428,12 @@ function saveHistory(ctx, flow) {
 }
 
 async function loadData(ctx) {
+  // 关闭抓取时不再主动请求 qryUserInfo，仅展示最后一次成功缓存。
+  if (ctx.env && String(ctx.env.cbCapture).toLowerCase() === 'false') {
+    const cached = ctx.storage.getJSON(KEY + '.datasource') || null;
+    if (cached) cached.stale = true;
+    return { configured: !!cached, data: cached, fromCache: true, captureDisabled: true };
+  }
   const access = ctx.storage.get(KEY + '.access');
   const data = ctx.storage.getJSON(KEY + '.data');
   const url = ctx.storage.get(KEY + '.url') || API_URL;
