@@ -682,7 +682,28 @@ async function loadData(ctx, forceRefresh) {
  * 保活模式（schedule 定时任务调用）
  * 触达服务端的同时强制刷新套餐数据，并复用 loadData 的历史记录与存储逻辑
  * ========================================================= */
+function parseKeepAliveInterval(value) {
+  const raw = String(value == null ? '15分钟' : value).trim().toLowerCase();
+  const match = raw.match(/^(\\d+(?:\\.\\d+)?)\\s*(分钟|分|min|m|小时|时|小时钟|小时|hour|hours|h)?$/i);
+  if (!match) return 15 * 60 * 1000;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount) || amount <= 0) return 15 * 60 * 1000;
+  const unit = match[2] || '分钟';
+  const multiplier = /^(小时|时|hour|hours|h)$/i.test(unit) ? 60 : 1;
+  return Math.max(60 * 1000, Math.min(24 * 60 * 60 * 1000, amount * multiplier * 60 * 1000));
+}
+
+/* =========================================================
+ * 保活模式（schedule 每分钟触发，由用户输入的易读间隔控制实际执行频率）
+ * ========================================================= */
 async function handleKeepAlive(ctx) {
+  const intervalText = ctx && ctx.env ? ctx.env.cbKeepaliveInterval : '15分钟';
+  const intervalMs = parseKeepAliveInterval(intervalText);
+  const lastRun = Number(ctx.storage.get(KEY + '.keepAliveLastRun') || 0);
+  const now = Date.now();
+
+  if (lastRun && now - lastRun < intervalMs) return;
+
   const access = ctx.storage.get(KEY + '.access');
   const data = ctx.storage.getJSON(KEY + '.data');
 
@@ -691,11 +712,13 @@ async function handleKeepAlive(ctx) {
     return;
   }
 
+  // 记录本轮尝试时间，避免网络失败时每分钟重复请求。
+  ctx.storage.set(KEY + '.keepAliveLastRun', String(now));
+
   try {
-    // forceRefresh=true 跳过 15 分钟缓存，成功后更新 datasource、历史记录及更新时间。
     const res = await loadData(ctx, true);
     if (res && res.data && !res.data.stale && !res.fromCache) {
-      console.log('[ChinaBroadnet] 定时保活与数据刷新成功：已同步写入最新套餐数据');
+      console.log('[ChinaBroadnet] 定时保活与数据刷新成功：间隔 ' + String(intervalText) + '，已同步写入最新套餐数据');
     } else {
       console.log('[ChinaBroadnet] 定时保活已执行，但数据未完全更新或读取了旧缓存');
     }
