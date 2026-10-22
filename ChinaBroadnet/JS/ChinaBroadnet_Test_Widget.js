@@ -573,7 +573,7 @@ async function loadData(ctx) {
         '剩余流量：' + remainFlowText.number + ' ' + remainFlowText.unit,
         '语音：剩余 ' + formatVoice(voiceRemain) + ' / 总量 ' +
           formatVoice(voiceTotal) + ' 分钟',
-      ].join('\\n');
+      ].join('\n');
       ctx.notify({
         title: '中国广电套餐查询成功',
         body,
