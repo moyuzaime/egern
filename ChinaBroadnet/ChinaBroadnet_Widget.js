@@ -685,17 +685,39 @@ async function loadData(ctx, forceRefresh) {
 async function handleKeepAlive(ctx) {
   const access = ctx.storage.get(KEY + '.access');
   const data = ctx.storage.getJSON(KEY + '.data');
-  const url = ctx.storage.get(KEY + '.url') || API_URL;
+  const capturedUrl = ctx.storage.get(KEY + '.url') || API_URL;
+  const url = SUPPORTED_API_URLS.includes(capturedUrl) ? capturedUrl : API_URL;
 
-  if (!access || data == null) return;
+  if (!access || data == null) {
+    console.log('[ChinaBroadnet] 定时保活跳过：尚未捕获有效凭据');
+    return;
+  }
 
+  // 保活只请求最近捕获的有效端点一次；不做跨域回退，避免定时任务重复请求。
   try {
-    const result = await fetchData(ctx, access, data, url);
+    const resp = await ctx.http.post(url, {
+      timeout: 8000,
+      headers: {
+        access,
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
+      },
+      body: { data },
+    });
+
+    if (!resp || resp.status < 200 || resp.status >= 300) {
+      console.log('[ChinaBroadnet] 定时保活失败：HTTP ' + String(resp && resp.status || '无响应'));
+      return;
+    }
+
+    const result = await resp.json();
     if (result && result.status === '000000') {
-      console.log('[ChinaBroadnet] 定时保活成功，Session 已续期');
+      console.log('[ChinaBroadnet] 定时请求成功：接口返回 000000');
+    } else {
+      console.log('[ChinaBroadnet] 定时请求未成功：业务状态 ' + String(result && result.status || '无状态码'));
     }
   } catch (e) {
-    console.log('[ChinaBroadnet] 定时保活请求异常: ' + e);
+    console.log('[ChinaBroadnet] 定时保活请求异常: ' + String(e && e.message || e));
   }
 }
 
