@@ -683,21 +683,19 @@ async function loadData(ctx, forceRefresh) {
  * 触达服务端的同时强制刷新套餐数据，并复用 loadData 的历史记录与存储逻辑
  * ========================================================= */
 function parseKeepAliveInterval(value) {
-  const raw = String(value == null ? '15分钟' : value).trim().toLowerCase();
-  const match = raw.match(/^(\\d+(?:\\.\\d+)?)\\s*(分钟|分|min|m|小时|时|小时钟|小时|hour|hours|h)?$/i);
-  if (!match) return 15 * 60 * 1000;
-  const amount = Number(match[1]);
-  if (!Number.isFinite(amount) || amount <= 0) return 15 * 60 * 1000;
-  const unit = match[2] || '分钟';
-  const multiplier = /^(小时|时|hour|hours|h)$/i.test(unit) ? 60 : 1;
-  return Math.max(60 * 1000, Math.min(24 * 60 * 60 * 1000, amount * multiplier * 60 * 1000));
+  // 参数只接受正整数，单位固定为分钟；无效输入回退到默认 15 分钟。
+  const raw = String(value == null ? '15' : value).trim();
+  if (!/^\\d+$/.test(raw)) return 15 * 60 * 1000;
+  const minutes = Number(raw);
+  if (!Number.isSafeInteger(minutes) || minutes <= 0) return 15 * 60 * 1000;
+  return Math.max(60 * 1000, Math.min(24 * 60 * 60 * 1000, minutes * 60 * 1000));
 }
 
 /* =========================================================
  * 保活模式（schedule 每分钟触发，由用户输入的易读间隔控制实际执行频率）
  * ========================================================= */
 async function handleKeepAlive(ctx) {
-  const intervalText = ctx && ctx.env ? ctx.env.cbKeepaliveInterval : '15分钟';
+  const intervalText = ctx && ctx.env ? ctx.env.cbKeepaliveInterval : '15';
   const intervalMs = parseKeepAliveInterval(intervalText);
   const lastRun = Number(ctx.storage.get(KEY + '.keepAliveLastRun') || 0);
   const now = Date.now();
