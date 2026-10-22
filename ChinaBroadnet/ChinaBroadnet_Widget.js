@@ -442,7 +442,7 @@ function saveHistory(ctx, flow) {
   }
 }
 
-async function loadData(ctx) {
+async function loadData(ctx, forceRefresh) {
   // 关闭抓取时不再主动请求 qryUserInfo，仅展示最后一次成功缓存。
   if (ctx.env && String(ctx.env.cbCapture).toLowerCase() === 'false') {
     const cached = ctx.storage.getJSON(KEY + '.datasource') || null;
@@ -458,8 +458,8 @@ async function loadData(ctx) {
   const cacheAge = cachedAt > 0 ? Date.now() - cachedAt : Number.POSITIVE_INFINITY;
   const hasNewCapture = currentCaptureTime && currentCaptureTime !== queriedCaptureTime;
 
-  // 15 分钟内且没有新捕获凭据时直接命中新鲜缓存。
-  if (cachedData && !hasNewCapture && cacheAge >= 0 && cacheAge < CACHE_TTL) {
+  // 15 分钟内且没有新捕获凭据时直接命中新鲜缓存；强制刷新时跳过缓存判断。
+  if (!forceRefresh && cachedData && !hasNewCapture && cacheAge >= 0 && cacheAge < CACHE_TTL) {
     cachedData.stale = false;
     return { configured: true, data: cachedData, fromCache: true };
   }
@@ -467,9 +467,24 @@ async function loadData(ctx) {
   // 最近 15 秒内已经尝试过请求时先显示旧缓存，避免组件切屏时连续触发。
   const lastAttemptAt = Number(ctx.storage.get(KEY + '.lastAttemptAt') || 0);
   const attemptAge = Date.now() - lastAttemptAt;
-  if (cachedData && !hasNewCapture && lastAttemptAt > 0 && attemptAge >= 0 && attemptAge < 15000) {
+  if (!forceRefresh && cachedData && !hasNewCapture && lastAttemptAt > 0 &&
+      attemptAge >= 0 && attemptAge < 15000) {
     cachedData.stale = true;
     return { configured: true, data: cachedData, fromCache: true };
+  }
+
+  // SWR：缓存过期时先返回旧数据渲染，同时启动一次后台刷新；新捕获凭据则仍立即同步查询。
+  if (!forceRefresh && cachedData && !hasNewCapture && cacheAge >= CACHE_TTL) {
+    const accessForRefresh = ctx.storage.get(KEY + '.access');
+    const dataForRefresh = ctx.storage.getJSON(KEY + '.data');
+    if (accessForRefresh && dataForRefresh != null) {
+      cachedData.stale = true;
+      ctx.storage.set(KEY + '.lastAttemptAt', String(Date.now()));
+      loadData(ctx, true).catch(e => {
+        console.log('[ChinaBroadnet-Hark] 后台静默刷新异常: ' + e);
+      });
+      return { configured: true, data: cachedData, fromCache: true };
+    }
   }
 
   const access = ctx.storage.get(KEY + '.access');
