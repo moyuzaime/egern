@@ -688,7 +688,7 @@ function parseKeepAliveInterval(value) {
   if (!/^\\d+$/.test(raw)) return 15 * 60 * 1000;
   const minutes = Number(raw);
   if (!Number.isSafeInteger(minutes) || minutes <= 0) return 15 * 60 * 1000;
-  return Math.max(60 * 1000, Math.min(24 * 60 * 60 * 1000, minutes * 60 * 1000));
+  return Math.max(15 * 60 * 1000, Math.min(24 * 60 * 60 * 1000, minutes * 60 * 1000));
 }
 
 /* =========================================================
