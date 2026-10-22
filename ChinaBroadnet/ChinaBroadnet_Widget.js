@@ -367,7 +367,16 @@ async function capture(ctx) {
     ctx.storage.setJSON(KEY + '.data', body.data);
     ctx.storage.set(KEY + '.captureTime', String(Date.now()));
 
-    // 套餐通知在 qryUserInfo 查询成功后统一发送，避免先后弹出两条通知。
+    // 捕获成功通知独立开关；只提示已捕获并开始查询，不提前声称套餐查询成功。
+    if ((!ctx.env || String(ctx.env.cbCaptureNotice).toLowerCase() !== 'false') &&
+        typeof ctx.notify === 'function') {
+      const source = detectCaptureSource(req);
+      ctx.notify({
+        title: '中国广电数据捕获成功',
+        body: source + '数据捕获成功，正在查询套餐接口',
+        sound: false,
+      });
+    }
   } catch (e) {
     console.log('[ChinaBroadnet-Hark] capture error: ' + e);
   }
@@ -588,7 +597,9 @@ async function loadData(ctx) {
     // 每次新捕获只发送一次完整套餐通知；小组件每分钟刷新不会重复打扰。
     const captureTime = String(ctx.storage.get(KEY + '.captureTime') || '');
     const notifiedCaptureTime = String(ctx.storage.get(KEY + '.notifiedCaptureTime') || '');
-    if (captureTime && captureTime !== notifiedCaptureTime && typeof ctx.notify === 'function') {
+    if (captureTime && captureTime !== notifiedCaptureTime) {
+      if ((!ctx.env || String(ctx.env.cbPlanNotice).toLowerCase() !== 'false') &&
+          typeof ctx.notify === 'function') {
       const totalFlowText = formatFlow(flowTotal);
       const usedFlowText = formatFlow(flowUsed);
       const remainFlowText = formatFlow(flowRemain);
@@ -605,6 +616,8 @@ async function loadData(ctx) {
         body,
         sound: false,
       });
+      }
+      // 即使关闭通知也标记已处理，避免之后刷新时补发旧捕获的通知。
       ctx.storage.set(KEY + '.notifiedCaptureTime', captureTime);
     }
 
