@@ -14,6 +14,20 @@ compat_arguments_schema:
     options:
       - 'true'
       - 'false'
+  cbCaptureNotice:
+    name: 中国广电数据抓取成功通知
+    description: 捕获到 App、微信或支付宝小程序套餐请求时发送通知
+    default_value: 'true'
+    options:
+      - 'true'
+      - 'false'
+  cbPlanNotice:
+    name: 套餐查询成功通知
+    description: 接口成功返回套餐数据后发送话费、流量和语音明细通知
+    default_value: 'true'
+    options:
+      - 'true'
+      - 'false'
 
 dns: {}
 
@@ -25,6 +39,8 @@ scriptings:
       timeout: 20
       env:
         cbCapture: '{{{cbCapture}}}'
+        cbCaptureNotice: '{{{cbCaptureNotice}}}'
+        cbPlanNotice: '{{{cbPlanNotice}}}'
 
   - http_request:
       name: 中国广电 App / 微信 / 支付宝小程序自动捕获
@@ -35,6 +51,8 @@ scriptings:
       timeout: 10
       env:
         cbCapture: '{{{cbCapture}}}'
+        cbCaptureNotice: '{{{cbCaptureNotice}}}'
+        cbPlanNotice: '{{{cbPlanNotice}}}'
 
 mitm:
   hostnames:
