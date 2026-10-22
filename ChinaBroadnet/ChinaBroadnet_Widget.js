@@ -680,41 +680,24 @@ async function loadData(ctx, forceRefresh) {
 
 /* =========================================================
  * 保活模式（schedule 定时任务调用）
- * 只发单次请求触达广电服务端续期凭据，不弹通知、不写冗余存储
+ * 触达服务端的同时强制刷新套餐数据，并复用 loadData 的历史记录与存储逻辑
  * ========================================================= */
 async function handleKeepAlive(ctx) {
   const access = ctx.storage.get(KEY + '.access');
   const data = ctx.storage.getJSON(KEY + '.data');
-  const capturedUrl = ctx.storage.get(KEY + '.url') || API_URL;
-  const url = SUPPORTED_API_URLS.includes(capturedUrl) ? capturedUrl : API_URL;
 
   if (!access || data == null) {
     console.log('[ChinaBroadnet] 定时保活跳过：尚未捕获有效凭据');
     return;
   }
 
-  // 保活只请求最近捕获的有效端点一次；不做跨域回退，避免定时任务重复请求。
   try {
-    const resp = await ctx.http.post(url, {
-      timeout: 8000,
-      headers: {
-        access,
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
-      },
-      body: { data },
-    });
-
-    if (!resp || resp.status < 200 || resp.status >= 300) {
-      console.log('[ChinaBroadnet] 定时保活失败：HTTP ' + String(resp && resp.status || '无响应'));
-      return;
-    }
-
-    const result = await resp.json();
-    if (result && result.status === '000000') {
-      console.log('[ChinaBroadnet] 定时请求成功：接口返回 000000');
+    // forceRefresh=true 跳过 15 分钟缓存，成功后更新 datasource、历史记录及更新时间。
+    const res = await loadData(ctx, true);
+    if (res && res.data && !res.data.stale && !res.fromCache) {
+      console.log('[ChinaBroadnet] 定时保活与数据刷新成功：已同步写入最新套餐数据');
     } else {
-      console.log('[ChinaBroadnet] 定时请求未成功：业务状态 ' + String(result && result.status || '无状态码'));
+      console.log('[ChinaBroadnet] 定时保活已执行，但数据未完全更新或读取了旧缓存');
     }
   } catch (e) {
     console.log('[ChinaBroadnet] 定时保活请求异常: ' + String(e && e.message || e));
