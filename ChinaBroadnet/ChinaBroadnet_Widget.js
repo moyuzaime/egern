@@ -688,8 +688,8 @@ function glass(children, extra) {
     type: 'stack',
     direction: 'column',
     gap: 6,
-    padding: 0,
-    borderRadius: 0,
+    padding: [8, 10],
+    borderRadius: 16,
     backgroundColor: { light: '#00000000', dark: '#00000000' },
     borderWidth: 0,
     borderColor: { light: '#00000000', dark: '#00000000' },
@@ -1005,7 +1005,7 @@ function buildSmall(title, ds, fromCache) {
 
   return {
     type: 'widget',
-    padding: [9, 10],
+    padding: [13, 13],
     gap: 6,
     backgroundColor: '#00000000',
     refreshAfter: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
@@ -1092,7 +1092,7 @@ function buildSmall(title, ds, fromCache) {
             children: [
               {
                 type: 'image',
-                src: gaugeSvg(p, flowStyle.color, 82),
+                src: gaugeSvg(p, flowStyle.color, 78),
                 width: 44,
                 height: 27,
               },
@@ -1172,8 +1172,8 @@ function buildMedium(title, ds, fromCache) {
       ],
     },
   ], {
-    height: 44,
-    padding: [4, 7],
+    flex: 1,
+    padding: [7, 9],
     gap: 1,
     borderRadius: 14,
     justifyContent: 'center',
@@ -1201,8 +1201,8 @@ function buildMedium(title, ds, fromCache) {
     },
 
   ], {
-    height: 44,
-    padding: [4, 7],
+    flex: 1,
+    padding: [7, 9],
     gap: 2,
     borderRadius: 14,
   });
@@ -1210,8 +1210,8 @@ function buildMedium(title, ds, fromCache) {
   const row = {
     type: 'stack',
     direction: 'row',
+    alignItems: 'center',
     gap: 7,
-    height: 94,
     children: [
       heroFlowCard(ds),
       {
@@ -1220,7 +1220,7 @@ function buildMedium(title, ds, fromCache) {
         alignItems: 'start',
         gap: 4,
         width: 108,
-        height: 94,
+        flex: 1,
         children: [
           compactFee,
           compactVoice,
@@ -1231,8 +1231,7 @@ function buildMedium(title, ds, fromCache) {
 
   return {
     type: 'widget',
-    padding: [0, 0],
-    glassContentPadding: [24, 20],
+    padding: [13, 15],
     gap: 6,
     backgroundColor: '#00000000',
     refreshAfter: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
@@ -1296,7 +1295,7 @@ function buildLarge(title, ds, fromCache) {
   // 大号组件内部只排版内容，不创建子卡片；玻璃背景由 liquidGlassWidget 统一提供。
   return {
     type: 'widget',
-    padding: [12, 13],
+    padding: [16, 17],
     gap: 9,
     backgroundColor: '#00000000',
     refreshAfter: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
@@ -1371,7 +1370,7 @@ function buildLarge(title, ds, fromCache) {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 0,
-            width: 90,
+            width: 128,
             children: [
               { type: 'image', src: gaugeSvg(p, flowStyle.color, 110), width: 76, height: 40 },
               t(p != null ? Math.round(p * 100) + '% 已用' : '用量统计', 9, 'bold', flowStyle.color),
