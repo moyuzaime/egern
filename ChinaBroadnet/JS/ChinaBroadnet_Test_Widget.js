@@ -12,8 +12,9 @@ const C = {
   fee: '#E28A16',
   flow: '#079ACB',
   voice: '#8B5CF6',
-  txt: '#172B45',
-  sub: '#586D84',
+  // 文本色随系统外观自动切换，避免深色模式下深色文字落在深色玻璃上。
+  txt: { light: '#172B45', dark: '#F3F7FC' },
+  sub: { light: '#586D84', dark: '#B8C7D8' },
   title: '#0F9F91',
   cyan: '#22B8CF',
   violet: '#9B7BFF',
