@@ -21,8 +21,8 @@ const C = {
   pink: '#EC6FA7',
   green: '#27A879',
   glass: { light: '#FFFFFFD9', dark: '#263D55D9' },
-  glassBorder: { light: '#FFFFFF60', dark: '#FFFFFF25' },
-  glassShadow: { light: '#45678212', dark: '#00000020' },
+  glassBorder: { light: '#FFFFFF70', dark: '#FFFFFF25' },
+  glassShadow: { light: '#64748B06', dark: '#00000000' },
 };
 
 // 测试版采用统一的清透磨砂玻璃，避免不同卡片各自铺色造成视觉杂乱。
@@ -816,7 +816,7 @@ function historySvg(history, color, w, h) {
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 
-function heroFlowCard(ds, cardHeight, cardFlex) {
+function heroFlowCard(ds, cardHeight, cardFlex, isMedium) {
   const remain = ds.flow.number + ' ' + ds.flow.unit;
   const total = ds.plan && ds.plan.total != null ? formatFlow(ds.plan.total) : null;
   const used = ds.plan && ds.plan.used != null ? formatFlow(ds.plan.used) : null;
@@ -848,7 +848,7 @@ function heroFlowCard(ds, cardHeight, cardFlex) {
       type: 'stack',
       direction: 'row',
       alignItems: 'center',
-      gap: 12,
+      gap: isMedium ? 7 : 12,
       children: [
         {
           type: 'stack',
@@ -858,9 +858,9 @@ function heroFlowCard(ds, cardHeight, cardFlex) {
           children: [
             {
               type: 'image',
-              src: gaugeSvg(p != null ? p : 0, flowStyle.color, 86),
-              width: 64,
-              height: 34,
+              src: gaugeSvg(p != null ? p : 0, flowStyle.color, isMedium ? 75 : 86),
+              width: isMedium ? 58 : 64,
+              height: isMedium ? 32 : 34,
             },
             t(p != null ? Math.round(p * 100) + '% 已用' : '—', 10, 'bold', flowStyle.color),
           ],
@@ -1213,14 +1213,13 @@ function buildMedium(title, ds, fromCache) {
     alignItems: 'center',
     gap: 5,
     children: [
-      heroFlowCard(ds),
+      heroFlowCard(ds, null, null, true),
       {
         type: 'stack',
         direction: 'column',
-        alignItems: 'start',
-        gap: 3,
-        width: 108,
-        flex: 1,
+        alignItems: 'center',
+        gap: 5,
+        width: 100,
         children: [
           compactFee,
           compactVoice,
