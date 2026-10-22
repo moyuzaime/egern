@@ -13,8 +13,9 @@ const C = {
   flow: '#079ACB',
   voice: '#8B5CF6',
   // 文本色随系统外观自动切换，避免深色模式下深色文字落在深色玻璃上。
-  txt: { light: '#172B45', dark: '#F3F7FC' },
-  sub: { light: '#586D84', dark: '#B8C7D8' },
+  txt: { light: '#000000', dark: '#FFFFFF' },
+  sub: { light: '#3C3C4399', dark: '#EBEBF599' },
+  divider: { light: '#00000015', dark: '#FFFFFF1F' },
   title: '#0F9F91',
   cyan: '#22B8CF',
   violet: '#9B7BFF',
@@ -26,7 +27,7 @@ const C = {
 };
 
 // 测试版采用统一的清透磨砂玻璃，避免不同卡片各自铺色造成视觉杂乱。
-const transparentMode = false;
+const transparentMode = true;
 
 function broadnetBackgroundGradient() {
   if (transparentMode) return undefined;
@@ -331,7 +332,7 @@ async function capture(ctx) {
       } catch (e) {}
 
       console.log(
-        '[ChinaBroadnet] API侦察[v20261023-0154]: ' +
+        '[ChinaBroadnet] API侦察[v20261023-0206]: ' +
         method + ' ' + url +
         (keys.length ? ' | keys=' + keys.join(',') : '') +
         ' | bodyType=' + bodyType +
@@ -509,7 +510,7 @@ async function loadData(ctx, forceRefresh) {
       ? Object.keys(responseUser).filter(k => /^(voice|flow|flowUserd|flowAll|voiceAll|voiceUsed|fee|finBalance|packName)$/.test(k))
       : [];
     console.log(
-      '[ChinaBroadnet-Hark] API响应诊断[v20261023-0154]: ' +
+      '[ChinaBroadnet-Hark] API响应诊断[v20261023-0206]: ' +
       'status=' + String(result && result.status) +
       ' | ok=' + String(result && result.ok) +
       ' | resultKeys=' + responseKeys.join(',') +
@@ -1296,7 +1297,7 @@ function buildMedium(title, ds, fromCache) {
     type: 'widget',
     padding: [12, 14],
     gap: 6,
-    backgroundColor: { light: '#F4F7FB', dark: '#161B22' },
+    backgroundColor: '#00000000',
     refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     children: [
       header(title, ds, fromCache, true),
@@ -1587,7 +1588,7 @@ function buildLock(title, ds, family) {
 function liquidGlassWidget(widget) {
   if (!widget || widget.type !== 'widget') return widget;
   // 根节点直接承载背景，不再额外包裹圆角玻璃卡片，消除全尺寸大黑边。
-  widget.backgroundColor = { light: '#F4F7FB', dark: '#161B22' };
+  widget.backgroundColor = '#00000000';
   delete widget.glassContentPadding;
   return widget;
 }
