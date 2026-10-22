@@ -677,6 +677,28 @@ async function loadData(ctx, forceRefresh) {
   }
 }
 
+
+/* =========================================================
+ * 保活模式（schedule 定时任务调用）
+ * 只发单次请求触达广电服务端续期凭据，不弹通知、不写冗余存储
+ * ========================================================= */
+async function handleKeepAlive(ctx) {
+  const access = ctx.storage.get(KEY + '.access');
+  const data = ctx.storage.getJSON(KEY + '.data');
+  const url = ctx.storage.get(KEY + '.url') || API_URL;
+
+  if (!access || data == null) return;
+
+  try {
+    const result = await fetchData(ctx, access, data, url);
+    if (result && result.status === '000000') {
+      console.log('[ChinaBroadnet] 定时保活成功，Session 已续期');
+    }
+  } catch (e) {
+    console.log('[ChinaBroadnet] 定时保活请求异常: ' + e);
+  }
+}
+
 function fontSize(size) {
   if (typeof size === 'number') {
     if (size <= 8) return 9;
@@ -1652,15 +1674,18 @@ async function handleWidget(ctx) {
 }
 
 export default async function(ctx) {
-  // Generic 小组件上下文优先渲染 Widget DSL；HTTP 请求上下文只执行捕获并透传请求。
-  // 该脚本同时被 generic 与 http_request 引用，避免 generic 意外返回 undefined。
+  // 1. HTTP 抓包模式：自动捕获 access 与请求 payload
   if (ctx && ctx.request && ctx.request.url) {
     await capture(ctx);
     return;
   }
 
-  // Generic 脚本必须始终返回以 type: 'widget' 为根的 DSL。
-  // 不依赖尺寸字段是否存在；并对意外的空返回做兜底，避免根节点缺少 type。
+  // 2. 定时保活模式：支持 schedule (ctx.cron) 或环境变量开启
+  if (ctx && (ctx.cron || (ctx.env && ctx.env.CB_KEEPALIVE === 'true'))) {
+    return handleKeepAlive(ctx);
+  }
+
+  // 3. Generic Widget 模式：渲染小组件 UI
   try {
     const widget = await handleWidget(ctx || {});
     if (widget && widget.type === 'widget') return widget;
