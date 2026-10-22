@@ -8,12 +8,13 @@ const BLOCKED_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryNeedPap
 const KEY = 'ChinaBroadnetHarkTest';
 
 const C = {
-  // 深色通透玻璃专用配色：纯白主文字、半透明白副标题与提亮的流量蓝。
+  // 低饱和环境渐变 + 统一中性色玻璃；主题色只用于图标、关键数字和进度。
   fee: '#E28A16',
-  flow: '#38BDF8',
+  flow: '#079ACB',
   voice: '#8B5CF6',
-  txt: '#FFFFFF',
-  sub: '#FFFFFF99',
+  // 文本色随系统外观自动切换，避免深色模式下深色文字落在深色玻璃上。
+  txt: { light: '#000000', dark: '#FFFFFF' },
+  sub: { light: '#3C3C4399', dark: '#EBEBF599' },
   divider: { light: '#00000015', dark: '#FFFFFF1F' },
   title: '#0F9F91',
   cyan: '#22B8CF',
@@ -1586,8 +1587,8 @@ function buildLock(title, ds, family) {
 
 function liquidGlassWidget(widget) {
   if (!widget || widget.type !== 'widget') return widget;
-  // 使用半透明深色玻璃，避免浅色外观下透明根背景被系统填充为纯白。
-  widget.backgroundColor = { light: '#1C1C1ECC', dark: '#18181BD4' };
+  // 根节点直接承载背景，不再额外包裹圆角玻璃卡片，消除全尺寸大黑边。
+  widget.backgroundColor = '#00000000';
   delete widget.glassContentPadding;
   return widget;
 }
