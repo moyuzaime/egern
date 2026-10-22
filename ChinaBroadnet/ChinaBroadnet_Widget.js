@@ -331,7 +331,7 @@ async function capture(ctx) {
       } catch (e) {}
 
       console.log(
-        '[ChinaBroadnet] API侦察[v20261023-0129]: ' +
+        '[ChinaBroadnet] API侦察[v20261023-0145]: ' +
         method + ' ' + url +
         (keys.length ? ' | keys=' + keys.join(',') : '') +
         ' | bodyType=' + bodyType +
@@ -383,25 +383,37 @@ async function capture(ctx) {
   }
 }
 
-async function fetchData(ctx, access, data, url) {
-  const targetUrl = url || API_URL;
-  if (targetUrl.startsWith(BLOCKED_API_URL)) {
-    throw new Error('已禁用 qryNeedPaperLess 接口');
-  }
-  const resp = await ctx.http.post(targetUrl, {
-    timeout: 10000,
-    headers: {
-      access,
-      'Content-Type': 'application/json',
-    },
-    body: { data },
-  });
+async function fetchData(ctx, access, data, preferredUrl) {
+  // 优先使用捕获到的域名；失败或业务状态异常时自动回退到其他支持的端点。
+  const candidates = [preferredUrl, ...SUPPORTED_API_URLS.filter(u => u !== preferredUrl)].filter(Boolean);
+  let lastErr = null;
 
-  if (!resp || resp.status < 200 || resp.status >= 300) {
-    throw new Error('HTTP ' + (resp ? resp.status : 'no-response'));
+  for (const targetUrl of candidates) {
+    if (targetUrl.startsWith(BLOCKED_API_URL)) continue;
+    try {
+      const resp = await ctx.http.post(targetUrl, {
+        timeout: 6000,
+        headers: {
+          access,
+          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
+        },
+        body: { data },
+      });
+
+      if (resp && resp.status >= 200 && resp.status < 300) {
+        const json = await resp.json();
+        if (json && json.status === '000000') return json;
+        lastErr = new Error('API业务状态异常：' + String(json && json.status || 'empty-response'));
+      } else {
+        lastErr = new Error('HTTP ' + (resp ? resp.status : 'no-response'));
+      }
+    } catch (e) {
+      lastErr = e;
+    }
   }
 
-  return await resp.json();
+  throw lastErr || new Error('所有可用接口更新均失败');
 }
 
 function fmtTime(ts) {
@@ -437,25 +449,25 @@ async function loadData(ctx) {
     if (cached) cached.stale = true;
     return { configured: !!cached, data: cached, fromCache: true, captureDisabled: true };
   }
-  // 套餐缓存有效期为 1 小时；有效期内读取缓存，过期后再向广电接口查询。
-  // 新捕获到 App/小程序请求时立即查询，不必等待旧缓存到期。
+  // 套餐缓存有效期调整为 15 分钟，提升数据实时性。
+  const CACHE_TTL = 15 * 60 * 1000;
   const cachedData = ctx.storage.getJSON(KEY + '.datasource') || null;
   const currentCaptureTime = String(ctx.storage.get(KEY + '.captureTime') || '');
   const queriedCaptureTime = String(ctx.storage.get(KEY + '.queriedCaptureTime') || '');
   const cachedAt = Number(cachedData && cachedData.updatedAt || 0);
   const cacheAge = cachedAt > 0 ? Date.now() - cachedAt : Number.POSITIVE_INFINITY;
-  const sameCapture = !currentCaptureTime || currentCaptureTime === queriedCaptureTime;
+  const hasNewCapture = currentCaptureTime && currentCaptureTime !== queriedCaptureTime;
 
-  if (cachedData && sameCapture && cacheAge >= 0 && cacheAge < 60 * 60 * 1000) {
+  // 15 分钟内且没有新捕获凭据时直接命中新鲜缓存。
+  if (cachedData && !hasNewCapture && cacheAge >= 0 && cacheAge < CACHE_TTL) {
     cachedData.stale = false;
     return { configured: true, data: cachedData, fromCache: true };
   }
 
-  // 失败后冷却 30 秒，防止小组件反复刷新时连续请求；旧缓存仍会继续展示。
-  const lastAttemptCaptureTime = String(ctx.storage.get(KEY + '.lastAttemptCaptureTime') || '');
+  // 最近 15 秒内已经尝试过请求时先显示旧缓存，避免组件切屏时连续触发。
   const lastAttemptAt = Number(ctx.storage.get(KEY + '.lastAttemptAt') || 0);
-  if (cachedData && lastAttemptCaptureTime === currentCaptureTime && lastAttemptAt > 0 &&
-      Date.now() - lastAttemptAt >= 0 && Date.now() - lastAttemptAt < 30000) {
+  const attemptAge = Date.now() - lastAttemptAt;
+  if (cachedData && !hasNewCapture && lastAttemptAt > 0 && attemptAge >= 0 && attemptAge < 15000) {
     cachedData.stale = true;
     return { configured: true, data: cachedData, fromCache: true };
   }
@@ -482,7 +494,7 @@ async function loadData(ctx) {
       ? Object.keys(responseUser).filter(k => /^(voice|flow|flowUserd|flowAll|voiceAll|voiceUsed|fee|finBalance|packName)$/.test(k))
       : [];
     console.log(
-      '[ChinaBroadnet-Hark] API响应诊断[v20261023-0129]: ' +
+      '[ChinaBroadnet-Hark] API响应诊断[v20261023-0145]: ' +
       'status=' + String(result && result.status) +
       ' | ok=' + String(result && result.ok) +
       ' | resultKeys=' + responseKeys.join(',') +
@@ -1045,7 +1057,7 @@ function buildSmall(title, ds, fromCache) {
     padding: [13, 13],
     gap: 6,
     backgroundColor: '#00000000',
-    refreshAfter: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     children: [
       {
         type: 'stack',
@@ -1270,7 +1282,7 @@ function buildMedium(title, ds, fromCache) {
     padding: [12, 14],
     gap: 6,
     backgroundColor: { light: '#F4F7FB', dark: '#161B22' },
-    refreshAfter: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     children: [
       header(title, ds, fromCache, true),
       row,
@@ -1334,7 +1346,7 @@ function buildLarge(title, ds, fromCache) {
     padding: [16, 17],
     gap: 9,
     backgroundColor: '#00000000',
-    refreshAfter: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     children: [
       header(title, ds, fromCache),
       {
