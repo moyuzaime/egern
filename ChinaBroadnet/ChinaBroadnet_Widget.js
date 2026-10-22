@@ -685,7 +685,7 @@ async function loadData(ctx, forceRefresh) {
 function parseKeepAliveInterval(value) {
   // 参数只接受正整数，单位固定为分钟；无效输入回退到默认 15 分钟。
   const raw = String(value == null ? '15' : value).trim();
-  if (!/^\\d+$/.test(raw)) return 15 * 60 * 1000;
+  if (!/^[0-9]+$/.test(raw)) return 15 * 60 * 1000;
   const minutes = Number(raw);
   if (!Number.isSafeInteger(minutes) || minutes <= 0) return 15 * 60 * 1000;
   return Math.max(15 * 60 * 1000, Math.min(24 * 60 * 60 * 1000, minutes * 60 * 1000));
@@ -695,33 +695,41 @@ function parseKeepAliveInterval(value) {
  * 保活模式（schedule 每分钟触发，由用户输入的易读间隔控制实际执行频率）
  * ========================================================= */
 async function handleKeepAlive(ctx) {
-  const intervalText = ctx && ctx.env ? ctx.env.cbKeepaliveInterval : '15';
+  const env = ctx && ctx.env ? ctx.env : {};
+  const intervalText = env.cbKeepaliveInterval == null ? '15' : env.cbKeepaliveInterval;
   const intervalMs = parseKeepAliveInterval(intervalText);
+  const forceManual = String(env.CB_KEEPALIVE_FORCE || '').toLowerCase() === 'true';
   const lastRun = Number(ctx.storage.get(KEY + '.keepAliveLastRun') || 0);
   const now = Date.now();
 
-  if (lastRun && now - lastRun < intervalMs) return;
+  // 定时任务按用户设定的间隔节流；独立手动刷新入口不受此限制。
+  if (!forceManual && lastRun && now - lastRun < intervalMs) {
+    console.log('[ChinaBroadnet] 定时保活跳过：尚未达到设定间隔');
+    return;
+  }
 
   const access = ctx.storage.get(KEY + '.access');
   const data = ctx.storage.getJSON(KEY + '.data');
 
   if (!access || data == null) {
-    console.log('[ChinaBroadnet] 定时保活跳过：尚未捕获有效凭据');
+    console.log('[ChinaBroadnet] 保活/刷新跳过：尚未捕获有效凭据');
     return;
   }
 
-  // 记录本轮尝试时间，避免网络失败时每分钟重复请求。
+  // 记录本轮尝试时间，避免网络失败时定时任务每分钟重复请求。
   ctx.storage.set(KEY + '.keepAliveLastRun', String(now));
 
   try {
     const res = await loadData(ctx, true);
     if (res && res.data && !res.data.stale && !res.fromCache) {
-      console.log('[ChinaBroadnet] 定时保活与数据刷新成功：间隔 ' + String(intervalText) + ' 分钟，已同步写入最新套餐数据');
+      console.log('[ChinaBroadnet] ' + (forceManual ? '手动强制刷新' : '定时保活') +
+        '成功：已请求套餐接口并写入最新套餐数据');
     } else {
-      console.log('[ChinaBroadnet] 定时保活已执行，但数据未完全更新或读取了旧缓存');
+      console.log('[ChinaBroadnet] ' + (forceManual ? '手动强制刷新' : '定时保活') +
+        '已执行，但数据未完全更新；请查看 API 响应诊断日志');
     }
   } catch (e) {
-    console.log('[ChinaBroadnet] 定时保活请求异常: ' + String(e && e.message || e));
+    console.log('[ChinaBroadnet] 保活/刷新请求异常: ' + String(e && e.message || e));
   }
 }
 
