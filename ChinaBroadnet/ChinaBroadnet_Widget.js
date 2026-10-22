@@ -331,7 +331,7 @@ async function capture(ctx) {
       } catch (e) {}
 
       console.log(
-        '[ChinaBroadnet] API侦察[v20261023-0145]: ' +
+        '[ChinaBroadnet] API侦察[v20261023-0147]: ' +
         method + ' ' + url +
         (keys.length ? ' | keys=' + keys.join(',') : '') +
         ' | bodyType=' + bodyType +
@@ -509,7 +509,7 @@ async function loadData(ctx, forceRefresh) {
       ? Object.keys(responseUser).filter(k => /^(voice|flow|flowUserd|flowAll|voiceAll|voiceUsed|fee|finBalance|packName)$/.test(k))
       : [];
     console.log(
-      '[ChinaBroadnet-Hark] API响应诊断[v20261023-0145]: ' +
+      '[ChinaBroadnet-Hark] API响应诊断[v20261023-0147]: ' +
       'status=' + String(result && result.status) +
       ' | ok=' + String(result && result.ok) +
       ' | resultKeys=' + responseKeys.join(',') +
