@@ -427,20 +427,25 @@ async function loadData(ctx) {
     if (cached) cached.stale = true;
     return { configured: !!cached, data: cached, fromCache: true, captureDisabled: true };
   }
-  // 同一份捕获请求成功查询过，就直接返回缓存，避免小组件每次刷新都等待广电接口。
+  // 套餐缓存有效期为 1 小时；有效期内读取缓存，过期后再向广电接口查询。
+  // 新捕获到 App/小程序请求时立即查询，不必等待旧缓存到期。
   const cachedData = ctx.storage.getJSON(KEY + '.datasource') || null;
   const currentCaptureTime = String(ctx.storage.get(KEY + '.captureTime') || '');
   const queriedCaptureTime = String(ctx.storage.get(KEY + '.queriedCaptureTime') || '');
-  if (cachedData && currentCaptureTime && currentCaptureTime === queriedCaptureTime) {
+  const cachedAt = Number(cachedData && cachedData.updatedAt || 0);
+  const cacheAge = cachedAt > 0 ? Date.now() - cachedAt : Number.POSITIVE_INFINITY;
+  const sameCapture = !currentCaptureTime || currentCaptureTime === queriedCaptureTime;
+
+  if (cachedData && sameCapture && cacheAge >= 0 && cacheAge < 60 * 60 * 1000) {
     cachedData.stale = false;
     return { configured: true, data: cachedData, fromCache: true };
   }
 
-  // 请求失败后短暂冷却，避免组件频繁刷新时连续重试慢接口。
+  // 失败后冷却 30 秒，防止小组件反复刷新时连续请求；旧缓存仍会继续展示。
   const lastAttemptCaptureTime = String(ctx.storage.get(KEY + '.lastAttemptCaptureTime') || '');
   const lastAttemptAt = Number(ctx.storage.get(KEY + '.lastAttemptAt') || 0);
-  if (cachedData && currentCaptureTime && currentCaptureTime === lastAttemptCaptureTime &&
-      Date.now() - lastAttemptAt < 30000) {
+  if (cachedData && lastAttemptCaptureTime === currentCaptureTime && lastAttemptAt > 0 &&
+      Date.now() - lastAttemptAt >= 0 && Date.now() - lastAttemptAt < 30000) {
     cachedData.stale = true;
     return { configured: true, data: cachedData, fromCache: true };
   }
@@ -988,7 +993,7 @@ function buildSmall(title, ds, fromCache) {
     padding: [9, 10],
     gap: 6,
     backgroundColor: '#00000000',
-    refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+    refreshAfter: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     children: [
       {
         type: 'stack',
@@ -1213,7 +1218,7 @@ function buildMedium(title, ds, fromCache) {
     padding: [9, 10],
     gap: 6,
     backgroundColor: '#00000000',
-    refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+    refreshAfter: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     children: [
       header(title, ds, fromCache),
       row,
@@ -1277,7 +1282,7 @@ function buildLarge(title, ds, fromCache) {
     padding: [12, 13],
     gap: 9,
     backgroundColor: '#00000000',
-    refreshAfter: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+    refreshAfter: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     children: [
       header(title, ds, fromCache),
       {
@@ -1435,7 +1440,7 @@ function buildLarge(title, ds, fromCache) {
               { type: 'image', src: 'sf-symbol:clock', width: 9, height: 9, color: C.sub },
               t((fromCache ? '缓存数据 · ' : '最近更新 · ') + fmtTime(ds.updatedAt), 8, 'medium', C.sub),
               { type: 'spacer' },
-              t(fromCache ? '数据可能过期' : '每 30 分钟刷新', 8, 'medium', C.sub),
+              t(fromCache ? '数据可能过期' : '每 1 小时刷新', 8, 'medium', C.sub),
             ],
           },
         ],
