@@ -21,8 +21,8 @@ const C = {
   pink: '#EC6FA7',
   green: '#27A879',
   glass: { light: '#FFFFFFD9', dark: '#263D55D9' },
-  glassBorder: { light: '#FFFFFFF2', dark: '#D8F1FFFF' },
-  glassShadow: { light: '#45678224', dark: '#00000038' },
+  glassBorder: { light: '#FFFFFF60', dark: '#FFFFFF25' },
+  glassShadow: { light: '#45678212', dark: '#00000020' },
 };
 
 // 测试版采用统一的清透磨砂玻璃，避免不同卡片各自铺色造成视觉杂乱。
@@ -858,9 +858,9 @@ function heroFlowCard(ds, cardHeight, cardFlex) {
           children: [
             {
               type: 'image',
-              src: gaugeSvg(p != null ? p : 0, flowStyle.color, 110),
-              width: 82,
-              height: 43,
+              src: gaugeSvg(p != null ? p : 0, flowStyle.color, 86),
+              width: 64,
+              height: 34,
             },
             t(p != null ? Math.round(p * 100) + '% 已用' : '—', 10, 'bold', flowStyle.color),
           ],
@@ -889,8 +889,8 @@ function heroFlowCard(ds, cardHeight, cardFlex) {
     backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFCD9', dark: '#172638D9' },
     borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
     shadowColor: { light: '#52677A18', dark: '#00000028' },
-    shadowRadius: 2,
-    shadowOffset: { x: 0, y: 1 },
+    shadowRadius: 0,
+    shadowOffset: { x: 0, y: 0 },
   });
 }
 
@@ -1173,7 +1173,7 @@ function buildMedium(title, ds, fromCache) {
     },
   ], {
     flex: 1,
-    padding: [7, 9],
+    padding: [6, 8],
     gap: 1,
     borderRadius: 14,
     justifyContent: 'center',
@@ -1202,8 +1202,8 @@ function buildMedium(title, ds, fromCache) {
 
   ], {
     flex: 1,
-    padding: [7, 9],
-    gap: 2,
+    padding: [6, 8],
+    gap: 1,
     borderRadius: 14,
   });
 
@@ -1211,14 +1211,14 @@ function buildMedium(title, ds, fromCache) {
     type: 'stack',
     direction: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 5,
     children: [
       heroFlowCard(ds),
       {
         type: 'stack',
         direction: 'column',
         alignItems: 'start',
-        gap: 4,
+        gap: 3,
         width: 108,
         flex: 1,
         children: [
@@ -1231,8 +1231,9 @@ function buildMedium(title, ds, fromCache) {
 
   return {
     type: 'widget',
-    padding: [13, 15],
-    gap: 6,
+    padding: [10, 12],
+    glassContentPadding: [10, 12],
+    gap: 5,
     backgroundColor: '#00000000',
     refreshAfter: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     children: [
@@ -1537,10 +1538,10 @@ function liquidGlassWidget(widget) {
     borderRadius: 26,
     backgroundColor: transparentMode ? '#00000000' : { light: '#FFFFFFB8', dark: '#263D55B8' },
     borderWidth: transparentMode ? 0 : 1,
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFA8', dark: '#D8F1FF78' },
-    shadowColor: { light: '#45678212', dark: '#00000022' },
-    shadowRadius: 10,
-    shadowOffset: { x: 0, y: 3 },
+    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : C.glassBorder,
+    shadowColor: C.glassShadow,
+    shadowRadius: 4,
+    shadowOffset: { x: 0, y: 2 },
     children: content,
   }];
   return widget;
