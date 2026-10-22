@@ -367,14 +367,7 @@ async function capture(ctx) {
     ctx.storage.setJSON(KEY + '.data', body.data);
     ctx.storage.set(KEY + '.captureTime', String(Date.now()));
 
-    const source = url.startsWith(ALIPAY_API_URL)
-      ? '支付宝小程序'
-      : detectCaptureSource(req);
-    ctx.notify({
-      title: '中国广电',
-      body: source + '数据捕获成功，正在查询套餐接口',
-      sound: false,
-    });
+    // 套餐通知在 qryUserInfo 查询成功后统一发送，避免先后弹出两条通知。
   } catch (e) {
     console.log('[ChinaBroadnet-Hark] capture error: ' + e);
   }
@@ -565,6 +558,29 @@ async function loadData(ctx) {
     };
 
     ctx.storage.setJSON(KEY + '.datasource', ds);
+
+    // 每次新捕获只发送一次完整套餐通知；小组件每分钟刷新不会重复打扰。
+    const captureTime = String(ctx.storage.get(KEY + '.captureTime') || '');
+    const notifiedCaptureTime = String(ctx.storage.get(KEY + '.notifiedCaptureTime') || '');
+    if (captureTime && captureTime !== notifiedCaptureTime && typeof ctx.notify === 'function') {
+      const totalFlowText = formatFlow(flowTotal);
+      const usedFlowText = formatFlow(flowUsed);
+      const remainFlowText = formatFlow(flowRemain);
+      const body = [
+        '剩余话费：¥' + formatFee(feeRaw),
+        '流量：已用 ' + usedFlowText.number + ' ' + usedFlowText.unit +
+          ' / 总量 ' + totalFlowText.number + ' ' + totalFlowText.unit,
+        '剩余流量：' + remainFlowText.number + ' ' + remainFlowText.unit,
+        '语音：剩余 ' + formatVoice(voiceRemain) + ' / 总量 ' +
+          formatVoice(voiceTotal) + ' 分钟',
+      ].join('\\n');
+      ctx.notify({
+        title: '中国广电套餐查询成功',
+        body,
+        sound: false,
+      });
+      ctx.storage.set(KEY + '.notifiedCaptureTime', captureTime);
+    }
 
     // 直接输出接口已确认的套餐字段，避免依赖递归扫描结果而漏掉字段。
     console.log(
