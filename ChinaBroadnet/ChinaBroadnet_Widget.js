@@ -1370,7 +1370,7 @@ function buildLarge(title, ds, fromCache) {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 0,
-            width: 128,
+            width: 90,
             children: [
               { type: 'image', src: gaugeSvg(p, flowStyle.color, 110), width: 76, height: 40 },
               t(p != null ? Math.round(p * 100) + '% 已用' : '用量统计', 9, 'bold', flowStyle.color),
