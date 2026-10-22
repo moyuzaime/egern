@@ -1,5 +1,5 @@
 name: 中国广电小组件
-description: 中国广电 话费 语音 流量小组件（App、微信、支付宝自动捕获）｜更新时间：2026-10-23 07:06（北京时间）
+description: 中国广电 话费 语音 流量小组件（App、微信、支付宝自动捕获）｜更新时间：2026-10-23 07:12（北京时间）
 author: wuhuhuuuu
 icon: https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/03CNSoft/ChinaBroadcastNetwork.png
 
@@ -7,7 +7,7 @@ compat_arguments:
   cbCapture: 'true'
   cbCaptureNotice: 'true'
   cbPlanNotice: 'true'
-  cbKeepaliveInterval: '15分钟'
+  cbKeepaliveInterval: '15'
 
 compat_arguments_schema:
   cbCapture:
@@ -33,8 +33,8 @@ compat_arguments_schema:
       - 'false'
   cbKeepaliveInterval:
     name: 定时保活间隔
-    description: 直接输入时间，例如 15分钟、30分钟、1小时、2小时；最小 1 分钟，最大 24 小时
-    default_value: '15分钟'
+    description: 只输入数字，单位固定为分钟；例如 15 表示每 15 分钟保活一次。最小 1，最大 1440（24 小时）
+    default_value: '15'
 
 dns: {}
 
