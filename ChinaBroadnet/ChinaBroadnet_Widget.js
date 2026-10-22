@@ -716,7 +716,7 @@ async function handleKeepAlive(ctx) {
   try {
     const res = await loadData(ctx, true);
     if (res && res.data && !res.data.stale && !res.fromCache) {
-      console.log('[ChinaBroadnet] 定时保活与数据刷新成功：间隔 ' + String(intervalText) + '，已同步写入最新套餐数据');
+      console.log('[ChinaBroadnet] 定时保活与数据刷新成功：间隔 ' + String(intervalText) + ' 分钟，已同步写入最新套餐数据');
     } else {
       console.log('[ChinaBroadnet] 定时保活已执行，但数据未完全更新或读取了旧缓存');
     }
