@@ -1,10 +1,13 @@
 name: 中国广电小组件
-description: 中国广电 话费 语音 流量小组件（App、微信、支付宝自动捕获）｜更新时间：2026-10-23 02:25（北京时间）
+description: 中国广电 话费 语音 流量小组件（App、微信、支付宝自动捕获）｜更新时间：2026-10-23 02:32（北京时间）
 author: wuhuhuuuu
 icon: https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/03CNSoft/ChinaBroadcastNetwork.png
 
 compat_arguments:
   cbCapture: 'true'
+  cbCaptureNotice: 'true'
+  cbPlanNotice: 'true'
+  cbKeepaliveCron: '*/15 * * * *'
 
 compat_arguments_schema:
   cbCapture:
@@ -28,6 +31,16 @@ compat_arguments_schema:
     options:
       - 'true'
       - 'false'
+  cbKeepaliveCron:
+    name: 定时保活间隔 (Cron)
+    description: 定时触达广电服务端以防凭据过期失效，默认每 15 分钟
+    default_value: '*/15 * * * *'
+    options:
+      - '*/5 * * * *'
+      - '*/10 * * * *'
+      - '*/15 * * * *'
+      - '*/30 * * * *'
+      - '0 * * * *'
 
 dns: {}
 
@@ -44,7 +57,7 @@ scriptings:
 
   - schedule:
       name: china-broadnet-keepalive
-      cron: "*/15 * * * *"
+      cron: '{{{cbKeepaliveCron}}}'
       script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Widget.js
       update_interval: 60
       timeout: 15
