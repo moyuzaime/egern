@@ -331,7 +331,7 @@ async function capture(ctx) {
       } catch (e) {}
 
       console.log(
-        '[ChinaBroadnet] API侦察[v20261022-0155]: ' +
+        '[ChinaBroadnet] API侦察[v20261023-0129]: ' +
         method + ' ' + url +
         (keys.length ? ' | keys=' + keys.join(',') : '') +
         ' | bodyType=' + bodyType +
@@ -482,7 +482,7 @@ async function loadData(ctx) {
       ? Object.keys(responseUser).filter(k => /^(voice|flow|flowUserd|flowAll|voiceAll|voiceUsed|fee|finBalance|packName)$/.test(k))
       : [];
     console.log(
-      '[ChinaBroadnet-Hark] API响应诊断[v20261022-0155]: ' +
+      '[ChinaBroadnet-Hark] API响应诊断[v20261023-0129]: ' +
       'status=' + String(result && result.status) +
       ' | ok=' + String(result && result.ok) +
       ' | resultKeys=' + responseKeys.join(',') +
@@ -825,6 +825,77 @@ function heroFlowCard(ds, cardHeight, cardFlex, isMedium) {
     : '';
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const flowStyle = flowStatus(p);
+  const flowContent = isMedium
+    ? {
+        // 中号：左侧显示剩余数值和套餐详情，右侧显示缩小的半圆仪表盘。
+        type: 'stack',
+        direction: 'row',
+        alignItems: 'center',
+        gap: 6,
+        children: [
+          {
+            type: 'stack',
+            direction: 'column',
+            alignItems: 'start',
+            gap: 2,
+            flex: 1,
+            children: [
+              t(remain, cardHeight ? 22 : 19, 'bold', C.txt, { minScale: 0.55 }),
+              t(compactFlowDetail || '当前剩余', 8, 'medium', C.sub, { minScale: 0.45 }),
+            ],
+          },
+          {
+            type: 'stack',
+            direction: 'column',
+            alignItems: 'center',
+            gap: 0,
+            children: [
+              {
+                type: 'image',
+                src: gaugeSvg(p != null ? p : 0, flowStyle.color, 68),
+                width: 44,
+                height: 24,
+              },
+              t(p != null ? Math.round(p * 100) + '% 已用' : '—', 8, 'bold', flowStyle.color),
+            ],
+          },
+        ],
+      }
+    : {
+        type: 'stack',
+        direction: 'row',
+        alignItems: 'center',
+        gap: 12,
+        children: [
+          {
+            type: 'stack',
+            direction: 'column',
+            alignItems: 'center',
+            gap: -2,
+            children: [
+              {
+                type: 'image',
+                src: gaugeSvg(p != null ? p : 0, flowStyle.color, 86),
+                width: 64,
+                height: 34,
+              },
+              t(p != null ? Math.round(p * 100) + '% 已用' : '—', 10, 'bold', flowStyle.color),
+            ],
+          },
+          {
+            type: 'stack',
+            direction: 'column',
+            alignItems: 'start',
+            gap: 1,
+            flex: 1,
+            children: [
+              t(remain, cardHeight ? 23 : 20, 'bold', C.txt, { minScale: 0.55 }),
+              t('当前剩余', 9, 'medium', C.sub),
+              ...(!cardHeight ? [t(compactFlowDetail, 8, 'medium', C.sub, { minScale: 0.45 })] : []),
+            ],
+          },
+        ],
+      };
   return glass([
     {
       type: 'stack',
@@ -844,41 +915,7 @@ function heroFlowCard(ds, cardHeight, cardFlex, isMedium) {
         t(p != null ? Math.round((1 - p) * 100) + '% 剩余' : '实时套餐', 9, 'semibold', flowStyle.color),
       ],
     },
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'center',
-      gap: isMedium ? 7 : 12,
-      children: [
-        {
-          type: 'stack',
-          direction: 'column',
-          alignItems: 'center',
-          gap: -2,
-          children: [
-            {
-              type: 'image',
-              src: gaugeSvg(p != null ? p : 0, flowStyle.color, isMedium ? 75 : 86),
-              width: isMedium ? 58 : 64,
-              height: isMedium ? 32 : 34,
-            },
-            t(p != null ? Math.round(p * 100) + '% 已用' : '—', 10, 'bold', flowStyle.color),
-          ],
-        },
-        {
-          type: 'stack',
-          direction: 'column',
-          alignItems: 'start',
-          gap: 1,
-          flex: 1,
-          children: [
-            t(remain, cardHeight ? 23 : 20, 'bold', C.txt, { minScale: 0.55 }),
-            t('当前剩余', 9, 'medium', C.sub),
-            ...(!cardHeight ? [t(compactFlowDetail, 8, 'medium', C.sub, { minScale: 0.45 })] : []),
-          ],
-        },
-      ],
-    },
+    flowContent,
   ], {
     width: 0,
     flex: cardFlex || 1,
@@ -1230,10 +1267,9 @@ function buildMedium(title, ds, fromCache) {
 
   return {
     type: 'widget',
-    padding: [10, 12],
-    glassContentPadding: [10, 12],
-    gap: 5,
-    backgroundColor: '#00000000',
+    padding: [12, 14],
+    gap: 6,
+    backgroundColor: { light: '#F4F7FB', dark: '#161B22' },
     refreshAfter: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     children: [
       header(title, ds, fromCache, true),
@@ -1522,27 +1558,10 @@ function buildLock(title, ds, family) {
 }
 
 function liquidGlassWidget(widget) {
-  if (!widget || widget.type !== 'widget' || !Array.isArray(widget.children)) return widget;
-
-  // 全部尺寸统一只绘制一张外层玻璃主卡片；内部所有布局容器均透明、无边框、无阴影。
-  const content = widget.children;
-  const contentPadding = widget.glassContentPadding || [12, 12];
+  if (!widget || widget.type !== 'widget') return widget;
+  // 根节点直接承载背景，不再额外包裹圆角玻璃卡片，消除全尺寸大黑边。
+  widget.backgroundColor = { light: '#F4F7FB', dark: '#161B22' };
   delete widget.glassContentPadding;
-  widget.backgroundColor = '#00000000';
-  widget.children = [{
-    type: 'stack',
-    direction: 'column',
-    gap: 9,
-    padding: contentPadding,
-    borderRadius: 26,
-    backgroundColor: transparentMode ? '#00000000' : { light: '#FFFFFFB8', dark: '#263D55B8' },
-    borderWidth: transparentMode ? 0 : 1,
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : C.glassBorder,
-    shadowColor: C.glassShadow,
-    shadowRadius: 4,
-    shadowOffset: { x: 0, y: 2 },
-    children: content,
-  }];
   return widget;
 }
 
