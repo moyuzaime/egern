@@ -1642,8 +1642,11 @@ function buildLock(title, ds, family) {
 
 function liquidGlassWidget(widget) {
   if (!widget || widget.type !== 'widget') return widget;
-  // 根节点直接承载背景，不再额外包裹圆角玻璃卡片，消除全尺寸大黑边。
-  widget.backgroundColor = { light: '#F4F7FB', dark: '#161B22' };
+  // 透明模式下让组件根节点完全透明，避免系统底色覆盖壁纸；
+  // 内容本身（文字、图标、进度条）仍按各自颜色绘制。
+  widget.backgroundColor = transparentMode
+    ? '#00000000'
+    : { light: '#F4F7FB', dark: '#161B22' };
   delete widget.glassContentPadding;
   return widget;
 }
@@ -1653,7 +1656,7 @@ function buildError(title, message) {
     type: 'widget',
     padding: 14,
     gap: 6,
-    backgroundColor: '#00000000',
+    backgroundColor: transparentMode ? '#00000000' : { light: '#F4F7FB', dark: '#161B22' },
     children: [
       t(title, 'footnote', 'semibold'),
       { type: 'spacer' },
