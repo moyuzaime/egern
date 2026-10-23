@@ -1,33 +1,39 @@
 name: 中国广电仪表盘测试版
-description: "中国广电话费、语音、流量仪表盘测试版（独立存储，不影响正式版）｜默认透明｜更新时间：2026-10-23 02:13（北京时间）"
+description: "中国广电话费、语音、流量仪表盘测试版（独立存储，不影响正式版）｜默认透明｜更新时间：2026-10-23 08:57（北京时间）"
 icon: https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/03CNSoft/ChinaBroadcastNetwork.png
 
 compat_arguments:
   cbCapture: 'true'
+  cbCaptureNotice: 'true'
+  cbPlanNotice: 'true'
+  cbKeepaliveInterval: '15'
 
 compat_arguments_schema:
   cbCapture:
-    name: 中国广电数据抓取（测试版）
+    name: 中国广电数据抓取
     description: 打开中国广电 App、微信或支付宝小程序查询一次即可自动捕获
     default_value: 'true'
     options:
       - 'true'
       - 'false'
   cbCaptureNotice:
-    name: 中国广电数据抓取成功通知（测试版）
+    name: 中国广电数据抓取成功通知
     description: 捕获到 App、微信或支付宝小程序套餐请求时发送通知
     default_value: 'true'
     options:
       - 'true'
       - 'false'
   cbPlanNotice:
-    name: 套餐查询成功通知（测试版）
+    name: 套餐查询成功通知
     description: 接口成功返回套餐数据后发送话费、流量和语音明细通知
     default_value: 'true'
     options:
       - 'true'
       - 'false'
-
+  cbKeepaliveInterval:
+    name: 定时保活间隔
+    description: 只输入数字，单位固定为分钟；例如 15 表示每 15 分钟保活一次。最小 15，最大 1440（24 小时）
+    default_value: '15'
 
 dns: {}
 
@@ -41,6 +47,26 @@ scriptings:
         cbCapture: '{{{cbCapture}}}'
         cbCaptureNotice: '{{{cbCaptureNotice}}}'
         cbPlanNotice: '{{{cbPlanNotice}}}'
+
+  - generic:
+      name: china-broadnet-test-keepalive
+      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/JS/ChinaBroadnet_Test_Widget.js
+      update_interval: 60
+      timeout: 20
+      env:
+        CB_KEEPALIVE: 'true'
+        CB_KEEPALIVE_FORCE: 'true'
+        cbKeepaliveInterval: '{{{cbKeepaliveInterval}}}'
+
+  - schedule:
+      name: china-broadnet-test-keepalive-schedule
+      cron: '* * * * *'
+      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/JS/ChinaBroadnet_Test_Widget.js
+      update_interval: 60
+      timeout: 15
+      env:
+        CB_KEEPALIVE: 'true'
+        cbKeepaliveInterval: '{{{cbKeepaliveInterval}}}'
 
   - http_request:
       name: 中国广电测试版 App / 微信 / 支付宝小程序自动捕获
