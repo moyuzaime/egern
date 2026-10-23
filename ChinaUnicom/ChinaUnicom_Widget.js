@@ -313,6 +313,7 @@ function fmtTime(ts) {
 function saveHistory(ctx, flow) {
   try {
     const old = ctx.storage.getJSON(KEY + '.history') || [];
+    if (flow == null || flow === '') return old;
     const n = Number(flow);
     if (!Number.isFinite(n)) return old;
 
