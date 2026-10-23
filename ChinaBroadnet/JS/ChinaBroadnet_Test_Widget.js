@@ -13,9 +13,8 @@ const C = {
   flow: '#079ACB',
   voice: '#8B5CF6',
   // 文本色随系统外观自动切换，避免深色模式下深色文字落在深色玻璃上。
-  txt: { light: '#000000', dark: '#FFFFFF' },
-  sub: { light: '#3C3C4399', dark: '#EBEBF599' },
-  divider: { light: '#00000015', dark: '#FFFFFF1F' },
+  txt: { light: '#172B45', dark: '#F3F7FC' },
+  sub: { light: '#586D84', dark: '#B8C7D8' },
   title: '#0F9F91',
   cyan: '#22B8CF',
   violet: '#9B7BFF',
@@ -332,7 +331,7 @@ async function capture(ctx) {
       } catch (e) {}
 
       console.log(
-        '[ChinaBroadnet] API侦察[v20261023-0206]: ' +
+        '[ChinaBroadnet] API侦察[v20261023-0147]: ' +
         method + ' ' + url +
         (keys.length ? ' | keys=' + keys.join(',') : '') +
         ' | bodyType=' + bodyType +
@@ -510,7 +509,7 @@ async function loadData(ctx, forceRefresh) {
       ? Object.keys(responseUser).filter(k => /^(voice|flow|flowUserd|flowAll|voiceAll|voiceUsed|fee|finBalance|packName)$/.test(k))
       : [];
     console.log(
-      '[ChinaBroadnet-Hark] API响应诊断[v20261023-0206]: ' +
+      '[ChinaBroadnet-Hark] API响应诊断[v20261023-0147]: ' +
       'status=' + String(result && result.status) +
       ' | ok=' + String(result && result.ok) +
       ' | resultKeys=' + responseKeys.join(',') +
@@ -675,6 +674,62 @@ async function loadData(ctx, forceRefresh) {
       })(),
       fromCache: true,
     };
+  }
+}
+
+
+/* =========================================================
+ * 保活模式（schedule 定时任务调用）
+ * 触达服务端的同时强制刷新套餐数据，并复用 loadData 的历史记录与存储逻辑
+ * ========================================================= */
+function parseKeepAliveInterval(value) {
+  // 参数只接受正整数，单位固定为分钟；无效输入回退到默认 15 分钟。
+  const raw = String(value == null ? '15' : value).trim();
+  if (!/^[0-9]+$/.test(raw)) return 15 * 60 * 1000;
+  const minutes = Number(raw);
+  if (!Number.isSafeInteger(minutes) || minutes <= 0) return 15 * 60 * 1000;
+  return Math.max(15 * 60 * 1000, Math.min(24 * 60 * 60 * 1000, minutes * 60 * 1000));
+}
+
+/* =========================================================
+ * 保活模式（schedule 每分钟触发，由用户输入的易读间隔控制实际执行频率）
+ * ========================================================= */
+async function handleKeepAlive(ctx) {
+  const env = ctx && ctx.env ? ctx.env : {};
+  const intervalText = env.cbKeepaliveInterval == null ? '15' : env.cbKeepaliveInterval;
+  const intervalMs = parseKeepAliveInterval(intervalText);
+  const forceManual = String(env.CB_KEEPALIVE_FORCE || '').toLowerCase() === 'true';
+  const lastRun = Number(ctx.storage.get(KEY + '.keepAliveLastRun') || 0);
+  const now = Date.now();
+
+  // 定时任务按用户设定的间隔节流；独立手动刷新入口不受此限制。
+  if (!forceManual && lastRun && now - lastRun < intervalMs) {
+    console.log('[ChinaBroadnet] 定时保活跳过：尚未达到设定间隔');
+    return;
+  }
+
+  const access = ctx.storage.get(KEY + '.access');
+  const data = ctx.storage.getJSON(KEY + '.data');
+
+  if (!access || data == null) {
+    console.log('[ChinaBroadnet] 保活/刷新跳过：尚未捕获有效凭据');
+    return;
+  }
+
+  // 记录本轮尝试时间，避免网络失败时定时任务每分钟重复请求。
+  ctx.storage.set(KEY + '.keepAliveLastRun', String(now));
+
+  try {
+    const res = await loadData(ctx, true);
+    if (res && res.data && !res.data.stale && !res.fromCache) {
+      console.log('[ChinaBroadnet] ' + (forceManual ? '手动强制刷新' : '定时保活') +
+        '成功：已请求套餐接口并写入最新套餐数据');
+    } else {
+      console.log('[ChinaBroadnet] ' + (forceManual ? '手动强制刷新' : '定时保活') +
+        '已执行，但数据未完全更新；请查看 API 响应诊断日志');
+    }
+  } catch (e) {
+    console.log('[ChinaBroadnet] 保活/刷新请求异常: ' + String(e && e.message || e));
   }
 }
 
@@ -1297,7 +1352,7 @@ function buildMedium(title, ds, fromCache) {
     type: 'widget',
     padding: [12, 14],
     gap: 6,
-    backgroundColor: '#00000000',
+    backgroundColor: { light: '#F4F7FB', dark: '#161B22' },
     refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     children: [
       header(title, ds, fromCache, true),
@@ -1588,7 +1643,7 @@ function buildLock(title, ds, family) {
 function liquidGlassWidget(widget) {
   if (!widget || widget.type !== 'widget') return widget;
   // 根节点直接承载背景，不再额外包裹圆角玻璃卡片，消除全尺寸大黑边。
-  widget.backgroundColor = '#00000000';
+  widget.backgroundColor = { light: '#F4F7FB', dark: '#161B22' };
   delete widget.glassContentPadding;
   return widget;
 }
@@ -1653,15 +1708,18 @@ async function handleWidget(ctx) {
 }
 
 export default async function(ctx) {
-  // Generic 小组件上下文优先渲染 Widget DSL；HTTP 请求上下文只执行捕获并透传请求。
-  // 该脚本同时被 generic 与 http_request 引用，避免 generic 意外返回 undefined。
+  // 1. HTTP 抓包模式：自动捕获 access 与请求 payload
   if (ctx && ctx.request && ctx.request.url) {
     await capture(ctx);
     return;
   }
 
-  // Generic 脚本必须始终返回以 type: 'widget' 为根的 DSL。
-  // 不依赖尺寸字段是否存在；并对意外的空返回做兜底，避免根节点缺少 type。
+  // 2. 定时保活模式：支持 schedule (ctx.cron) 或环境变量开启
+  if (ctx && (ctx.cron || (ctx.env && ctx.env.CB_KEEPALIVE === 'true'))) {
+    return handleKeepAlive(ctx);
+  }
+
+  // 3. Generic Widget 模式：渲染小组件 UI
   try {
     const widget = await handleWidget(ctx || {});
     if (widget && widget.type === 'widget') return widget;
