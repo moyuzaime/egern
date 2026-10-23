@@ -331,7 +331,7 @@ async function capture(ctx) {
       } catch (e) {}
 
       console.log(
-        '[ChinaBroadnet] API侦察[v20261023-0147]: ' +
+        '[ChinaBroadnet] API侦察[v20261023-2351]: ' +
         method + ' ' + url +
         (keys.length ? ' | keys=' + keys.join(',') : '') +
         ' | bodyType=' + bodyType +
@@ -509,7 +509,7 @@ async function loadData(ctx, forceRefresh) {
       ? Object.keys(responseUser).filter(k => /^(voice|flow|flowUserd|flowAll|voiceAll|voiceUsed|fee|finBalance|packName)$/.test(k))
       : [];
     console.log(
-      '[ChinaBroadnet-Hark] API响应诊断[v20261023-0147]: ' +
+      '[ChinaBroadnet-Hark] API响应诊断[v20261023-2351]: ' +
       'status=' + String(result && result.status) +
       ' | ok=' + String(result && result.ok) +
       ' | resultKeys=' + responseKeys.join(',') +
@@ -704,7 +704,7 @@ async function handleKeepAlive(ctx) {
 
   // 定时任务按用户设定的间隔节流；独立手动刷新入口不受此限制。
   if (!forceManual && lastRun && now - lastRun < intervalMs) {
-    console.log('[ChinaBroadnet] 定时保活跳过：尚未达到设定间隔');
+    // 正常的间隔节流属于预期行为，静默跳过，避免 Cron 每分钟重复刷日志。
     return;
   }
 
