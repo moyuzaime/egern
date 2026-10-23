@@ -406,29 +406,20 @@ async function loadData(ctx) {
 
 
 const C = {
-  fee: '#FF9F0A',
-  flow: '#0A84FF',
-  voice: '#30D158',
-  txt: { light: '#000000', dark: '#FFFFFF' },
-  sub: { light: '#3C3C4399', dark: '#EBEBF599' },
-  glass: { light: '#FFFFFF22', dark: '#FFFFFF30' },
-  glassBorder: { light: '#FFFFFF70', dark: '#FFFFFF68' },
-  glassShadow: { light: '#64748B06', dark: '#00000003' },
+  // 与中国广电组件统一：低饱和清透风格，主题色仅用于图标和关键数字。
+  fee: '#E28A16',
+  flow: '#079ACB',
+  voice: '#8B5CF6',
+  txt: { light: '#172B45', dark: '#F3F7FC' },
+  sub: { light: '#586D84', dark: '#B8C7D8' },
+  glass: { light: '#00000000', dark: '#00000000' },
+  glassBorder: { light: '#00000000', dark: '#00000000' },
+  glassShadow: { light: '#00000000', dark: '#00000000' },
 };
 
 function unicomWidgetBackgroundGradient() {
-  return {
-    type: 'radial',
-    colors: [
-      { light: '#EEF6FF', dark: '#405A70' },
-      { light: '#F8F4FF', dark: '#514761' },
-      { light: '#EEFCF6', dark: '#3E5E53' },
-    ],
-    stops: [0, 0.55, 1],
-    center: { x: 0.22, y: 0.12 },
-    startRadius: 0,
-    endRadius: 520,
-  };
+  // 与广电组件保持一致，使用系统桌面背景，不额外铺设渐变底色。
+  return undefined;
 }
 
 
@@ -477,21 +468,24 @@ function t(text, size, weight, color, extra) {
 }
 
 function glass(children, extra) {
+  // 与广电组件一致：内容层不再重复绘制小卡片，交由组件背景统一呈现。
   return Object.assign({
     type: 'stack',
     direction: 'column',
-    alignItems: 'start',
     gap: 6,
-    padding: 10,
-    borderRadius: 18,
-    backgroundColor: C.glass,
-    borderWidth: 1,
-    borderColor: C.glassBorder,
-    shadowColor: C.glassShadow,
-    shadowRadius: 8,
-    shadowOffset: { x: 0, y: 3 },
+    padding: [8, 10],
+    borderRadius: 16,
+    backgroundColor: { light: '#00000000', dark: '#00000000' },
+    borderWidth: 0,
+    borderColor: { light: '#00000000', dark: '#00000000' },
+    shadowRadius: 0,
     children,
-  }, extra || {});
+  }, extra || {}, {
+    backgroundColor: { light: '#00000000', dark: '#00000000' },
+    borderWidth: 0,
+    borderColor: { light: '#00000000', dark: '#00000000' },
+    shadowRadius: 0,
+  });
 }
 
 function gaugeSvg(pct, color, w) {
