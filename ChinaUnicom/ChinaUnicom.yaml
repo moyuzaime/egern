@@ -1,15 +1,31 @@
 name: 中国联通小组件
-description: 中国联通话费、语音、流量小组件（自动捕获 App 登录信息）
+description: 中国联通话费、语音、流量小组件（广电完整 UI、今日流量趋势、透明模式、锁屏组件）｜更新时间：2026-10-23 16:42（北京时间）
 author: iBL3ND
 icon: https://iili.io/nEuB6Jt.png
 
 compat_arguments:
   cuCapture: 'true'
+  cuCaptureNotice: 'true'
+  cuPlanNotice: 'true'
 
 compat_arguments_schema:
   cuCapture:
     name: 中国联通数据抓取
     description: 打开中国联通 App，进入首页并点击余额位置即可自动捕获
+    default_value: 'true'
+    options:
+      - 'true'
+      - 'false'
+  cuCaptureNotice:
+    name: 中国联通数据捕获成功通知
+    description: 捕获到联通 App 登录信息时发送通知
+    default_value: 'true'
+    options:
+      - 'true'
+      - 'false'
+  cuPlanNotice:
+    name: 套餐查询成功通知
+    description: 联通接口成功返回后通知当前话费、流量和语音余量
     default_value: 'true'
     options:
       - 'true'
@@ -23,6 +39,10 @@ scriptings:
       script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaUnicom/ChinaUnicom_Widget.js
       update_interval: 60
       timeout: 20
+      env:
+        cuCapture: '{{{cuCapture}}}'
+        cuCaptureNotice: '{{{cuCaptureNotice}}}'
+        cuPlanNotice: '{{{cuPlanNotice}}}'
 
   - http_request:
       name: 中国联通 App 自动捕获
@@ -31,6 +51,10 @@ scriptings:
       body_required: false
       max_size: 1048576
       timeout: 10
+      env:
+        cuCapture: '{{{cuCapture}}}'
+        cuCaptureNotice: '{{{cuCaptureNotice}}}'
+        cuPlanNotice: '{{{cuPlanNotice}}}'
 
 mitm:
   hostnames:
