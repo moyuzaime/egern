@@ -21,8 +21,8 @@
  * ========================================================= */
 
 const API_HOST = 'm.client.10010.com';
-const transparentMode = true;
 const KEY_PREFIX = 'unicom';
+const KEY = 'unicom';
 
 const API_URL =
   'https://m.client.10010.com/mobileserviceimportant/home/queryUserInfoSeven';
@@ -110,96 +110,6 @@ function extractPhone(url) {
   return '';
 }
 
-
-async function handleCapture(ctx) {
-  const req = ctx.request || {};
-  const url = String(req.url || '');
-
-  if (!url) return;
-
-  /*
-   * 只捕获中国联通 App 的接口请求
-   */
-  if (!url.includes(API_HOST)) {
-    return;
-  }
-
-
-  /*
-   * 获取 Cookie
-   */
-  const cookie = String(
-    getRequestHeader(req.headers, 'cookie') || ''
-  ).trim();
-
-
-  /*
-   * 获取手机号
-   *
-   * 联通这个接口使用：
-   * desmobiel=手机号
-   */
-  const phone = extractPhone(url);
-
-
-  let changed = false;
-
-
-  /*
-   * 保存 Cookie
-   */
-  if (cookie) {
-    const oldCookie =
-      ctx.storage.get('unicom_cookie') || '';
-
-    if (cookie !== oldCookie) {
-      ctx.storage.set(
-        'unicom_cookie',
-        cookie
-      );
-
-      changed = true;
-    }
-  }
-
-
-  /*
-   * 保存手机号
-   */
-  if (phone) {
-    const oldPhone =
-      ctx.storage.get('unicom_phone') || '';
-
-    if (phone !== oldPhone) {
-      ctx.storage.set(
-        'unicom_phone',
-        phone
-      );
-
-      changed = true;
-    }
-  }
-
-
-  /*
-   * 第一次成功捕获时通知
-   */
-  if (
-    changed &&
-    cookie &&
-    phone
-  ) {
-    ctx.notify({
-      title: '中国联通',
-      body: '已自动获取登录信息，小组件将自动更新',
-    });
-  }
-}
-
-
-/* =========================================================
- * 数据请求
- * ========================================================= */
 
 async function fetchUnicomData(
   ctx,
