@@ -1,5 +1,5 @@
 name: 中国广电仪表盘测试版
-description: "中国广电话费、语音、流量仪表盘测试版（独立存储，不影响正式版）｜清透磨砂玻璃｜更新时间：2026-10-24 11:36（北京时间）"
+description: "中国广电话费、语音、流量仪表盘测试版（独立存储，不影响正式版）｜清透磨砂玻璃｜更新时间：2026-10-24 11:42（北京时间）"
 icon: https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/03CNSoft/ChinaBroadcastNetwork.png
 
 compat_arguments:
@@ -7,6 +7,7 @@ compat_arguments:
   cbCaptureNotice: 'true'
   cbPlanNotice: 'true'
   cbKeepaliveInterval: '15'
+  cbTransparent: 'true'
 
 compat_arguments_schema:
   cbCapture:
@@ -34,6 +35,13 @@ compat_arguments_schema:
     name: 定时保活间隔
     description: 只输入数字，单位固定为分钟；例如 15 表示每 15 分钟保活一次。最小 15，最大 1440（24 小时）
     default_value: '15'
+  cbTransparent:
+    name: 透明磨砂背景
+    description: 开启后使用透明背景风格；关闭后使用浅色/深色实色组件背景
+    default_value: 'true'
+    options:
+      - 'true'
+      - 'false'
 
 dns: {}
 
@@ -47,6 +55,7 @@ scriptings:
         cbCapture: '{{{cbCapture}}}'
         cbCaptureNotice: '{{{cbCaptureNotice}}}'
         cbPlanNotice: '{{{cbPlanNotice}}}'
+        cbTransparent: '{{{cbTransparent}}}'
 
   - generic:
       name: china-broadnet-test-keepalive
