@@ -26,7 +26,8 @@ const C = {
 };
 
 // 测试版采用统一的清透磨砂玻璃，避免不同卡片各自铺色造成视觉杂乱。
-const transparentMode = false;
+// 透明磨砂背景开关：由测试版模块参数 cbTransparent 控制，默认开启。
+let transparentMode = true;
 
 function broadnetBackgroundGradient() {
   if (transparentMode) return undefined;
@@ -331,7 +332,7 @@ async function capture(ctx) {
       } catch (e) {}
 
       console.log(
-        '[ChinaBroadnet] API侦察[v20261024-1136]: ' +
+        '[ChinaBroadnet] API侦察[v20261024-1142]: ' +
         method + ' ' + url +
         (keys.length ? ' | keys=' + keys.join(',') : '') +
         ' | bodyType=' + bodyType +
@@ -509,7 +510,7 @@ async function loadData(ctx, forceRefresh) {
       ? Object.keys(responseUser).filter(k => /^(voice|flow|flowUserd|flowAll|voiceAll|voiceUsed|fee|finBalance|packName)$/.test(k))
       : [];
     console.log(
-      '[ChinaBroadnet-Hark] API响应诊断[v20261024-1136]: ' +
+      '[ChinaBroadnet-Hark] API响应诊断[v20261024-1142]: ' +
       'status=' + String(result && result.status) +
       ' | ok=' + String(result && result.ok) +
       ' | resultKeys=' + responseKeys.join(',') +
@@ -1676,6 +1677,9 @@ function buildError(title, message) {
 }
 
 async function handleWidget(ctx) {
+  transparentMode = !ctx || !ctx.env || ctx.env.cbTransparent == null || ctx.env.cbTransparent === ''
+    ? true
+    : String(ctx.env.cbTransparent).toLowerCase() !== 'false';
   const result = await loadData(ctx);
 
   if (!result.configured) {
