@@ -26,7 +26,7 @@ const C = {
 };
 
 // 测试版采用统一的清透磨砂玻璃，避免不同卡片各自铺色造成视觉杂乱。
-const transparentMode = true;
+const transparentMode = false;
 
 function broadnetBackgroundGradient() {
   if (transparentMode) return undefined;
@@ -331,7 +331,7 @@ async function capture(ctx) {
       } catch (e) {}
 
       console.log(
-        '[ChinaBroadnet] API侦察[v20261023-2351]: ' +
+        '[ChinaBroadnet] API侦察[v20261024-1136]: ' +
         method + ' ' + url +
         (keys.length ? ' | keys=' + keys.join(',') : '') +
         ' | bodyType=' + bodyType +
@@ -509,7 +509,7 @@ async function loadData(ctx, forceRefresh) {
       ? Object.keys(responseUser).filter(k => /^(voice|flow|flowUserd|flowAll|voiceAll|voiceUsed|fee|finBalance|packName)$/.test(k))
       : [];
     console.log(
-      '[ChinaBroadnet-Hark] API响应诊断[v20261023-2351]: ' +
+      '[ChinaBroadnet-Hark] API响应诊断[v20261024-1136]: ' +
       'status=' + String(result && result.status) +
       ' | ok=' + String(result && result.ok) +
       ' | resultKeys=' + responseKeys.join(',') +
@@ -1642,8 +1642,7 @@ function buildLock(title, ds, family) {
 
 function liquidGlassWidget(widget) {
   if (!widget || widget.type !== 'widget') return widget;
-  // 透明模式下让组件根节点完全透明，避免系统底色覆盖壁纸；
-  // 内容本身（文字、图标、进度条）仍按各自颜色绘制。
+  // 透明模式下根节点完全透明，避免系统底色覆盖壁纸；内容仍按各自颜色绘制。
   widget.backgroundColor = transparentMode
     ? '#00000000'
     : { light: '#F4F7FB', dark: '#161B22' };
