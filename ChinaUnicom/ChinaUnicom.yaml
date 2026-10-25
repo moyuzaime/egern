@@ -45,8 +45,8 @@ scriptings:
         cuPlanNotice: '{{{cuPlanNotice}}}'
 
   - http_request:
-      name: 中国联通 App 与微信小程序请求侦察
-      match: '^https://(?:m\\.client\\.10010\\.com|mxx\\.client\\.10010\\.com)/'
+      name: 中国联通 App 请求侦察
+      match: '^https://m\.client\.10010\.com/'
       script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaUnicom/ChinaUnicom_Widget.js
       body_required: false
       max_size: 1048576
