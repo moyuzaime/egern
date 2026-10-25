@@ -1,17 +1,12 @@
 /**
- * 中国联通小组件｜完整移植中国广电正式版 UI（保留联通数据接口）
+ * 中国联通小组件｜完整移植中国广电正式版 UI（保留现有数据接口）
  *
- * 自动获取方式：
- * 1. 打开中国联通 App
- * 2. 进入首页
- * 3. 点击当前余额 / 话费位置，让 App 查询一次
- * 4. Egern 会自动捕获联通 App 请求中的 Cookie 和手机号
- * 5. 小组件自动使用捕获的数据，无需手动填写环境变量
+ * 微信小程序抓取诊断：
+ * 1. 在微信打开中国联通小程序并进入流量查询
+ * 2. Egern 监听 mxx.client.10010.com 请求并输出脱敏诊断信息
+ * 3. 先确认实际请求结构，再适配数据接口；不会把未知接口当作旧 App 接口解析
  *
- * 自动捕获域名：
- * m.client.10010.com
- *
- * 数据接口：
+ * 旧 App 数据接口仍保留：
  * https://m.client.10010.com/mobileserviceimportant/home/queryUserInfoSeven
  */
 
@@ -21,6 +16,7 @@
  * ========================================================= */
 
 const API_HOST = 'm.client.10010.com';
+const MINI_PROGRAM_HOST = 'mxx.client.10010.com';
 const KEY_PREFIX = 'unicom';
 const KEY = 'unicom';
 
@@ -261,8 +257,45 @@ async function handleCapture(ctx) {
     captureDebug('skip: cuCapture=false; path=' + safePath);
     return;
   }
-  if (!url.includes(API_HOST)) {
+  const isAppRequest = url.includes(API_HOST);
+  const isMiniProgramRequest = url.includes(MINI_PROGRAM_HOST);
+  if (!isAppRequest && !isMiniProgramRequest) {
     captureDebug('skip: host mismatch; path=' + safePath);
+    return;
+  }
+
+  // 微信小程序接口先只做脱敏侦察。未知请求结构不写入旧 App 凭据，也不尝试用旧接口解析。
+  if (isMiniProgramRequest) {
+    const method = String(req.method || 'unknown').toUpperCase();
+    const headers = req.headers || {};
+    let headerNames = [];
+    try {
+      if (typeof headers.keys === 'function') headerNames = Array.from(headers.keys());
+      else headerNames = Object.keys(headers);
+    } catch (e) {}
+    headerNames = headerNames.map(k => String(k).toLowerCase()).sort();
+    const body = req.body;
+    const bodyType = body === null || body === undefined ? 'empty' : typeof body;
+    let bodyLength = 0;
+    let bodyKeys = [];
+    try {
+      if (typeof body === 'string') {
+        bodyLength = body.length;
+        try {
+          const parsed = JSON.parse(body);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) bodyKeys = Object.keys(parsed).sort();
+        } catch (e) {}
+      } else if (body && typeof body === 'object') {
+        bodyKeys = Object.keys(body).sort();
+        bodyLength = JSON.stringify(body).length;
+      }
+    } catch (e) {}
+    captureDebug('mini-program request: method=' + method +
+      '; path=' + safePath +
+      '; headerNames=' + headerNames.join(',') +
+      '; bodyType=' + bodyType +
+      '; bodyLength=' + bodyLength +
+      '; bodyKeys=' + bodyKeys.join(','));
     return;
   }
 
