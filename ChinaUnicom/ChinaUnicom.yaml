@@ -1,5 +1,5 @@
 name: 中国联通小组件
-description: 中国联通话费、语音、流量小组件（广电完整 UI、今日流量趋势、透明模式、锁屏组件、微信小程序接口脱敏侦察）｜更新时间：2026-10-25 20:42（北京时间）
+description: 中国联通话费、语音、流量小组件（广电完整 UI、今日流量趋势、透明模式、锁屏组件、微信小程序接口诊断）｜更新时间：2026-10-25 20:48（北京时间）
 author: iBL3ND
 icon: https://iili.io/nEuB6Jt.png
 
@@ -11,7 +11,7 @@ compat_arguments:
 compat_arguments_schema:
   cuCapture:
     name: 中国联通数据抓取
-    description: 监听联通 App 与微信小程序请求；小程序接口先记录脱敏结构日志
+    description: 监听联通 App 与微信小程序请求；记录脱敏请求结构，保留旧接口兼容
     default_value: 'true'
     options:
       - 'true'
