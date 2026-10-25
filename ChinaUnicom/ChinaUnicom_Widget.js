@@ -304,6 +304,19 @@ function broadnetBackgroundGradient() {
   };
 }
 
+function formatDuration(ms) {
+  if (!Number.isFinite(ms) || ms < 0) return '刚刚';
+  const totalMin = Math.floor(ms / 60000);
+  if (totalMin < 1) return '刚刚';
+  if (totalMin < 60) return totalMin + '分';
+  const hours = Math.floor(totalMin / 60);
+  const remMin = totalMin % 60;
+  if (hours < 24) return hours + '小时' + (remMin > 0 ? remMin + '分' : '');
+  const days = Math.floor(hours / 24);
+  const remHours = hours % 24;
+  return days + '天' + (remHours > 0 ? remHours + '小时' : '');
+}
+
 function fmtTime(ts) {
   const d = new Date(ts);
   const p = n => String(n).padStart(2, '0');
@@ -366,9 +379,15 @@ function numericResourceValue(resource, keys) {
 async function loadData(ctx) {
   if (ctx.env && String(ctx.env.cuCapture).toLowerCase() === 'false') {
     const cached = ctx.storage.getJSON('unicom_datasource') || null;
-    if (cached) cached.stale = true;
+    if (cached) {
+      cached.stale = true;
+      const ts = Number(ctx.storage.get('unicom_captureTime') || 0);
+      cached.captureDuration = ts > 0 ? formatDuration(Date.now() - ts) : '';
+    }
     return { data: cached, configured: !!cached, error: null, fromCache: true };
   }
+  const captureTs = Number(ctx.storage.get('unicom_captureTime') || 0);
+  const captureDuration = captureTs > 0 ? formatDuration(Date.now() - captureTs) : '';
   const cookie = ctx.storage.get('unicom_cookie') || '';
   const phone = ctx.storage.get('unicom_phone') || '';
   if (!cookie || !phone) return { data: null, configured: false, error: null, fromCache: false };
@@ -403,6 +422,7 @@ async function loadData(ctx) {
       flow: { title: '剩余流量', number: flowDisplay.number, unit: flowDisplay.unit },
       voice: { title: '剩余语音', number: String(parsed.voice.value), unit: parsed.voice.unit || '分钟' },
       updatedAt: Date.now(),
+      captureDuration,
       history,
       plan: {
         total: totalKB, used: usedKB, remain: remainKB,
@@ -715,6 +735,7 @@ function heroFlowCard(ds, cardHeight, cardFlex, isMedium) {
 }
 
 function header(title, ds, fromCache, mediumInset) {
+  const dur = ds.captureDuration ? ' · 凭据保持 ' + ds.captureDuration : '';
   return {
     type: 'stack',
     direction: 'row',
@@ -731,7 +752,7 @@ function header(title, ds, fromCache, mediumInset) {
       },
       t(title, 'footnote', 'semibold', C.txt),
       { type: 'spacer' },
-      t(`${fromCache ? '缓存数据' : '更新'} ${fmtTime(ds.updatedAt)}`, 9, 'medium', C.sub, {
+      t(`${fromCache ? '缓存数据' : '更新'} ${fmtTime(ds.updatedAt)}${dur}`, 9, 'medium', C.sub, {
         minScale: 0.8,
       }),
     ],
@@ -845,7 +866,7 @@ function buildSmall(title, ds, fromCache) {
           },
           t(title, 12, 'semibold', C.txt),
           { type: 'spacer' },
-          t(`${fromCache ? '缓存 · ' : ''}${fmtTime(ds.updatedAt)}`, 8, 'medium', C.sub, { minScale: 0.65 }),
+          t(`${fromCache ? '缓存 · ' : ''}${fmtTime(ds.updatedAt)}${ds.captureDuration ? ' · ' + ds.captureDuration : ''}`, 8, 'medium', C.sub, { minScale: 0.5 }),
         ],
       },
 
@@ -1275,7 +1296,7 @@ function buildLarge(title, ds, fromCache) {
               { type: 'image', src: 'sf-symbol:clock', width: 9, height: 9, color: C.sub },
               t((fromCache ? '缓存数据 · ' : '最近更新 · ') + fmtTime(ds.updatedAt), 8, 'medium', C.sub),
               { type: 'spacer' },
-              t(fromCache ? '数据可能过期' : '每 1 小时刷新', 8, 'medium', C.sub),
+              t(ds.captureDuration ? '凭据已保持 ' + ds.captureDuration : (fromCache ? '数据可能过期' : '定时保活中'), 8, 'medium', C.sub),
             ],
           },
         ],
@@ -1285,13 +1306,14 @@ function buildLarge(title, ds, fromCache) {
 }
 
 function buildLock(title, ds, family) {
+  const dur = ds.captureDuration ? ' · 保持' + ds.captureDuration : '';
   if (family === 'accessoryInline') {
     return {
       type: 'widget',
       children: [
         {
           type: 'text',
-          text: `¥${ds.fee.number} · ${ds.flow.number}${ds.flow.unit} · ${ds.voice.number}分`,
+          text: `¥${ds.fee.number} · ${ds.flow.number}${ds.flow.unit} · ${ds.voice.number}分${dur}`,
           maxLines: 1,
           minScale: 0.6,
         },
@@ -1333,7 +1355,7 @@ function buildLock(title, ds, family) {
     gap: 2,
     children: [
       t(`话费 ¥${ds.fee.number}`, 'footnote', 'bold', C.fee),
-      t(`流量 ${ds.flow.number}${ds.flow.unit} · 语音 ${ds.voice.number}分`, 'caption2', 'semibold', C.txt, {
+      t(`流量 ${ds.flow.number}${ds.flow.unit} · 语音 ${ds.voice.number}分${dur}`, 'caption2', 'semibold', C.txt, {
         minScale: 0.6,
       }),
     ],
