@@ -290,6 +290,7 @@ async function handleCapture(ctx) {
         bodyLength = JSON.stringify(body).length;
       }
     } catch (e) {}
+    // Do not print request values. This diagnostic is intentionally metadata-only.
     captureDebug('mini-program request: method=' + method +
       '; path=' + safePath +
       '; headerNames=' + headerNames.join(',') +
@@ -1492,8 +1493,8 @@ function buildError(title, message) {
 async function handleWidget(ctx) {
   const title = '中国联通';
   const result = await loadData(ctx);
-  if (!result.configured) return buildError(title, '请打开联通 App，进入首页并点击余额位置');
-  if (!result.data) return buildError(title, '数据获取失败，请重新打开联通 App 查询一次');
+  if (!result.configured) return buildError(title, '请打开微信中国联通小程序，进入流量查询页面刷新一次，或打开联通 App 查询');
+  if (!result.data) return buildError(title, '数据获取失败，请刷新微信联通小程序流量查询或打开联通 App 重试');
   const ds = result.data;
   const family = ctx.widgetFamily || 'systemSmall';
   if (family === 'systemMedium') return liquidGlassWidget(buildMedium(title, ds, result.fromCache));
