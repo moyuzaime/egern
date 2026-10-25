@@ -449,7 +449,11 @@ async function loadData(ctx) {
     return { data: ds, configured: true, error: null, fromCache: false };
   } catch (e) {
     const cached = ctx.storage.getJSON('unicom_datasource') || null;
-    if (cached) cached.stale = true;
+    if (cached) {
+      cached.stale = true;
+      const ts = Number(ctx.storage.get('unicom_captureTime') || 0);
+      cached.captureDuration = ts > 0 ? formatDuration(Date.now() - ts) : '';
+    }
     return { data: cached, configured: true, error: e, fromCache: true };
   }
 }
