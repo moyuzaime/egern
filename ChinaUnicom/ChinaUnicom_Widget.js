@@ -296,10 +296,29 @@ async function handleCapture(ctx) {
     return;
   }
 
+  const captureNoticeEnabled = !ctx.env || String(ctx.env.cuCaptureNotice).toLowerCase() !== 'false';
+  const notifyDiagnostic = (status) => {
+    if (!captureNoticeEnabled || typeof ctx.notify !== 'function') return;
+    // 限频，避免 App 连续请求时反复弹通知；通知内容只包含状态，不包含任何凭据。
+    const now = Date.now();
+    const last = Number(ctx.storage.get('unicom_captureDiagNotifyAt') || 0);
+    if (now - last < 60000) return;
+    ctx.storage.set('unicom_captureDiagNotifyAt', String(now));
+    ctx.notify({
+      title: '中国联通捕获诊断',
+      body: '请求脚本已触发；Cookie：' + (cookie ? '已获取' : '缺失') +
+        '；手机号参数：' + (phone ? '已获取' : '缺失') +
+        '；状态：' + status,
+      sound: false,
+    });
+  };
+
   if (!cookie || !phone) {
     captureDebug('incomplete: cookiePresent=' + Boolean(cookie) + '; phoneParamPresent=' + Boolean(phone));
+    notifyDiagnostic('凭据不完整');
   } else {
     captureDebug('unchanged: credentials already match stored values');
+    notifyDiagnostic('凭据未变化');
   }
 }
 const C = {
