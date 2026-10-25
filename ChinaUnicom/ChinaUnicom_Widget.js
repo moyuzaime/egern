@@ -244,27 +244,62 @@ function parseUnicomData(res) {
  * ========================================================= */
 
 
+function captureDebug(message) {
+  try {
+    if (typeof console !== 'undefined' && typeof console.log === 'function') {
+      console.log('[ChinaUnicom Capture] ' + message);
+    }
+  } catch (e) {}
+}
+
 async function handleCapture(ctx) {
-  if (ctx.env && String(ctx.env.cuCapture).toLowerCase() === 'false') return;
   const req = ctx.request || {};
   const url = String(req.url || '');
-  if (!url.includes(API_HOST)) return;
+  // 日志只记录路径和布尔状态，绝不输出查询参数、手机号、Cookie 或 Token。
+  const safePath = url.split('?')[0].split('#')[0];
+  if (ctx.env && String(ctx.env.cuCapture).toLowerCase() === 'false') {
+    captureDebug('skip: cuCapture=false; path=' + safePath);
+    return;
+  }
+  if (!url.includes(API_HOST)) {
+    captureDebug('skip: host mismatch; path=' + safePath);
+    return;
+  }
+
   const cookie = String(getRequestHeader(req.headers, 'cookie') || '').trim();
   const phone = extractPhone(url);
-  let changed = false;
+  captureDebug('triggered: path=' + safePath + '; cookiePresent=' + Boolean(cookie) + '; phoneParamPresent=' + Boolean(phone));
+
+  let cookieChanged = false;
+  let phoneChanged = false;
   if (cookie) {
-    const old = ctx.storage.get('unicom_cookie') || '';
-    if (cookie !== old) { ctx.storage.set('unicom_cookie', cookie); changed = true; }
+    const previousCookie = ctx.storage.get('unicom_cookie') || '';
+    if (cookie !== previousCookie) {
+      ctx.storage.set('unicom_cookie', cookie);
+      cookieChanged = true;
+    }
   }
   if (phone) {
-    const old = ctx.storage.get('unicom_phone') || '';
-    if (phone !== old) { ctx.storage.set('unicom_phone', phone); changed = true; }
+    const previousPhone = ctx.storage.get('unicom_phone') || '';
+    if (phone !== previousPhone) {
+      ctx.storage.set('unicom_phone', phone);
+      phoneChanged = true;
+    }
   }
-  if (changed && cookie && phone) {
+
+  if (cookie && phone && (cookieChanged || phoneChanged)) {
     ctx.storage.set('unicom_captureTime', String(Date.now()));
+    captureDebug('success: credentials updated; cookieChanged=' + cookieChanged + '; phoneChanged=' + phoneChanged);
     if ((!ctx.env || String(ctx.env.cuCaptureNotice).toLowerCase() !== 'false') && typeof ctx.notify === 'function') {
       ctx.notify({ title: '中国联通数据捕获成功', body: '已捕获登录信息，正在更新套餐数据', sound: false });
     }
+    return;
+  }
+
+  if (!cookie || !phone) {
+    captureDebug('incomplete: cookiePresent=' + Boolean(cookie) + '; phoneParamPresent=' + Boolean(phone));
+  } else {
+    captureDebug('unchanged: credentials already match stored values');
   }
 }
 const C = {
