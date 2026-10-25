@@ -416,6 +416,19 @@ async function fetchData(ctx, access, data, preferredUrl) {
   throw lastErr || new Error('所有可用接口更新均失败');
 }
 
+function formatDuration(ms) {
+  if (!Number.isFinite(ms) || ms < 0) return '刚刚';
+  const totalMin = Math.floor(ms / 60000);
+  if (totalMin < 1) return '刚刚';
+  if (totalMin < 60) return totalMin + '分';
+  const hours = Math.floor(totalMin / 60);
+  const remMin = totalMin % 60;
+  if (hours < 24) return hours + '小时' + (remMin > 0 ? remMin + '分' : '');
+  const days = Math.floor(hours / 24);
+  const remHours = hours % 24;
+  return days + '天' + (remHours > 0 ? remHours + '小时' : '');
+}
+
 function fmtTime(ts) {
   const d = new Date(ts);
   const p = n => String(n).padStart(2, '0');
@@ -446,13 +459,19 @@ async function loadData(ctx, forceRefresh) {
   // 关闭抓取时不再主动请求 qryUserInfo，仅展示最后一次成功缓存。
   if (ctx.env && String(ctx.env.cbCapture).toLowerCase() === 'false') {
     const cached = ctx.storage.getJSON(KEY + '.datasource') || null;
-    if (cached) cached.stale = true;
+    if (cached) {
+      cached.stale = true;
+      const ts = Number(ctx.storage.get(KEY + '.captureTime') || 0);
+      cached.captureDuration = ts > 0 ? formatDuration(Date.now() - ts) : '';
+    }
     return { configured: !!cached, data: cached, fromCache: true, captureDisabled: true };
   }
   // 套餐缓存有效期调整为 15 分钟，提升数据实时性。
   const CACHE_TTL = 15 * 60 * 1000;
   const cachedData = ctx.storage.getJSON(KEY + '.datasource') || null;
   const currentCaptureTime = String(ctx.storage.get(KEY + '.captureTime') || '');
+  const captureTs = Number(currentCaptureTime || 0);
+  const captureDuration = captureTs > 0 ? formatDuration(Date.now() - captureTs) : '';
   const queriedCaptureTime = String(ctx.storage.get(KEY + '.queriedCaptureTime') || '');
   const cachedAt = Number(cachedData && cachedData.updatedAt || 0);
   const cacheAge = cachedAt > 0 ? Date.now() - cachedAt : Number.POSITIVE_INFINITY;
@@ -461,6 +480,7 @@ async function loadData(ctx, forceRefresh) {
   // 15 分钟内且没有新捕获凭据时直接命中新鲜缓存；强制刷新时跳过缓存判断。
   if (!forceRefresh && cachedData && !hasNewCapture && cacheAge >= 0 && cacheAge < CACHE_TTL) {
     cachedData.stale = false;
+    cachedData.captureDuration = captureDuration;
     return { configured: true, data: cachedData, fromCache: true };
   }
 
@@ -470,6 +490,7 @@ async function loadData(ctx, forceRefresh) {
   if (!forceRefresh && cachedData && !hasNewCapture && lastAttemptAt > 0 &&
       attemptAge >= 0 && attemptAge < 15000) {
     cachedData.stale = true;
+    cachedData.captureDuration = captureDuration;
     return { configured: true, data: cachedData, fromCache: true };
   }
 
@@ -479,6 +500,7 @@ async function loadData(ctx, forceRefresh) {
     const dataForRefresh = ctx.storage.getJSON(KEY + '.data');
     if (accessForRefresh && dataForRefresh != null) {
       cachedData.stale = true;
+      cachedData.captureDuration = captureDuration;
       ctx.storage.set(KEY + '.lastAttemptAt', String(Date.now()));
       loadData(ctx, true).catch(e => {
         console.log('[ChinaBroadnet-Hark] 后台静默刷新异常: ' + e);
@@ -603,6 +625,7 @@ async function loadData(ctx, forceRefresh) {
         unit: '分钟',
       },
       updatedAt: Date.now(),
+      captureDuration,
       history,
       plan: {
         total: flowTotal,
@@ -1015,6 +1038,7 @@ function heroFlowCard(ds, cardHeight, cardFlex, isMedium) {
 }
 
 function header(title, ds, fromCache, mediumInset) {
+  const dur = ds.captureDuration ? ' · 凭据保持 ' + ds.captureDuration : '';
   return {
     type: 'stack',
     direction: 'row',
@@ -1031,7 +1055,7 @@ function header(title, ds, fromCache, mediumInset) {
       },
       t(title, 'footnote', 'semibold', C.txt),
       { type: 'spacer' },
-      t(`${fromCache ? '缓存数据' : '更新'} ${fmtTime(ds.updatedAt)}`, 9, 'medium', C.sub, {
+      t(`${fromCache ? '缓存数据' : '更新'} ${fmtTime(ds.updatedAt)}${dur}`, 9, 'medium', C.sub, {
         minScale: 0.8,
       }),
     ],
@@ -1113,6 +1137,7 @@ function dataCard(icon, color, title, value, unit, detail) {
 }
 
 function buildSmall(title, ds, fromCache) {
+  const dur = ds.captureDuration ? ' · ' + ds.captureDuration : '';
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const flowStyle = flowStatus(p);
   const remain = ds.flow.number + ' ' + ds.flow.unit;
@@ -1145,7 +1170,7 @@ function buildSmall(title, ds, fromCache) {
           },
           t(title, 12, 'semibold', C.txt),
           { type: 'spacer' },
-          t(`${fromCache ? '缓存 · ' : ''}${fmtTime(ds.updatedAt)}`, 8, 'medium', C.sub, { minScale: 0.65 }),
+          t(`${fromCache ? '缓存 · ' : ''}${fmtTime(ds.updatedAt)}${dur}`, 8, 'medium', C.sub, { minScale: 0.55 }),
         ],
       },
 
@@ -1575,7 +1600,7 @@ function buildLarge(title, ds, fromCache) {
               { type: 'image', src: 'sf-symbol:clock', width: 9, height: 9, color: C.sub },
               t((fromCache ? '缓存数据 · ' : '最近更新 · ') + fmtTime(ds.updatedAt), 8, 'medium', C.sub),
               { type: 'spacer' },
-              t(fromCache ? '数据可能过期' : '每 1 小时刷新', 8, 'medium', C.sub),
+              t(ds.captureDuration ? '凭据已保持 ' + ds.captureDuration : (fromCache ? '数据可能过期' : '定时保活中'), 8, 'medium', C.sub),
             ],
           },
         ],
@@ -1585,13 +1610,14 @@ function buildLarge(title, ds, fromCache) {
 }
 
 function buildLock(title, ds, family) {
+  const dur = ds.captureDuration ? ' · 保持' + ds.captureDuration : '';
   if (family === 'accessoryInline') {
     return {
       type: 'widget',
       children: [
         {
           type: 'text',
-          text: `¥${ds.fee.number} · ${ds.flow.number}${ds.flow.unit} · ${ds.voice.number}分`,
+          text: `¥${ds.fee.number} · ${ds.flow.number}${ds.flow.unit} · ${ds.voice.number}分${dur}`,
           maxLines: 1,
           minScale: 0.6,
         },
@@ -1633,7 +1659,7 @@ function buildLock(title, ds, family) {
     gap: 2,
     children: [
       t(`话费 ¥${ds.fee.number}`, 'footnote', 'bold', C.fee),
-      t(`流量 ${ds.flow.number}${ds.flow.unit} · 语音 ${ds.voice.number}分`, 'caption2', 'semibold', C.txt, {
+      t(`流量 ${ds.flow.number}${ds.flow.unit} · 语音 ${ds.voice.number}分${dur}`, 'caption2', 'semibold', C.txt, {
         minScale: 0.6,
       }),
     ],
