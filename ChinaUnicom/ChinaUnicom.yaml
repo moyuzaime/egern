@@ -1,5 +1,5 @@
 name: 中国联通小组件
-description: 中国联通话费、语音、流量小组件（广电完整 UI、今日流量趋势、透明模式、锁屏组件、脱敏抓取诊断日志）｜更新时间：2026-10-25 19:58（北京时间）
+description: 中国联通话费、语音、流量小组件（广电完整 UI、今日流量趋势、透明模式、锁屏组件、微信小程序接口脱敏侦察）｜更新时间：2026-10-25 20:42（北京时间）
 author: iBL3ND
 icon: https://iili.io/nEuB6Jt.png
 
@@ -11,7 +11,7 @@ compat_arguments:
 compat_arguments_schema:
   cuCapture:
     name: 中国联通数据抓取
-    description: 打开中国联通 App，进入首页并点击余额位置即可自动捕获
+    description: 监听联通 App 与微信小程序请求；小程序接口先记录脱敏结构日志
     default_value: 'true'
     options:
       - 'true'
@@ -45,8 +45,8 @@ scriptings:
         cuPlanNotice: '{{{cuPlanNotice}}}'
 
   - http_request:
-      name: 中国联通 App 自动捕获
-      match: '^https://m\.client\.10010\.com/'
+      name: 中国联通 App 与微信小程序请求侦察
+      match: '^https://(?:m\\.client\\.10010\\.com|mxx\\.client\\.10010\\.com)/'
       script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaUnicom/ChinaUnicom_Widget.js
       body_required: false
       max_size: 1048576
@@ -60,6 +60,7 @@ mitm:
   hostnames:
     includes:
       - m.client.10010.com
+      - mxx.client.10010.com
 
 widgets:
   - name: china-unicom
