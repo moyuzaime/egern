@@ -1,5 +1,5 @@
 name: 中国联通 · 微信小程序抓取
-description: 打开微信「中国联通」小程序查询一次话费/流量/语音，主模块 ChinaUnicom 的小组件即可读取。被动解析响应，不重放请求、不需要 openid/RSA。可选模块，需先安装主模块。
+description: 打开微信「中国联通」小程序查询一次话费/流量/语音，主模块 ChinaUnicom 的小组件即可读取。被动解析响应，不重放请求、不需要 openid/RSA。可选模块，需先安装主模块。｜更新时间：2026-11-02 01:37（北京时间）
 author: iBL3ND
 homepage: https://github.com/moyuzaime/egern/tree/main/ChinaUnicom
 icon: https://iili.io/nEuB6Jt.png

@@ -61,16 +61,35 @@ function getRequestHeader(headers, name) {
 }
 
 
+// App 不同接口用的手机号参数名不一样，这里都试一遍，最后统一按 11 位号码校验，
+// 避免把 pageNum / userNum 这类参数误当成手机号。
+const PHONE_PARAM_NAMES = ['desmobiel', 'desmobile', 'usermobile', 'mobile', 'phone', 'mobileno', 'userNumber'];
+
+function normalizePhone(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  // 允许 86 前缀、空格和短横线
+  const digits = raw.replace(/[\s-]/g, '').replace(/^\+?86/, '');
+  return /^1\d{10}$/.test(digits) ? digits : '';
+}
+
 function extractPhone(url) {
   if (!url) return '';
 
   try {
-    const match = url.match(
-      /[?&]desmobiel=([^&]+)/i
-    );
-
-    if (match && match[1]) {
-      return decodeURIComponent(match[1]).trim();
+    const query = String(url).split('#')[0].split('?')[1] || '';
+    if (!query) return '';
+    for (const pair of query.split('&')) {
+      const idx = pair.indexOf('=');
+      if (idx <= 0) continue;
+      const key = pair.slice(0, idx).toLowerCase();
+      if (!PHONE_PARAM_NAMES.some(name => name.toLowerCase() === key)) continue;
+      let value = pair.slice(idx + 1);
+      try {
+        value = decodeURIComponent(value);
+      } catch (e) {}
+      const phone = normalizePhone(value);
+      if (phone) return phone;
     }
   } catch (e) {}
 
@@ -324,12 +343,21 @@ async function handleCapture(ctx) {
     });
   };
 
+  // App 里大量接口（如 servicequerybusiness/yidingyewu）本来就不带 Cookie 和 desmobiel，
+  // 对它们弹「凭据不完整」是误报。只有套餐查询 / 登录类请求才值得提示。
+  const planLike = Boolean(phone) ||
+    /queryUserInfo|desmobiel|userinfo|login|home\/query/i.test(url);
+
+  if (!cookie && !phone) {
+    captureDebug('skip: request carries no credentials; path=' + safePath);
+    return;
+  }
   if (!cookie || !phone) {
     captureDebug('incomplete: cookiePresent=' + Boolean(cookie) + '; phoneParamPresent=' + Boolean(phone));
-    notifyDiagnostic('凭据不完整');
+    if (planLike) notifyDiagnostic('凭据不完整');
   } else {
     captureDebug('unchanged: credentials already match stored values');
-    notifyDiagnostic('凭据未变化');
+    if (planLike) notifyDiagnostic('凭据未变化');
   }
 }
 const C = {
