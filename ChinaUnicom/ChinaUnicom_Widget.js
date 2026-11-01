@@ -250,13 +250,13 @@ async function handleCapture(ctx) {
   // 日志只记录路径和布尔状态，绝不输出查询参数、手机号、Cookie 或 Token。
   const safePath = url.split('?')[0].split('#')[0];
   if (ctx.env && String(ctx.env.cuCapture).toLowerCase() === 'false') {
-    captureDebug('skip: cuCapture=false; path=' + safePath);
+    captureDebug('skip(disabled): cuCapture=false; path=' + safePath);
     return;
   }
   const isAppRequest = url.includes(API_HOST);
   const isMiniProgramRequest = url.includes(MINI_PROGRAM_HOST);
   if (!isAppRequest && !isMiniProgramRequest) {
-    captureDebug('skip: host mismatch; path=' + safePath);
+    captureDebug('skip(host): host mismatch; path=' + safePath);
     return;
   }
 
@@ -298,7 +298,22 @@ async function handleCapture(ctx) {
 
   const cookie = String(getRequestHeader(req.headers, 'cookie') || '').trim();
   const phone = extractPhone(url);
-  captureDebug('triggered: path=' + safePath + '; cookiePresent=' + Boolean(cookie) + '; phoneParamPresent=' + Boolean(phone));
+
+  // App 里大量接口（如 servicequerybusiness/yidingyewu）本来就不带 Cookie 和 desmobiel。
+  // 这类请求只留一行日志就退出：既不误弹通知，也不会让日志看起来像报错。
+  if (!cookie && !phone) {
+    captureDebug('skip(no-creds): path=' + safePath);
+    return;
+  }
+
+  // 只有套餐查询 / 登录类请求才值得提示「凭据不完整」。
+  const planLike = Boolean(phone) ||
+    /queryUserInfo|desmobiel|userinfo|login|home\/query/i.test(url);
+
+  captureDebug('triggered: path=' + safePath +
+    '; cookiePresent=' + Boolean(cookie) +
+    '; phoneParamPresent=' + Boolean(phone) +
+    '; planLike=' + planLike);
 
   let cookieChanged = false;
   let phoneChanged = false;
@@ -343,15 +358,6 @@ async function handleCapture(ctx) {
     });
   };
 
-  // App 里大量接口（如 servicequerybusiness/yidingyewu）本来就不带 Cookie 和 desmobiel，
-  // 对它们弹「凭据不完整」是误报。只有套餐查询 / 登录类请求才值得提示。
-  const planLike = Boolean(phone) ||
-    /queryUserInfo|desmobiel|userinfo|login|home\/query/i.test(url);
-
-  if (!cookie && !phone) {
-    captureDebug('skip: request carries no credentials; path=' + safePath);
-    return;
-  }
   if (!cookie || !phone) {
     captureDebug('incomplete: cookiePresent=' + Boolean(cookie) + '; phoneParamPresent=' + Boolean(phone));
     if (planLike) notifyDiagnostic('凭据不完整');
