@@ -17,8 +17,9 @@
 
 const API_HOST = 'm.client.10010.com';
 const MINI_PROGRAM_HOST = 'mxx.client.10010.com';
-const KEY_PREFIX = 'unicom';
 const KEY = 'unicom';
+// 每 25 分钟最多一个采样点，96 个点约覆盖 24 小时，"今日流量使用"才有完整曲线（原来只留 24 个点，不足 10 小时）。
+const HISTORY_LIMIT = 96;
 
 const API_URL =
   'https://m.client.10010.com/mobileserviceimportant/home/queryUserInfoSeven';
@@ -27,42 +28,6 @@ const API_URL =
 /* =========================================================
  * 颜色
  * ========================================================= */
-
-const COLORS = {
-  unicomWidgetBackgroundGradient: { light: '#EEF6FF', dark: '#405A70' },
-  border: { light: '#FFFFFF78', dark: '#FFFFFF70' },
-  title: { light: '#3C3C4399', dark: '#EBEBF599' },
-  value: { light: '#000000', dark: '#FFFFFF' },
-  time: { light: '#3C3C4399', dark: '#EBEBF599' },
-  error: { light: '#FF453A', dark: '#FF453A' },
-  capsuleBg: { light: '#FFFFFF45', dark: '#FFFFFF28' },
-  accent: { light: '#0A84FF', dark: '#64B5FF' },
-  fee: '#FF9F0A', flow: '#0A84FF', voice: '#30D158',
-};
-
-function glassStyle() {
-  return {
-    backgroundColor: { light: '#FFFFFF45', dark: '#FFFFFF28' },
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: { light: '#FFFFFF85', dark: '#FFFFFF70' },
-  };
-}
-
-function widgetGradient() {
-  return {
-    type: 'radial',
-    colors: [
-      { light: '#EEF6FF', dark: '#405A70' },
-      { light: '#F8F4FF', dark: '#514761' },
-      { light: '#EEFCF6', dark: '#3E5E53' },
-    ],
-    stops: [0, 0.55, 1],
-    center: { x: 0.22, y: 0.12 },
-    startRadius: 0,
-    endRadius: 520,
-  };
-}
 
 
 /* =========================================================
@@ -138,9 +103,13 @@ async function fetchUnicomData(
 
 
   if (!resp || resp.status !== 200) {
-    throw new Error(
+    const status = resp ? resp.status : 0;
+    const err = new Error(
       `HTTP ${resp ? resp.status : 'no-response'}`
     );
+    // 401/403/302 基本意味着登录态失效，需要用户重新抓一次凭据。
+    err.kind = status === 401 || status === 403 || status === 302 ? 'auth' : 'http';
+    throw err;
   }
 
 
@@ -161,9 +130,11 @@ function parseUnicomData(res) {
     !res.voiceResource ||
     !res.flowResource
   ) {
-    throw new Error(
+    const err = new Error(
       `API 返回异常：${res?.code || 'unknown'}`
     );
+    err.kind = 'auth';
+    throw err;
   }
 
 
@@ -376,22 +347,6 @@ const C = {
 // 测试版采用统一的清透磨砂玻璃，避免不同卡片各自铺色造成视觉杂乱。
 const transparentMode = true;
 
-function broadnetBackgroundGradient() {
-  if (transparentMode) return undefined;
-  return {
-    type: 'radial',
-    colors: [
-      { light: '#BFEAFF', dark: '#193B60' },
-      { light: '#E7D9FF', dark: '#3C2E63' },
-      { light: '#C8F7E6', dark: '#174D48' },
-    ],
-    stops: [0, 0.55, 1],
-    center: { x: 0.22, y: 0.12 },
-    startRadius: 0,
-    endRadius: 520,
-  };
-}
-
 function formatDuration(ms) {
   if (!Number.isFinite(ms) || ms < 0) return '刚刚';
   const totalMin = Math.floor(ms / 60000);
@@ -424,8 +379,10 @@ function saveHistory(ctx, flow) {
     if (!last || now - Number(last.ts) >= 25 * 60 * 1000 || Number(last.flowKB) !== n) {
       next.push({ ts: now, flowKB: n });
     }
-    const trimmed = next.slice(-24);
-    ctx.storage.setJSON(KEY + '.history', trimmed);
+    const trimmed = next.slice(-HISTORY_LIMIT);
+    if (JSON.stringify(trimmed) !== JSON.stringify(old)) {
+      ctx.storage.setJSON(KEY + '.history', trimmed);
+    }
     return trimmed;
   } catch (e) {
     return [];
@@ -465,15 +422,31 @@ function numericResourceValue(resource, keys) {
   return null;
 }
 async function loadData(ctx) {
-  if (ctx.env && String(ctx.env.cuCapture).toLowerCase() === 'false') {
+  const captureDisabled = !!(ctx.env && String(ctx.env.cuCapture).toLowerCase() === 'false');
+  const readCache = () => {
     const cached = ctx.storage.getJSON('unicom_datasource') || null;
-    if (cached) {
-      cached.stale = true;
-      const ts = Number(ctx.storage.get('unicom_captureTime') || 0);
-      cached.captureDuration = ts > 0 ? formatDuration(Date.now() - ts) : '';
-    }
+    if (!cached) return null;
+    cached.stale = true;
+    // 连续两次鉴权失败才提示，避免接口偶发异常时误报。
+    cached.authFailed = Number(ctx.storage.get('unicom_authFail') || 0) >= 2;
+    const ts = Number(ctx.storage.get('unicom_captureTime') || 0);
+    cached.captureDuration = ts > 0 ? formatDuration(Date.now() - ts) : '';
+    return cached;
+  };
+
+  if (captureDisabled) {
+    const cached = readCache();
     return { data: cached, configured: !!cached, error: null, fromCache: true };
   }
+
+  // 主屏 / 锁屏 / 画廊可能在同一轮里各自渲染一次，45 秒内复用同一份数据，避免重复打接口被风控。
+  const fresh = ctx.storage.getJSON('unicom_datasource') || null;
+  if (fresh && Number(fresh.updatedAt || 0) > 0 && Date.now() - Number(fresh.updatedAt) < 45000) {
+    const ts = Number(ctx.storage.get('unicom_captureTime') || 0);
+    fresh.captureDuration = ts > 0 ? formatDuration(Date.now() - ts) : '';
+    return { data: fresh, configured: true, error: null, fromCache: false };
+  }
+
   const captureTs = Number(ctx.storage.get('unicom_captureTime') || 0);
   const captureDuration = captureTs > 0 ? formatDuration(Date.now() - captureTs) : '';
   const cookie = ctx.storage.get('unicom_cookie') || '';
@@ -522,6 +495,7 @@ async function loadData(ctx) {
       },
     };
     ctx.storage.setJSON('unicom_datasource', ds);
+    ctx.storage.delete('unicom_authFail');
     const captureTime = String(ctx.storage.get('unicom_captureTime') || '');
     const notifiedCaptureTime = String(ctx.storage.get('unicom_notifiedCaptureTime') || '');
     if (captureTime && captureTime !== notifiedCaptureTime) {
@@ -536,13 +510,10 @@ async function loadData(ctx) {
     }
     return { data: ds, configured: true, error: null, fromCache: false };
   } catch (e) {
-    const cached = ctx.storage.getJSON('unicom_datasource') || null;
-    if (cached) {
-      cached.stale = true;
-      const ts = Number(ctx.storage.get('unicom_captureTime') || 0);
-      cached.captureDuration = ts > 0 ? formatDuration(Date.now() - ts) : '';
+    if (e && e.kind === 'auth') {
+      ctx.storage.set('unicom_authFail', String(Number(ctx.storage.get('unicom_authFail') || 0) + 1));
     }
-    return { data: cached, configured: true, error: e, fromCache: true };
+    return { data: readCache(), configured: true, error: e, fromCache: true };
   }
 }
 function fontSize(size) {
@@ -577,25 +548,23 @@ function t(text, size, weight, color, extra) {
   }, extra || {});
 }
 
+const NO_COLOR = { light: '#00000000', dark: '#00000000' };
+
 function glass(children, extra) {
   // 所有尺寸共用单一外层玻璃；此 helper 只负责透明布局，不再绘制内层卡片。
+  // 透明值只作为默认值：调用方显式传入的样式仍然生效（原实现会写死覆盖）。
   return Object.assign({
     type: 'stack',
     direction: 'column',
     gap: 6,
     padding: [8, 10],
     borderRadius: 16,
-    backgroundColor: { light: '#00000000', dark: '#00000000' },
+    backgroundColor: NO_COLOR,
     borderWidth: 0,
-    borderColor: { light: '#00000000', dark: '#00000000' },
+    borderColor: NO_COLOR,
     shadowRadius: 0,
     children,
-  }, extra || {}, {
-    backgroundColor: { light: '#00000000', dark: '#00000000' },
-    borderWidth: 0,
-    borderColor: { light: '#00000000', dark: '#00000000' },
-    shadowRadius: 0,
-  });
+  }, extra || {});
 }
 
 function gaugeSvg(pct, color, w) {
@@ -627,15 +596,6 @@ function gaugeSvg(pct, color, w) {
     encodeURIComponent(
       `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${w} ${h}'>${body}</svg>`
     );
-}
-
-function historyDeltaText(history) {
-  const vals = (history || []).map(x => Number(x.flowKB)).filter(Number.isFinite);
-  if (vals.length < 2) return '采集中';
-  const delta = vals[vals.length - 1] - vals[vals.length - 2];
-  if (Math.abs(delta) < 1) return '余量基本稳定';
-  const f = formatFlow(Math.abs(delta));
-  return (delta < 0 ? '较上次减少 ' : '较上次增加 ') + f.number + ' ' + f.unit;
 }
 
 function flowStatus(pct) {
@@ -683,8 +643,6 @@ function trendStrip(ds) {
     padding: [5, 8],
     borderRadius: 13,
     gap: 0,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFCD9', dark: '#172638D9' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
   });
 }
 
@@ -818,8 +776,6 @@ function heroFlowCard(ds, cardHeight, cardFlex, isMedium) {
     padding: [8, 10],
     borderRadius: 18,
     gap: 4,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFCD9', dark: '#172638D9' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
     shadowColor: { light: '#52677A18', dark: '#00000028' },
     shadowRadius: 0,
     shadowOffset: { x: 0, y: 0 },
@@ -844,97 +800,21 @@ function header(title, ds, fromCache, mediumInset) {
       },
       t(title, 'footnote', 'semibold', C.txt),
       { type: 'spacer' },
-      t(`${fromCache ? '缓存数据' : '更新'} ${fmtTime(ds.updatedAt)}${dur}`, 9, 'medium', C.sub, {
+      t(`${fromCache ? '缓存数据' : '更新'} ${fmtTime(ds.updatedAt)}${dur}${ds.authFailed ? ' · 凭据待更新' : ''}`, 9, 'medium', C.sub, {
         minScale: 0.8,
       }),
     ],
   };
 }
 
-function feeCard(ds) {
-  const low = Number(ds.fee.number) < 10;
-  return glass([
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'center',
-      gap: 4,
-      children: [
-        {
-          type: 'image',
-          src: 'sf-symbol:yensign.circle.fill',
-          width: 11,
-          height: 11,
-          color: low ? '#C4475B' : C.fee,
-        },
-        t('剩余话费', 9, 'medium', C.sub),
-      ],
-    },
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'end',
-      gap: 2,
-      children: [
-        t('¥', 13, 'semibold', low ? '#C4475B' : C.fee),
-        t(ds.fee.number, 24, 'bold', low ? '#C4475B' : C.txt, {
-          minScale: 0.62,
-        }),
-      ],
-    },
-  ], {
-    alignItems: 'center',
-    padding: [7, 8],
-    borderRadius: 18,
-    height: 70,
-    gap: 5,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFCD9', dark: '#172638D9' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
-  });
-}
-function dataCard(icon, color, title, value, unit, detail) {
-  return glass([
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'center',
-      gap: 3,
-      children: [
-        { type: 'image', src: 'sf-symbol:' + icon, width: 10, height: 10, color },
-        t(title, 9, 'medium', C.sub),
-      ],
-    },
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'end',
-      gap: 2,
-      children: [
-        t(value, 20, 'bold', C.txt, { minScale: 0.4 }),
-        t(unit, 9, 'semibold', C.sub),
-      ],
-    },
-    ...(detail ? [t(detail, 8, 'medium', C.sub, { minScale: 0.6 })] : []),
-  ], {
-    padding: [7, 8],
-    borderRadius: 18,
-    height: 70,
-    gap: 3,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFCD9', dark: '#172638D9' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
-  });
-}
-
 function buildSmall(title, ds, fromCache) {
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const flowStyle = flowStatus(p);
   const remain = ds.flow.number + ' ' + ds.flow.unit;
-  const used = ds.plan && ds.plan.used != null
-    ? formatFlow(ds.plan.used).number + ' ' + formatFlow(ds.plan.used).unit
-    : '--';
-  const total = ds.plan && ds.plan.total != null
-    ? formatFlow(ds.plan.total).number + ' ' + formatFlow(ds.plan.total).unit
-    : '--';
+  const usedFlow = ds.plan && ds.plan.used != null ? formatFlow(ds.plan.used) : null;
+  const totalFlow = ds.plan && ds.plan.total != null ? formatFlow(ds.plan.total) : null;
+  const used = usedFlow ? usedFlow.number + ' ' + usedFlow.unit : '--';
+  const total = totalFlow ? totalFlow.number + ' ' + totalFlow.unit : '--';
 
   return {
     type: 'widget',
@@ -958,7 +838,7 @@ function buildSmall(title, ds, fromCache) {
           },
           t(title, 12, 'semibold', C.txt),
           { type: 'spacer' },
-          t(`${fromCache ? '缓存 · ' : ''}${fmtTime(ds.updatedAt)}${ds.captureDuration ? ' · ' + ds.captureDuration : ''}`, 8, 'medium', C.sub, { minScale: 0.5 }),
+          t(`${fromCache ? '缓存 · ' : ''}${fmtTime(ds.updatedAt)}${ds.authFailed ? ' · 凭据待更新' : (ds.captureDuration ? ' · ' + ds.captureDuration : '')}`, 8, 'medium', C.sub, { minScale: 0.5 }),
         ],
       },
 
@@ -1494,7 +1374,14 @@ async function handleWidget(ctx) {
   const title = '中国联通';
   const result = await loadData(ctx);
   if (!result.configured) return buildError(title, '请打开微信中国联通小程序，进入流量查询页面刷新一次，或打开联通 App 查询');
-  if (!result.data) return buildError(title, '数据获取失败，请刷新微信联通小程序流量查询或打开联通 App 重试');
+  if (!result.data) {
+    return buildError(
+      title,
+      result.error && result.error.kind === 'auth'
+        ? '登录状态已失效，请重新打开中国联通 App 或微信小程序查询一次，让组件重新抓取凭据'
+        : '数据获取失败，请刷新微信联通小程序流量查询或打开联通 App 重试'
+    );
+  }
   const ds = result.data;
   const family = ctx.widgetFamily || 'systemSmall';
   if (family === 'systemMedium') return liquidGlassWidget(buildMedium(title, ds, result.fromCache));
