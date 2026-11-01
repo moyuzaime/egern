@@ -336,7 +336,12 @@ async function handleCapture(ctx) {
     ctx.storage.set('unicom_captureTime', String(Date.now()));
     captureDebug('success: credentials updated; cookieChanged=' + cookieChanged + '; phoneChanged=' + phoneChanged);
     if ((!ctx.env || String(ctx.env.cuCaptureNotice).toLowerCase() !== 'false') && typeof ctx.notify === 'function') {
-      ctx.notify({ title: '中国联通数据捕获成功', body: '已捕获登录信息，正在更新套餐数据', sound: false });
+      const maskedPhone = phone ? '（尾号 ' + phone.slice(-4) + '）' : '';
+      ctx.notify({
+        title: '中国联通数据捕获成功',
+        body: '已捕获登录信息' + maskedPhone + '，正在更新套餐数据',
+        sound: false,
+      });
     }
     return;
   }
@@ -545,7 +550,7 @@ async function loadData(ctx) {
   try {
     const raw = await fetchUnicomData(ctx, cookie, phone);
     const parsed = parseUnicomData(raw);
-    const { ds } = buildDataSource(ctx, parsed, raw, captureDuration);
+    const { ds, flowDisplay } = buildDataSource(ctx, parsed, raw, captureDuration);
     ctx.storage.setJSON('unicom_datasource', ds);
     ctx.storage.delete('unicom_authFail');
     const captureTime = String(ctx.storage.get('unicom_captureTime') || '');
@@ -554,7 +559,11 @@ async function loadData(ctx) {
       if ((!ctx.env || String(ctx.env.cuPlanNotice).toLowerCase() !== 'false') && typeof ctx.notify === 'function') {
         ctx.notify({
           title: '中国联通套餐查询成功',
-          body: ['剩余话费：¥' + ds.fee.number, '剩余流量：' + flowDisplay.number + ' ' + flowDisplay.unit, '剩余语音：' + ds.voice.number + ' 分钟'].join('\\n'),
+          body: [
+            '剩余话费：¥' + ds.fee.number,
+            '剩余流量：' + flowDisplay.number + ' ' + flowDisplay.unit,
+            '剩余语音：' + ds.voice.number + ' 分钟',
+          ].join('\n'),
           sound: false,
         });
       }
@@ -1469,7 +1478,11 @@ async function handleMiniResponse(ctx) {
           typeof ctx.notify === 'function') {
         ctx.notify({
           title: '中国联通小程序数据已捕获',
-          body: '剩余流量 ' + flowDisplay.number + ' ' + flowDisplay.unit + '，小组件已更新',
+          body: [
+            '剩余话费：¥' + ds.fee.number,
+            '剩余流量：' + flowDisplay.number + ' ' + flowDisplay.unit,
+            '剩余语音：' + ds.voice.number + ' 分钟',
+          ].join('\n'),
           sound: false,
         });
       }
