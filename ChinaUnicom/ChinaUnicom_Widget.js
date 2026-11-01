@@ -24,6 +24,12 @@ const HISTORY_LIMIT = 96;
 const API_URL =
   'https://m.client.10010.com/mobileserviceimportant/home/queryUserInfoSeven';
 
+// 微信小程序「中国联通」首页大球接口。返回结构与 App 的 queryUserInfoSeven 同构，
+// 因此响应体可以直接复用 parseUnicomData 解析（协议来源见 README）。
+const MINI_API_PATH = '/wxapplet/weixinNew/';
+const MINI_API_BASE = 'https://mina.10010.com' + MINI_API_PATH;
+const MINI_SSP_BIGBALL = MINI_API_BASE + 'sspbigball';
+
 
 /* =========================================================
  * 颜色
@@ -421,6 +427,50 @@ function numericResourceValue(resource, keys) {
   }
   return null;
 }
+// App 接口与小程序接口返回同样的 feeResource/flowResource/voiceResource，
+// 这里统一换算成小组件使用的数据结构。
+function buildDataSource(ctx, parsed, raw, captureDuration) {
+  const flowResource = raw.flowResource || {};
+  const voiceResource = raw.voiceResource || {};
+  const flowTotalRaw = numericResourceValue(flowResource, ['flowTotal', 'flowAll', 'totalFlow', 'total', 'totalValue', 'resourceTotal', 'sumValue']);
+  const flowUsedRaw = numericResourceValue(flowResource, ['flowUsed', 'flowUserd', 'usedFlow', 'used', 'usedValue', 'consumeValue', 'usedResource']);
+  const voiceTotal = numericResourceValue(voiceResource, ['voiceTotal', 'voiceAll', 'totalVoice', 'total', 'totalValue', 'resourceTotal', 'sumValue']);
+  const voiceUsed = numericResourceValue(voiceResource, ['voiceUsed', 'usedVoice', 'voiceUserd', 'used', 'usedValue', 'consumeValue', 'usedResource']);
+
+  const unit = String(parsed.flow.unit || 'MB').toUpperCase();
+  const flowToKB = n => {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return null;
+    if (unit === 'GB') return v * 1024 * 1024;
+    if (unit === 'KB') return v;
+    if (unit === 'B') return v / 1024;
+    return v * 1024;
+  };
+  const remainKB = flowToKB(parsed.flow.value);
+  const totalKB = flowTotalRaw == null ? null : flowToKB(flowTotalRaw);
+  const usedKB = flowUsedRaw == null ? null : flowToKB(flowUsedRaw);
+  const history = saveHistory(ctx, remainKB);
+  const flowDisplay = formatFlow(remainKB);
+  const ds = {
+    stale: false,
+    fee: { title: '剩余话费', number: Number(parsed.fee.value).toFixed(2), unit: '元' },
+    flow: { title: '剩余流量', number: flowDisplay.number, unit: flowDisplay.unit },
+    voice: { title: '剩余语音', number: String(parsed.voice.value), unit: parsed.voice.unit || '分钟' },
+    updatedAt: Date.now(),
+    captureDuration: captureDuration || '',
+    history,
+    plan: {
+      total: totalKB, used: usedKB, remain: remainKB,
+      percent: calcPlanPercent(totalKB, usedKB, remainKB),
+      totalPath: flowTotalRaw == null ? null : 'flowResource',
+      usedPath: flowUsedRaw == null ? null : 'flowResource',
+      voiceTotal, voiceUsed, voiceRemain: Number(parsed.voice.value),
+      voicePercent: calcPlanPercent(voiceTotal, voiceUsed, Number(parsed.voice.value)),
+    },
+  };
+  return { ds, flowDisplay };
+}
+
 async function loadData(ctx) {
   const captureDisabled = !!(ctx.env && String(ctx.env.cuCapture).toLowerCase() === 'false');
   const readCache = () => {
@@ -451,49 +501,17 @@ async function loadData(ctx) {
   const captureDuration = captureTs > 0 ? formatDuration(Date.now() - captureTs) : '';
   const cookie = ctx.storage.get('unicom_cookie') || '';
   const phone = ctx.storage.get('unicom_phone') || '';
-  if (!cookie || !phone) return { data: null, configured: false, error: null, fromCache: false };
+  if (!cookie || !phone) {
+    // 只做过微信小程序抓取（没有 App 凭据）时，直接用已缓存的小程序数据。
+    const cached = readCache();
+    if (cached) return { data: cached, configured: true, error: null, fromCache: true };
+    return { data: null, configured: false, error: null, fromCache: false };
+  }
 
   try {
     const raw = await fetchUnicomData(ctx, cookie, phone);
     const parsed = parseUnicomData(raw);
-    const flowResource = raw.flowResource || {};
-    const voiceResource = raw.voiceResource || {};
-    const flowTotalRaw = numericResourceValue(flowResource, ['flowTotal', 'flowAll', 'totalFlow', 'total', 'totalValue', 'resourceTotal', 'sumValue']);
-    const flowUsedRaw = numericResourceValue(flowResource, ['flowUsed', 'flowUserd', 'usedFlow', 'used', 'usedValue', 'consumeValue', 'usedResource']);
-    const voiceTotal = numericResourceValue(voiceResource, ['voiceTotal', 'voiceAll', 'totalVoice', 'total', 'totalValue', 'resourceTotal', 'sumValue']);
-    const voiceUsed = numericResourceValue(voiceResource, ['voiceUsed', 'usedVoice', 'voiceUserd', 'used', 'usedValue', 'consumeValue', 'usedResource']);
-
-    const unit = String(parsed.flow.unit || 'MB').toUpperCase();
-    const flowToKB = n => {
-      const v = Number(n);
-      if (!Number.isFinite(v)) return null;
-      if (unit === 'GB') return v * 1024 * 1024;
-      if (unit === 'KB') return v;
-      if (unit === 'B') return v / 1024;
-      return v * 1024;
-    };
-    const remainKB = flowToKB(parsed.flow.value);
-    const totalKB = flowTotalRaw == null ? null : flowToKB(flowTotalRaw);
-    const usedKB = flowUsedRaw == null ? null : flowToKB(flowUsedRaw);
-    const history = saveHistory(ctx, remainKB);
-    const flowDisplay = formatFlow(remainKB);
-    const ds = {
-      stale: false,
-      fee: { title: '剩余话费', number: Number(parsed.fee.value).toFixed(2), unit: '元' },
-      flow: { title: '剩余流量', number: flowDisplay.number, unit: flowDisplay.unit },
-      voice: { title: '剩余语音', number: String(parsed.voice.value), unit: parsed.voice.unit || '分钟' },
-      updatedAt: Date.now(),
-      captureDuration,
-      history,
-      plan: {
-        total: totalKB, used: usedKB, remain: remainKB,
-        percent: calcPlanPercent(totalKB, usedKB, remainKB),
-        totalPath: flowTotalRaw == null ? null : 'flowResource',
-        usedPath: flowUsedRaw == null ? null : 'flowResource',
-        voiceTotal, voiceUsed, voiceRemain: Number(parsed.voice.value),
-        voicePercent: calcPlanPercent(voiceTotal, voiceUsed, Number(parsed.voice.value)),
-      },
-    };
+    const { ds } = buildDataSource(ctx, parsed, raw, captureDuration);
     ctx.storage.setJSON('unicom_datasource', ds);
     ctx.storage.delete('unicom_authFail');
     const captureTime = String(ctx.storage.get('unicom_captureTime') || '');
@@ -1370,6 +1388,91 @@ function buildError(title, message) {
 }
 
 
+/* =========================================================
+ * 微信小程序响应解析
+ *
+ * 小程序首页会把话费/流量/语音一次性拉下来：
+ *   POST https://mina.10010.com/wxapplet/weixinNew/sspbigball
+ *   -> {"code":"0000","data":{"feeResource":{...},"flowResource":{...},"voiceResource":{...}}}
+ * 字段与 App 端同名（*Persent / newUnit / dynamic*Title），所以直接复用解析逻辑。
+ * 这里只做被动解析：不重放请求，不需要 RSA 加密和 openid。
+ * ========================================================= */
+async function handleMiniResponse(ctx) {
+  if (ctx.env && String(ctx.env.cuMiniCapture).toLowerCase() === 'false') return;
+
+  const reqUrl = String((ctx.request && ctx.request.url) || '');
+  if (!reqUrl.includes(MINI_API_PATH)) return;
+
+  const res = ctx.response || {};
+  if (Number(res.status) !== 200) return;
+
+  let body = null;
+  try {
+    body = await res.json();
+  } catch (e) {
+    return;
+  }
+  if (!body || String(body.code) !== '0000') return;
+
+  const data = body.data;
+  if (!data || typeof data !== 'object') return;
+
+  if (reqUrl.indexOf(MINI_SSP_BIGBALL) === 0 && data.feeResource && data.flowResource && data.voiceResource) {
+    try {
+      const parsed = parseUnicomData({
+        code: 'Y',
+        feeResource: data.feeResource,
+        voiceResource: data.voiceResource,
+        flowResource: data.flowResource,
+      });
+      // buildDataSource 用的是原始资源对象里的 total/used 字段，小程序同样有。
+      const { ds, flowDisplay } = buildDataSource(ctx, parsed, data, '');
+      ds.source = 'mini';
+      ctx.storage.setJSON('unicom_datasource', ds);
+      ctx.storage.set('unicom_miniTime', String(Date.now()));
+      ctx.storage.delete('unicom_authFail');
+      if ((!ctx.env || String(ctx.env.cuCaptureNotice).toLowerCase() !== 'false') &&
+          typeof ctx.notify === 'function') {
+        ctx.notify({
+          title: '中国联通小程序数据已捕获',
+          body: '剩余流量 ' + flowDisplay.number + ' ' + flowDisplay.unit + '，小组件已更新',
+          sound: false,
+        });
+      }
+    } catch (e) {
+      captureDebug('mini parse failed: ' + e);
+    }
+    return;
+  }
+
+  // 顺手保存手机号，方便诊断时区分账号（不参与取数）
+  if (reqUrl.includes('queryGoodsList')) {
+    try {
+      const rows = data.res || [];
+      const main = rows[0] && rows[0].mainNumber;
+      if (main) ctx.storage.set('unicom_phone', String(main));
+    } catch (e) {}
+    return;
+  }
+
+  // 账户总览：可用话费 / 本月消费 / 欠费 / 结转（暂只存档，供后续展示）
+  if (reqUrl.includes('sspbalcbroadcast')) {
+    try {
+      const rows = data.res || data || [];
+      const first = Array.isArray(rows) ? rows[0] : rows;
+      if (first && typeof first === 'object') {
+        ctx.storage.setJSON('unicom_account', {
+          ts: Date.now(),
+          available: Number(first.CANUSE_FEE_CUST),
+          monthCost: Number(first.REAL_FEE_CUST),
+          owed: Number(first.ALLBOWE_FEE),
+          carryOver: Number(first.CARRY_INFO_ALL_FEE),
+        });
+      }
+    } catch (e) {}
+  }
+}
+
 async function handleWidget(ctx) {
   const title = '中国联通';
   const result = await loadData(ctx);
@@ -1390,6 +1493,7 @@ async function handleWidget(ctx) {
   return liquidGlassWidget(buildSmall(title, ds, result.fromCache));
 }
 export default async function(ctx) {
+  if (ctx && ctx.response) { await handleMiniResponse(ctx); return; }
   if (ctx && ctx.request && ctx.request.url) { await handleCapture(ctx); return; }
   try {
     const widget = await handleWidget(ctx || {});
