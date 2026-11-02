@@ -1,5 +1,5 @@
 name: 中国联通小组件
-description: 打开中国联通 App 余量页或微信「余量查询」页查询一次即可自动读取｜更新时间：2026-11-02 23:31（北京时间）
+description: 打开中国联通 App 余量页或微信「余量查询」页查询一次即可自动读取｜更新时间：2026-11-02 23:33（北京时间）
 author: iBL3ND
 homepage: https://github.com/moyuzaime/egern/tree/main/ChinaUnicom
 icon: https://iili.io/nEuB6Jt.png
@@ -67,8 +67,8 @@ scriptings:
   - http_response:
       name: 中国联通小程序响应解析
       # mina：小程序自有接口（首页大球/手机号/账户）；mxx：小程序里的「余量查询」webview，字段最全。
-      # 脚本按响应字段识别（curntbalancecust 走账户、packageName+resources 走余量明细），非 JSON 直接跳过。
-      match: '^https://(mina\.10010\.com/wxapplet/weixinNew/|mxx\.client\.10010\.com/)'
+      # 只匹配业务接口路径（不给整个 mxx 域缓冲响应体）；脚本再按字段识别：curntbalancecust 走账户、packageName+resources 走余量明细，非 JSON 直接跳过。
+      match: '^https://(mina\.10010\.com/wxapplet/weixinNew/|mxx\.client\.10010\.com/(?:servicequerybusiness|servicebusiness)/)'
       script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaUnicom/ChinaUnicom_Widget.js
       body_required: true
       max_size: 1048576

@@ -824,7 +824,7 @@ function heroFlowCard(ds, cardHeight, cardFlex, isMedium) {
           height: 13,
           color: C.flow,
         },
-        t('流量主卡', 10, 'semibold', C.txt),
+        t(ds.packageName || '流量主卡', 10, 'semibold', C.txt),
         { type: 'spacer' },
         t(p != null ? Math.round((1 - p) * 100) + '% 剩余' : '实时套餐', 9, 'semibold', flowStyle.color),
       ],
@@ -1639,7 +1639,10 @@ async function handleWidget(ctx) {
   // 账户余额 / 余量明细单独缓存（比大球数据更精确），渲染时实时读取。
   ds.account = ctx.storage.getJSON('unicom_account') || null;
   const fd = ctx.storage.getJSON('unicom_flowdetail') || null;
-  if (fd && fd.remainMB != null) {
+  // 余量明细是「某次进入余量查询页」的快照：超过 6 小时就回落到首页大球数据，
+  // 避免很久以前（甚至上个月）的明细盖住正在更新的数据。
+  const fdFresh = Boolean(fd) && Boolean(fd.ts) && Date.now() - Number(fd.ts) < 6 * 60 * 60 * 1000;
+  if (fd && fd.remainMB != null && fdFresh) {
     const toKB = (mb) => (mb == null ? null : Math.round(Number(mb) * 1024));
     const remainKB = toKB(fd.remainMB);
     const display = formatFlow(remainKB);
