@@ -1036,7 +1036,7 @@ function buildSmall(title, ds, fromCache) {
             gap: 2,
             flex: 1,
             children: [
-              t(ds.flow && ds.flow.title ? ds.flow.title : '剩余流量', 9, 'medium', C.sub),
+              t(ds.packageName || (ds.flow && ds.flow.title) || '剩余流量', 9, 'medium', C.sub),
               {
                 type: 'stack',
                 direction: 'row',
@@ -1329,7 +1329,7 @@ function buildLarge(title, ds, fromCache) {
                 gap: 5,
                 children: [
                   { type: 'image', src: 'sf-symbol:chart.pie.fill', width: 13, height: 13, color: C.flow },
-                  t(ds.flow && ds.flow.title ? ds.flow.title : '剩余流量', 10, 'semibold', C.sub),
+                  t(ds.packageName || (ds.flow && ds.flow.title) || '剩余流量', 10, 'semibold', C.sub),
                   { type: 'spacer' },
                   t(p != null ? Math.round((1 - p) * 100) + '% 剩余' : '套餐流量', 9, 'semibold', flowStyle.color),
                 ],
