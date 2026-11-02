@@ -1,5 +1,5 @@
 name: 中国联通 · 微信小程序抓取
-description: 配合主模块使用，打开微信「中国联通」小程序查询一次即可｜更新时间：2026-11-02 23:00（北京时间）
+description: 配合主模块使用，打开微信「中国联通」小程序查询一次即可｜更新时间：2026-11-02 22:44（北京时间）
 author: iBL3ND
 homepage: https://github.com/moyuzaime/egern/tree/main/ChinaUnicom
 icon: https://iili.io/nEuB6Jt.png
@@ -28,9 +28,7 @@ scriptings:
   - http_response:
       name: 中国联通小程序套餐响应
       # sspbigball 是首页大球（话费/流量/语音）；另两个是手机号与账户总览，顺手存档
-      # 覆盖小程序全部 wxapplet 接口：sspbigball（余量）、queryGoodsList、余额接口等，
-      # 脚本按响应字段识别（有 curntbalancecust 走账户解析），非 JSON 响应直接跳过。
-      match: '^https://mina\.10010\.com/wxapplet/weixinNew/'
+      match: '^https://mina\.10010\.com/wxapplet/weixinNew/(sspbigball|queryGoodsList|sspbalcbroadcast)$'
       script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaUnicom/ChinaUnicom_Widget.js
       body_required: true
       max_size: 1048576
