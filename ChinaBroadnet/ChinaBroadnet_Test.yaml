@@ -41,7 +41,7 @@ compat_arguments_schema:
       - 'false'
   cbTransparent:
     name: 透明模式
-    description: 默认透明（与正式版一致，背景跟随壁纸）；关闭后使用不透明的浅色仪表盘底色
+    description: 默认透明（与正式版一致）。iOS 主屏「透明 / 染色」模式下必须保持开启，否则系统会把不透明浅色底渲染成一整片白；关闭则使用不透明的浅色仪表盘
     default_value: 'true'
     options:
       - 'true'
