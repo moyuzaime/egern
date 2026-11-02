@@ -793,12 +793,14 @@ function trendStrip(ds) {
       alignItems: 'center',
       gap: 6,
       children: [
-        {
-          type: 'image',
-          src: historySvg(today.history, C.flow, 100, 30),
-          width: 72,
-          height: 22,
-        },
+        ...(used
+          ? [{
+              type: 'image',
+              src: historySvg(today.history, C.flow, 100, 30),
+              width: 72,
+              height: 22,
+            }]
+          : []),
         {
           type: 'stack',
           direction: 'column',
@@ -810,7 +812,7 @@ function trendStrip(ds) {
             t(today.label, 8, 'medium', C.sub, { minScale: 0.65 }),
           ],
         },
-        t(used ? used.number + ' ' + used.unit : '采集中', 9, 'bold', C.flow, { minScale: 0.7 }),
+        ...(used ? [t(used.number + ' ' + used.unit, 9, 'bold', C.flow, { minScale: 0.7 })] : []),
       ],
     },
   ], {
@@ -1431,7 +1433,9 @@ function buildLarge(title, ds, fromCache) {
               ]},
               ...(voiceUsed != null && voiceTotal != null
                 ? [t('已用 ' + voiceUsed + ' / ' + voiceTotal + ' 分钟', 8, 'medium', C.sub, { minScale: 0.55 })]
-                : []),
+                : (ds.smsRemain != null
+                    ? [t('短信 ' + ds.smsRemain + ' 条', 8, 'medium', C.sub, { minScale: 0.55 })]
+                    : [])),
             ],
           },
         ],
@@ -1451,15 +1455,17 @@ function buildLarge(title, ds, fromCache) {
               { type: 'image', src: 'sf-symbol:chart.bar.fill', width: 10, height: 10, color: C.flow },
               t('今日流量使用', 10, 'semibold', C.txt),
               { type: 'spacer' },
-              t(todayUsed ? todayUsed.number + ' ' + todayUsed.unit : '采集中', 10, 'bold', C.flow),
+              ...(todayUsed ? [t(todayUsed.number + ' ' + todayUsed.unit, 10, 'bold', C.flow)] : []),
             ],
           },
-          {
-            type: 'image',
-            src: historySvg(today.history.map(x => ({ flowKB: x.flowKB })), C.flow, 270, 38),
-            width: 270,
-            height: 38,
-          },
+          ...(todayUsed
+            ? [{
+                type: 'image',
+                src: historySvg(today.history.map(x => ({ flowKB: x.flowKB })), C.flow, 270, 38),
+                width: 270,
+                height: 38,
+              }]
+            : []),
           t(today.label, 8, 'medium', C.sub),
           {
             type: 'stack',
@@ -1468,9 +1474,9 @@ function buildLarge(title, ds, fromCache) {
             gap: 4,
             children: [
               { type: 'image', src: 'sf-symbol:clock', width: 9, height: 9, color: C.sub },
-              t((fromCache ? '缓存数据 · ' : '最近更新 · ') + fmtTime(ds.updatedAt), 8, 'medium', C.sub),
+              t(fromCache ? '缓存数据' : '实时数据', 8, 'medium', C.sub),
               { type: 'spacer' },
-              t(ds.captureDuration ? '凭据已保持 ' + ds.captureDuration : (fromCache ? '数据可能过期' : '定时保活中'), 8, 'medium', C.sub),
+              t(ds.captureDuration ? '凭据已保持 ' + ds.captureDuration : (fromCache ? '数据可能过期' : ''), 8, 'medium', C.sub),
             ],
           },
           ...(ds.account && ds.account.balance != null
@@ -1481,8 +1487,7 @@ function buildLarge(title, ds, fromCache) {
                 gap: 4,
                 children: [
                   { type: 'image', src: 'sf-symbol:wallet.pass.fill', width: 9, height: 9, color: C.fee },
-                  t('余额 ¥' + Number(ds.account.balance).toFixed(2), 8, 'semibold', C.sub),
-                  t('· 结转 ¥' + (ds.account.carryOver != null ? Number(ds.account.carryOver).toFixed(2) : '--'), 8, 'medium', C.sub),
+                  t('结转 ¥' + (ds.account.carryOver != null ? Number(ds.account.carryOver).toFixed(2) : '--'), 8, 'semibold', C.sub),
                   { type: 'spacer' },
                   ds.account.owed != null && Number(ds.account.owed) > 0
                     ? t('欠费 ¥' + Number(ds.account.owed).toFixed(2), 8, 'semibold', C.fee)
@@ -1774,6 +1779,7 @@ async function handleWidget(ctx) {
         : (fd.percent != null ? fd.percent : (ds.plan ? ds.plan.percent : null)),
     });
     if (fd.voiceRemain != null) ds.voice = { title: '剩余语音', number: String(fd.voiceRemain), unit: '分钟' };
+    if (fd.smsRemain != null) ds.smsRemain = fd.smsRemain;
     ds.packageName = fd.packageName;
     ds.otherUsedMB = fd.otherUsedMB;
     ds.detailTime = fd.time;
