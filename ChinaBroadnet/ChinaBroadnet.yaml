@@ -1,5 +1,5 @@
 name: 中国广电小组件
-description: 中国广电 话费 语音 流量小组件（App、微信、支付宝自动捕获）｜更新时间：2026-11-02 22:17（北京时间）｜优化版：历史采样 96 点、调试日志默认关闭、脚本更新间隔 21600 秒
+description: 中国广电 话费 语音 流量小组件（App、微信、支付宝自动捕获）｜更新时间：2026-11-02 22:30（北京时间）｜优化版：保活失败退避+提醒、缓存过期时 2 分钟重渲染、历史采样 96 点、脚本更新间隔 21600 秒
 author: wuhuhuuuu
 icon: https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/03CNSoft/ChinaBroadcastNetwork.png
 

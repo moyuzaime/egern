@@ -443,7 +443,12 @@ function saveHistory(ctx, flow) {
   }
 }
 
-async function loadData(ctx, forceRefresh) {
+async function loadData(ctx, options) {
+  // 兼容旧调用：布尔值表示是否强制刷新；对象形式可附带 reason / bypassThrottle。
+  const opts = typeof options === 'boolean' ? { forceRefresh: options } : (options || {});
+  const forceRefresh = !!opts.forceRefresh;
+  const reason = opts.reason || 'render';
+  const bypassThrottle = !!opts.bypassThrottle;
   // 成功路径的响应结构/业务数值只在模块参数 cbDebug=true 时打印，默认不刷日志。
   const debug = String((ctx.env && ctx.env.cbDebug) || '').toLowerCase() === 'true';
   const debugLog = (...args) => { if (debug) console.log(...args); };
@@ -468,17 +473,18 @@ async function loadData(ctx, forceRefresh) {
   if (!forceRefresh && cachedData && !hasNewCapture && cacheAge >= 0 && cacheAge < CACHE_TTL) {
     cachedData.stale = false;
     cachedData.captureDuration = captureDuration;
-    return { configured: true, data: cachedData, fromCache: true };
+    return { configured: true, data: cachedData, fromCache: true, skipped: true };
   }
 
-  // 最近 15 秒内已经尝试过请求时先显示旧缓存，避免组件切屏时连续触发。
+  // 最近 15 秒内已经尝试过请求时先显示旧缓存，避免组件切屏/保活与渲染同时打接口。
+  // 保活（forceRefresh）同样受此保护，只有手动强制刷新入口可以绕过。
   const lastAttemptAt = Number(ctx.storage.get(KEY + '.lastAttemptAt') || 0);
   const attemptAge = Date.now() - lastAttemptAt;
-  if (!forceRefresh && cachedData && !hasNewCapture && lastAttemptAt > 0 &&
+  if (!bypassThrottle && cachedData && !hasNewCapture && lastAttemptAt > 0 &&
       attemptAge >= 0 && attemptAge < 15000) {
     cachedData.stale = true;
     cachedData.captureDuration = captureDuration;
-    return { configured: true, data: cachedData, fromCache: true };
+    return { configured: true, data: cachedData, fromCache: true, skipped: true };
   }
 
   // SWR：缓存过期时先返回旧数据渲染，同时启动一次后台刷新；新捕获凭据则仍立即同步查询。
@@ -489,10 +495,10 @@ async function loadData(ctx, forceRefresh) {
       cachedData.stale = true;
       cachedData.captureDuration = captureDuration;
       ctx.storage.set(KEY + '.lastAttemptAt', String(Date.now()));
-      loadData(ctx, true).catch(e => {
+      refreshNow(ctx, 'swr', { force: true, bypassThrottle: true }).catch(e => {
         console.log('[ChinaBroadnet-Hark] 后台静默刷新异常: ' + e);
       });
-      return { configured: true, data: cachedData, fromCache: true };
+      return { configured: true, data: cachedData, fromCache: true, skipped: true };
     }
   }
 
@@ -507,6 +513,7 @@ async function loadData(ctx, forceRefresh) {
   try {
     ctx.storage.set(KEY + '.lastAttemptCaptureTime', currentCaptureTime);
     ctx.storage.set(KEY + '.lastAttemptAt', String(Date.now()));
+    ctx.storage.set(KEY + '.lastRefreshReason', reason);
     const result = await fetchData(ctx, access, data, url);
     // 仅记录响应结构与字段是否存在，不记录手机号、令牌或业务字段原值。
     const responseUser = result && result.data && (result.data.userData || result.data);
@@ -704,42 +711,101 @@ function parseKeepAliveInterval(value) {
 /* =========================================================
  * 保活模式（schedule 每分钟触发，由用户输入的易读间隔控制实际执行频率）
  * ========================================================= */
+// 所有主动刷新（渲染 SWR / 定时保活 / 手动刷新）共用同一入口，统一记录来源。
+async function refreshNow(ctx, reason, options) {
+  const opts = options || {};
+  return loadData(ctx, {
+    forceRefresh: !!opts.force,
+    bypassThrottle: !!opts.bypassThrottle,
+    reason,
+  });
+}
+
+// 保活连续失败：指数退避 + 每连续 3 次以上发一条通知（60 分钟限频）。
+function registerKeepAliveFailure(ctx, reason) {
+  const fails = Number(ctx.storage.get(KEY + '.keepAliveFailCount') || 0) + 1;
+  ctx.storage.set(KEY + '.keepAliveFailCount', String(fails));
+  console.log('[ChinaBroadnet] 保活失败（连续 ' + fails + ' 次）：' + reason);
+  if (fails < 3) return;
+  const lastNotify = Number(ctx.storage.get(KEY + '.keepAliveFailNotifyAt') || 0);
+  if (Date.now() - lastNotify < 60 * 60 * 1000) return;
+  if (typeof ctx.notify !== 'function') return;
+  ctx.storage.set(KEY + '.keepAliveFailNotifyAt', String(Date.now()));
+  ctx.notify({
+    title: '中国广电保活失败',
+    body: '已连续 ' + fails + ' 次未能更新套餐数据，凭据可能失效，请打开中国广电 App 查询一次',
+    sound: false,
+  });
+}
+
 async function handleKeepAlive(ctx) {
   const env = ctx && ctx.env ? ctx.env : {};
-  const intervalText = env.cbKeepaliveInterval == null ? '15' : env.cbKeepaliveInterval;
-  const intervalMs = parseKeepAliveInterval(intervalText);
+  const intervalMs = parseKeepAliveInterval(env.cbKeepaliveInterval == null ? '15' : env.cbKeepaliveInterval);
   const forceManual = String(env.CB_KEEPALIVE_FORCE || '').toLowerCase() === 'true';
-  const lastRun = Number(ctx.storage.get(KEY + '.keepAliveLastRun') || 0);
+  const debug = String(env.cbDebug || '').toLowerCase() === 'true';
+  const tag = forceManual ? '手动强制刷新' : '定时保活';
   const now = Date.now();
+  const lastRun = Number(ctx.storage.get(KEY + '.keepAliveLastRun') || 0);
 
-  // 定时任务按用户设定的间隔节流；独立手动刷新入口不受此限制。
-  if (!forceManual && lastRun && now - lastRun < intervalMs) {
-    // 正常的间隔节流属于预期行为，静默跳过，避免 Cron 每分钟重复刷日志。
-    return;
-  }
+  // 1) 按用户设置的间隔节流；手动强制入口不受限。
+  if (!forceManual && lastRun && now - lastRun < intervalMs) return;
 
+  // 2) 未捕获凭据：日志每 6 小时最多一条，避免 cron 每分钟刷屏。
   const access = ctx.storage.get(KEY + '.access');
   const data = ctx.storage.getJSON(KEY + '.data');
-
   if (!access || data == null) {
-    console.log('[ChinaBroadnet] 保活/刷新跳过：尚未捕获有效凭据');
+    const lastSkip = Number(ctx.storage.get(KEY + '.keepAliveSkipLoggedAt') || 0);
+    if (!lastSkip || now - lastSkip > 6 * 60 * 60 * 1000) {
+      ctx.storage.set(KEY + '.keepAliveSkipLoggedAt', String(now));
+      console.log('[ChinaBroadnet] 保活跳过：尚未捕获有效凭据（每 6 小时提示一次）');
+    }
     return;
   }
 
-  // 记录本轮尝试时间，避免网络失败时定时任务每分钟重复请求。
+  // 3) 数据 2 分钟内刚更新过（用户正在看组件或刚刷新），本轮不必再打接口。
+  const lastUpdated = Number((ctx.storage.getJSON(KEY + '.datasource') || {}).updatedAt || 0);
+  if (!forceManual && lastUpdated && now - lastUpdated < 2 * 60 * 1000) {
+    if (debug) console.log('[ChinaBroadnet] 保活跳过：数据 2 分钟内刚更新过');
+    return;
+  }
+
+  // 4) 连续失败按指数退避，最长 60 分钟，避免凭据失效后每轮都打接口。
+  const failCount = Number(ctx.storage.get(KEY + '.keepAliveFailCount') || 0);
+  if (!forceManual && failCount > 0) {
+    const backoff = Math.min(intervalMs * Math.pow(2, failCount), 60 * 60 * 1000);
+    if (lastRun && now - lastRun < backoff) {
+      if (debug) {
+        console.log('[ChinaBroadnet] 保活退避中：连续失败 ' + failCount +
+          ' 次，下次至少 ' + Math.round(backoff / 60000) + ' 分钟后');
+      }
+      return;
+    }
+  }
+
+  const previousLastRun = ctx.storage.get(KEY + '.keepAliveLastRun');
   ctx.storage.set(KEY + '.keepAliveLastRun', String(now));
 
   try {
-    const res = await loadData(ctx, true);
-    if (res && res.data && !res.data.stale && !res.fromCache) {
-      console.log('[ChinaBroadnet] ' + (forceManual ? '手动强制刷新' : '定时保活') +
-        '成功：已请求套餐接口并写入最新套餐数据');
-    } else {
-      console.log('[ChinaBroadnet] ' + (forceManual ? '手动强制刷新' : '定时保活') +
-        '已执行，但数据未完全更新；请查看 API 响应诊断日志');
+    const res = await refreshNow(ctx, forceManual ? 'manual' : 'keepalive', {
+      force: true,
+      bypassThrottle: forceManual,
+    });
+    // 命中断流/缓存（15 秒内刚有刷新）不算失败，也不占用本轮间隔。
+    if (res && res.skipped) {
+      if (previousLastRun) ctx.storage.set(KEY + '.keepAliveLastRun', String(previousLastRun));
+      else ctx.storage.delete(KEY + '.keepAliveLastRun');
+      if (debug) console.log('[ChinaBroadnet] ' + tag + '跳过：刚刚已有刷新进行中');
+      return;
     }
+    const ok = res && res.data && !res.data.stale && !res.fromCache;
+    if (ok) {
+      if (failCount > 0) ctx.storage.delete(KEY + '.keepAliveFailCount');
+      if (debug) console.log('[ChinaBroadnet] ' + tag + '成功：已写入最新套餐数据');
+      return;
+    }
+    registerKeepAliveFailure(ctx, res && res.data ? '数据未完全更新（可开启 cbDebug 查看详情）' : '接口未返回数据');
   } catch (e) {
-    console.log('[ChinaBroadnet] 保活/刷新请求异常: ' + String(e && e.message || e));
+    registerKeepAliveFailure(ctx, String((e && e.message) || e));
   }
 }
 
@@ -1040,6 +1106,12 @@ function header(title, ds, fromCache, mediumInset) {
   };
 }
 
+// 数据是缓存/过期时尽快重渲染，让后台刷新的结果尽快呈现；正常数据维持 15 分钟。
+function nextRefreshAfter(ds) {
+  const delay = ds && ds.stale ? 2 * 60 * 1000 : 15 * 60 * 1000;
+  return new Date(Date.now() + delay).toISOString();
+}
+
 function buildSmall(title, ds, fromCache) {
   const dur = ds.captureDuration ? ' · ' + ds.captureDuration : '';
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
@@ -1057,7 +1129,7 @@ function buildSmall(title, ds, fromCache) {
     padding: [13, 13],
     gap: 6,
     backgroundColor: '#00000000',
-    refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    refreshAfter: nextRefreshAfter(ds),
     children: [
       {
         type: 'stack',
@@ -1282,7 +1354,7 @@ function buildMedium(title, ds, fromCache) {
     padding: [12, 14],
     gap: 6,
     backgroundColor: { light: '#F4F7FB', dark: '#161B22' },
-    refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    refreshAfter: nextRefreshAfter(ds),
     children: [
       header(title, ds, fromCache, true),
       row,
@@ -1346,7 +1418,7 @@ function buildLarge(title, ds, fromCache) {
     padding: [16, 17],
     gap: 9,
     backgroundColor: '#00000000',
-    refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    refreshAfter: nextRefreshAfter(ds),
     children: [
       header(title, ds, fromCache),
       {
@@ -1607,7 +1679,7 @@ function buildError(title, message) {
 }
 
 async function handleWidget(ctx) {
-  const result = await loadData(ctx);
+  const result = await loadData(ctx, { reason: 'render' });
 
   if (!result.configured) {
     return buildError(
