@@ -1,5 +1,5 @@
 name: 中国联通小组件
-description: 打开中国联通 App 余量页或微信「余量查询」页查询一次即可自动读取｜更新时间：2026-11-02 23:33（北京时间）
+description: 打开中国联通 App 余量页或微信「余量查询」页查询一次即可自动读取｜更新时间：2026-11-03 00:04（北京时间）
 author: iBL3ND
 homepage: https://github.com/moyuzaime/egern/tree/main/ChinaUnicom
 icon: https://iili.io/nEuB6Jt.png
@@ -9,6 +9,8 @@ compat_arguments:
   cuCaptureNotice: 'true'
   cuPlanNotice: 'true'
   cuMiniCapture: 'true'
+  cuGeneralFlow: 'true'
+  cuDirectionalFlow: 'true'
 
 compat_arguments_schema:
   cuCapture:
@@ -21,6 +23,20 @@ compat_arguments_schema:
   cuMiniCapture:
     name: 微信小程序数据抓取
     description: 监听微信「中国联通」小程序的首页接口与「余量查询」页（mina / mxx），解析通用流量、其他流量、语音及账户余额/本月消费/结转/欠费。关闭后不解析小程序响应
+    default_value: 'true'
+    options:
+      - 'true'
+      - 'false'
+  cuGeneralFlow:
+    name: 显示通用流量
+    description: 流量统计包含通用流量（关闭则只统计定向流量）
+    default_value: 'true'
+    options:
+      - 'true'
+      - 'false'
+  cuDirectionalFlow:
+    name: 显示定向流量
+    description: 流量统计包含定向流量，并单独显示一行定向余量（关闭则只统计通用流量）
     default_value: 'true'
     options:
       - 'true'
@@ -51,6 +67,8 @@ scriptings:
         cuCaptureNotice: '{{{cuCaptureNotice}}}'
         cuPlanNotice: '{{{cuPlanNotice}}}'
         cuMiniCapture: '{{{cuMiniCapture}}}'
+        cuGeneralFlow: '{{{cuGeneralFlow}}}'
+        cuDirectionalFlow: '{{{cuDirectionalFlow}}}'
 
   - http_request:
       name: 中国联通 App 请求侦察

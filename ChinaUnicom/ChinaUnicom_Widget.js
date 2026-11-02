@@ -26,6 +26,111 @@ const API_URL =
 
 // 微信小程序「中国联通」首页大球接口。返回结构与 App 的 queryUserInfoSeven 同构，
 // 因此响应体可以直接复用 parseUnicomData 解析（协议来源见 README）。
+// 流量明细接口（通用/定向分项）。参考 IBL3ND/module 的做法：App 侧 POST + Cookie 即可，不依赖小程序。
+const FLOW_DETAIL_URL =
+  'https://m.client.10010.com/servicequerybusiness/operationservice/queryOcsPackageFlowLeftContentRevisedInJune';
+
+// 明细里按这些容器取子项（容器名参与「免流流量」判定）
+const FLOW_CONTAINERS = {
+  resources: '通用流量',
+  RzbResources: '日租宝',
+  MlResources: '免流流量',
+  XsbResources: '限时流量',
+};
+
+// 定向（免流）判定：命中任一即为定向，其余计入通用
+function isDirectionalFlowItem(item, containerName) {
+  const code = String((item && item.addupItemCode) || '');
+  const name = String((item && item.addUpItemName) || '');
+  const fee = String((item && item.feePolicyName) || '');
+  return code === '40008' ||
+    name === '套餐内专享免费流量' ||
+    containerName === '免流流量' ||
+    /（免流）|畅视/.test(fee);
+}
+
+// 把明细响应整理成组件用的结构（单位 MB）
+function parseDetailFlow(body) {
+  const num = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  let gR = 0, gT = 0, gU = 0, dR = 0, dT = 0, dU = 0;
+  let percent = null;
+  let voiceRemain = null;
+  let smsRemain = null;
+
+  for (const key of Object.keys(FLOW_CONTAINERS)) {
+    const list = body[key];
+    if (!Array.isArray(list)) continue;
+    for (const res of list) {
+      const details = res && res.details;
+      if (!Array.isArray(details)) continue;
+      for (const item of details) {
+        const remain = Math.max(0, num(item && item.remain));
+        const total = Math.max(0, num(item && item.total));
+        const used = Math.max(0, num(item && item.use));
+        if (isDirectionalFlowItem(item, FLOW_CONTAINERS[key])) {
+          dR += remain; dT += total; dU += used;
+        } else {
+          gR += remain; gT += total; gU += used;
+        }
+        if (percent == null && item && item.usedPercent != null) {
+          const p = num(item.usedPercent);
+          if (p) percent = Math.min(1, Math.max(0, p / 100));
+        }
+      }
+    }
+  }
+
+  for (const res of Array.isArray(body.resources) ? body.resources : []) {
+    const type = String((res && res.type) || '').toLowerCase();
+    if (type === 'voice' && voiceRemain == null) voiceRemain = num(res.remainResource);
+    if (type === 'smslist' && smsRemain == null) smsRemain = num(res.remainResource);
+  }
+
+  let otherUsedMB = 0;
+  for (const row of body.flowSumList || []) {
+    if (String(row && row.flowtype) === '3') otherUsedMB += num(row.xusedvalue);
+  }
+
+  const directional = (dR + dT + dU) > 0 ? { usedMB: dU, remainMB: dR, totalMB: dT } : null;
+  const percentFromTotals = (gU + dU) > 0 ? Math.min(1, (gU + dU) / Math.max(1, gU + dU + gR + dR)) : null;
+
+  return {
+    ts: Date.now(),
+    packageName: body.packageName ? String(body.packageName) : '',
+    time: body.time ? String(body.time) : '',
+    remainMB: gR,
+    usedMB: gU,
+    totalMB: gT || null,
+    percent: percent != null ? percent : percentFromTotals,
+    otherUsedMB,
+    general: { usedMB: gU, remainMB: gR, totalMB: gT },
+    directional,
+    voiceRemain,
+    smsRemain,
+  };
+}
+
+// 主动拉一次明细：App 侧 POST，带 Cookie 即可
+async function fetchFlowDetail(ctx, cookie) {
+  const resp = await ctx.http.post(FLOW_DETAIL_URL, {
+    timeout: 5000,
+    headers: {
+      Cookie: cookie,
+      'User-Agent': 'ChinaUnicom.x CFNetwork iOS/16.3',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: '',
+    credentials: 'omit',
+  });
+  if (!resp || resp.status !== 200) throw new Error('HTTP ' + (resp ? resp.status : 'no-response'));
+  const body = await resp.json();
+  if (!body || String(body.code) !== '0000') throw new Error('code ' + String(body && body.code));
+  return parseDetailFlow(body);
+}
+
 const MINI_API_PATH = '/wxapplet/weixinNew/';
 const MINI_API_BASE = 'https://mina.10010.com' + MINI_API_PATH;
 const MINI_SSP_BIGBALL = MINI_API_BASE + 'sspbigball';
@@ -553,6 +658,15 @@ async function loadData(ctx) {
     const { ds, flowDisplay } = buildDataSource(ctx, parsed, raw, captureDuration);
     ctx.storage.setJSON('unicom_datasource', ds);
     ctx.storage.delete('unicom_authFail');
+    // 流量明细（通用/定向分项）：15 分钟内不重复拉，失败静默降级
+    try {
+      const prevDetail = ctx.storage.getJSON('unicom_flowdetail');
+      if (!prevDetail || !prevDetail.ts || Date.now() - Number(prevDetail.ts) > 15 * 60 * 1000) {
+        ctx.storage.setJSON('unicom_flowdetail', await fetchFlowDetail(ctx, cookie));
+      }
+    } catch (e) {
+      console.log('[ChinaUnicom] 流量明细获取失败: ' + String((e && e.message) || e));
+    }
     const captureTime = String(ctx.storage.get('unicom_captureTime') || '');
     const notifiedCaptureTime = String(ctx.storage.get('unicom_notifiedCaptureTime') || '');
     if (captureTime && captureTime !== notifiedCaptureTime) {
@@ -735,7 +849,10 @@ function heroFlowCard(ds, cardHeight, cardFlex, isMedium) {
   const total = ds.plan && ds.plan.total != null ? formatFlow(ds.plan.total) : null;
   const used = ds.plan && ds.plan.used != null ? formatFlow(ds.plan.used) : null;
   const compactFlowDetail = !cardHeight
-    ? '总量 ' + (total ? total.number + ' ' + total.unit : '--') + ' · 已用 ' + (used ? used.number + ' ' + used.unit : '--')
+    ? '总量 ' + (total ? total.number + ' ' + total.unit : '--') + ' · 已用 ' + (used ? used.number + ' ' + used.unit : '--') +
+      (ds.directional && ds.directional.remain
+        ? ' · 定向 ' + ds.directional.remain.number + ' ' + ds.directional.remain.unit
+        : '')
     : '';
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const flowStyle = flowStatus(p);
@@ -917,7 +1034,7 @@ function buildSmall(title, ds, fromCache) {
             gap: 2,
             flex: 1,
             children: [
-              t(ds.otherUsedMB != null ? '通用流量' : '剩余流量', 9, 'medium', C.sub),
+              t(ds.flow && ds.flow.title ? ds.flow.title : '剩余流量', 9, 'medium', C.sub),
               {
                 type: 'stack',
                 direction: 'row',
@@ -1210,7 +1327,7 @@ function buildLarge(title, ds, fromCache) {
                 gap: 5,
                 children: [
                   { type: 'image', src: 'sf-symbol:chart.pie.fill', width: 13, height: 13, color: C.flow },
-                  t(ds.otherUsedMB != null ? '通用流量' : '剩余流量', 10, 'semibold', C.sub),
+                  t(ds.flow && ds.flow.title ? ds.flow.title : '剩余流量', 10, 'semibold', C.sub),
                   { type: 'spacer' },
                   t(p != null ? Math.round((1 - p) * 100) + '% 剩余' : '套餐流量', 9, 'semibold', flowStyle.color),
                 ],
@@ -1252,6 +1369,10 @@ function buildLarge(title, ds, fromCache) {
                 (ds.otherUsedMB != null
                   ? '  ·  其他 ' + formatFlow(ds.otherUsedMB * 1024).number + ' ' + formatFlow(ds.otherUsedMB * 1024).unit
                   : ''), 9, 'medium', C.sub, { minScale: 0.55 }),
+              ...(ds.directional && (ds.directional.remain || ds.directional.used)
+                ? [t('定向流量 ' + (ds.directional.remain ? '剩余 ' + ds.directional.remain.number + ' ' + ds.directional.remain.unit : '') +
+                    (ds.directional.used ? (ds.directional.remain ? ' · ' : '') + '已用 ' + ds.directional.used.number + ' ' + ds.directional.used.unit : ''), 8, 'medium', C.sub, { minScale: 0.6 })]
+                : []),
             ],
           },
           {
@@ -1534,26 +1655,9 @@ async function handleMiniResponse(ctx) {
       const voice = pick('voice') || {};
       const sms = pick('smslist') || {};
       const detail = (Array.isArray(flow.details) && flow.details[0]) || {};
-      let otherUsedMB = 0;
-      for (const row of body.flowSumList || []) {
-        if (String(row && row.flowtype) === '3') otherUsedMB += num(row.xusedvalue) || 0;
-      }
-      const remainMB = num(flow.remainResource);
-      const usedMB = num(flow.userResource);
-      const totalMB = num(detail.total);
-      let percent = num(detail.usedPercent);
-      if (percent != null) percent = Math.min(1, Math.max(0, percent / 100));
-      else if (usedMB != null && totalMB) percent = Math.min(1, usedMB / totalMB);
-      ctx.storage.setJSON('unicom_flowdetail', {
-        ts: Date.now(),
-        packageName: String(body.packageName),
-        time: body.time ? String(body.time) : '',
-        remainMB, usedMB, totalMB, percent,
-        otherUsedMB,
-        voiceRemain: num(voice.remainResource),
-        smsRemain: num(sms.remainResource),
-        path: reqUrl.split('?')[0],
-      });
+      const parsed = parseDetailFlow(body);
+
+      ctx.storage.setJSON('unicom_flowdetail', Object.assign(parsed, { path: reqUrl.split('?')[0] }));
       captureDebug('flow detail captured: pkg=' + body.packageName + '; remainMB=' + remainMB);
     } catch (e) {
       captureDebug('flow detail parse failed: ' + e);
@@ -1636,27 +1740,51 @@ async function handleWidget(ctx) {
     );
   }
   const ds = result.data;
+  // 通用/定向显示开关（与参考模块 CU_SHOW_GENERAL_FLOW / CU_SHOW_DIRECTIONAL_FLOW 对应）
+  const showGeneral = !(ctx.env && String(ctx.env.cuGeneralFlow).toLowerCase() === 'false');
+  const showDirectional = !(ctx.env && String(ctx.env.cuDirectionalFlow).toLowerCase() === 'false');
+
   // 账户余额 / 余量明细单独缓存（比大球数据更精确），渲染时实时读取。
   ds.account = ctx.storage.getJSON('unicom_account') || null;
   const fd = ctx.storage.getJSON('unicom_flowdetail') || null;
-  // 余量明细是「某次进入余量查询页」的快照：超过 6 小时就回落到首页大球数据，
-  // 避免很久以前（甚至上个月）的明细盖住正在更新的数据。
+  // 余量明细是快照：超过 6 小时回落到首页大球数据，避免旧数据盖住新数据。
   const fdFresh = Boolean(fd) && Boolean(fd.ts) && Date.now() - Number(fd.ts) < 6 * 60 * 60 * 1000;
-  if (fd && fd.remainMB != null && fdFresh) {
+  if (fd && fdFresh) {
     const toKB = (mb) => (mb == null ? null : Math.round(Number(mb) * 1024));
-    const remainKB = toKB(fd.remainMB);
+    const g = fd.general || null;
+    const d = fd.directional || null;
+    // 两个开关控制「哪些流量参与统计」：默认通用 + 定向一起算
+    const incG = showGeneral ? g : null;
+    const incD = showDirectional ? d : null;
+    const sumRemainMB = (incG && incG.remainMB != null ? incG.remainMB : 0) + (incD && incD.remainMB != null ? incD.remainMB : 0);
+    const sumUsedMB = (incG && incG.usedMB != null ? incG.usedMB : 0) + (incD && incD.usedMB != null ? incD.usedMB : 0);
+    const sumTotalMB = (incG && incG.totalMB != null ? incG.totalMB : 0) + (incD && incD.totalMB != null ? incD.totalMB : 0);
+    const hasSum = Boolean(incG || incD);
+
+    const remainKB = hasSum ? toKB(sumRemainMB) : toKB(fd.remainMB);
     const display = formatFlow(remainKB);
-    ds.flow = { title: '通用流量', number: display.number, unit: display.unit };
+    const flowLabel = hasSum ? (incG && incD ? '流量' : (incD ? '定向流量' : '通用流量')) : '通用流量';
+    ds.flow = { title: flowLabel, number: display.number, unit: display.unit };
     ds.plan = Object.assign({}, ds.plan, {
       remain: remainKB,
-      total: toKB(fd.totalMB),
-      used: toKB(fd.usedMB),
-      percent: fd.percent != null ? fd.percent : (ds.plan ? ds.plan.percent : null),
+      total: hasSum ? (sumTotalMB > 0 ? toKB(sumTotalMB) : null) : toKB(fd.totalMB),
+      used: hasSum ? toKB(sumUsedMB) : toKB(fd.usedMB),
+      percent: hasSum && sumTotalMB > 0
+        ? Math.min(1, sumUsedMB / sumTotalMB)
+        : (fd.percent != null ? fd.percent : (ds.plan ? ds.plan.percent : null)),
     });
     if (fd.voiceRemain != null) ds.voice = { title: '剩余语音', number: String(fd.voiceRemain), unit: '分钟' };
     ds.packageName = fd.packageName;
     ds.otherUsedMB = fd.otherUsedMB;
     ds.detailTime = fd.time;
+    // 定向流量单独展示（关闭「显示定向流量」时连这一行也不出现）
+    if (d && showDirectional && (d.usedMB != null || d.remainMB != null || d.totalMB != null)) {
+      ds.directional = {
+        used: d.usedMB != null ? formatFlow(toKB(d.usedMB)) : null,
+        remain: d.remainMB != null ? formatFlow(toKB(d.remainMB)) : null,
+        total: d.totalMB ? formatFlow(toKB(d.totalMB)) : null,
+      };
+    }
   }
   // 有账户余额时，话费数字用「账户当前可用余额」，比大球口径更准。
   if (ds.account && ds.account.balance != null) {
