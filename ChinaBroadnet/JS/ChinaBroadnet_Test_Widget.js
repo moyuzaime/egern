@@ -27,8 +27,9 @@ const C = {
   glassShadow: { light: '#64748B06', dark: '#00000000' },
 };
 
-// 测试版采用统一的清透磨砂玻璃，避免不同卡片各自铺色造成视觉杂乱。
-const transparentMode = false;
+// 透明模式：默认开启（与正式版一致，避免浅色模式下白底白卡「全白」）。
+// 想回到不透明仪表盘，把模块参数 cbTransparent 设为 false。
+let transparentMode = true;
 
 function readRequestBody(ctx) {
   const req = ctx.request || {};
@@ -1718,6 +1719,9 @@ async function handleWidget(ctx) {
 }
 
 export default async function(ctx) {
+  // 模块参数 cbTransparent=false 时切回不透明仪表盘；默认透明
+  transparentMode = !(ctx && ctx.env && String(ctx.env.cbTransparent).toLowerCase() === 'false');
+
   // 1. HTTP 抓包模式：自动捕获 access 与请求 payload
   if (ctx && ctx.request && ctx.request.url) {
     await capture(ctx);
