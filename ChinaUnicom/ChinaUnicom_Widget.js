@@ -1016,6 +1016,9 @@ function buildSmall(title, ds, fromCache) {
             { type: 'stack', direction: 'row', alignItems: 'end', gap: 2, children: [
               t('¥', 10, 'semibold', C.fee),
               t(ds.fee.number, 18, 'bold', C.txt, { minScale: 0.4 }),
+              ...(ds.account && ds.account.monthCost != null
+                ? [t('本月 ' + Number(ds.account.monthCost).toFixed(2), 7, 'medium', C.sub, { minScale: 0.5 })]
+                : []),
             ]},
           ], { width: 0, flex: 1, height: 48, padding: [7, 7], gap: 4, borderRadius: 15 }),
         ],
@@ -1042,7 +1045,18 @@ function buildMedium(title, ds, fromCache) {
         },
         t('话费', 9, 'medium', C.sub),
         { type: 'spacer' },
-        t('¥' + ds.fee.number, 15, 'bold', C.txt, { minScale: 0.6 }),
+        {
+          type: 'stack',
+          direction: 'column',
+          alignItems: 'end',
+          gap: 0,
+          children: [
+            t('¥' + ds.fee.number, 15, 'bold', C.txt, { minScale: 0.6 }),
+            ...(ds.account && ds.account.monthCost != null
+              ? [t('本月 ' + Number(ds.account.monthCost).toFixed(2), 7, 'medium', C.sub, { minScale: 0.5 })]
+              : []),
+          ],
+        },
       ],
     },
   ], {
@@ -1272,6 +1286,9 @@ function buildLarge(title, ds, fromCache) {
                 t('¥' + ds.fee.number, 21, 'bold', C.txt, { minScale: 0.5 }),
                 t('元', 9, 'medium', C.sub),
               ]},
+              ...(ds.account && ds.account.monthCost != null
+                ? [t('本月 ¥' + Number(ds.account.monthCost).toFixed(2), 8, 'medium', C.sub, { minScale: 0.6, maxLines: 1 })]
+                : []),
             ],
           },
           {
@@ -1330,6 +1347,23 @@ function buildLarge(title, ds, fromCache) {
               t((fromCache ? '缓存数据 · ' : '最近更新 · ') + fmtTime(ds.updatedAt), 8, 'medium', C.sub),
               { type: 'spacer' },
               t(ds.captureDuration ? '凭据已保持 ' + ds.captureDuration : (fromCache ? '数据可能过期' : '定时保活中'), 8, 'medium', C.sub),
+              ...(ds.account && ds.account.balance != null
+                ? [{
+                    type: 'stack',
+                    direction: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    children: [
+                      { type: 'image', src: 'sf-symbol:wallet.pass.fill', width: 9, height: 9, color: C.fee },
+                      t('余额 ¥' + Number(ds.account.balance).toFixed(2), 8, 'semibold', C.sub),
+                      t('· 结转 ¥' + (ds.account.carryOver != null ? Number(ds.account.carryOver).toFixed(2) : '--'), 8, 'medium', C.sub),
+                      { type: 'spacer' },
+                      ds.account.owed != null && Number(ds.account.owed) > 0
+                        ? t('欠费 ¥' + Number(ds.account.owed).toFixed(2), 8, 'semibold', C.fee)
+                        : t('无欠费', 8, 'medium', C.sub),
+                    ],
+                  }]
+                : []),
             ],
           },
         ],
@@ -1457,7 +1491,45 @@ async function handleMiniResponse(ctx) {
   }
   if (!body || String(body.code) !== '0000') return;
 
-  const data = body.data;
+  // 小程序有些接口把字段放在响应根层（没有 data 包装），两种都要兼容。
+  const data = body.data && typeof body.data === 'object' ? body.data : body;
+
+  // 账户余额接口：curntbalancecust / canusefeecust / realfeecust 是特征字段
+  if (data !== body && body.curntbalancecust != null) return;
+  if (body.curntbalancecust != null || body.canusefeecust != null) {
+    try {
+      const num = (v) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      };
+      const items = [];
+      try {
+        const groups = Array.isArray(body.realTimeFeeSpecialFlagThree) ? body.realTimeFeeSpecialFlagThree : [];
+        for (const g of groups) {
+          const bill = g && g.bill;
+          if (bill && bill.integrateitem) {
+            items.push({ name: String(bill.integrateitem), fee: num(bill.fee) });
+          }
+        }
+      } catch (e) {}
+      ctx.storage.setJSON('unicom_account', {
+        ts: Date.now(),
+        balance: num(body.curntbalancecust),
+        available: num(body.canusefeecust ?? body.canuseprecust),
+        monthCost: num(body.realfeecust ?? body.totalrealfee ?? body.allbillfee),
+        carryOver: num(body.carryForwardFromLastMonth ?? body.newCarryForwardFromLastMonth ?? body.carryOverArrears),
+        owed: num(body.allbowefeecust ?? body.allboweefee),
+        queryTime: body.queryTime ? String(body.queryTime) : '',
+        items,
+        path: reqUrl.split('?')[0],
+      });
+      captureDebug('account captured: balance=' + body.curntbalancecust + '; path=' + reqUrl.split('?')[0]);
+    } catch (e) {
+      captureDebug('account parse failed: ' + e);
+    }
+    return;
+  }
+
   if (!data || typeof data !== 'object') return;
 
   if (reqUrl.indexOf(MINI_SSP_BIGBALL) === 0 && data.feeResource && data.flowResource && data.voiceResource) {
@@ -1533,6 +1605,9 @@ async function handleWidget(ctx) {
     );
   }
   const ds = result.data;
+  // 账户余额（小程序余额接口）单独缓存，不参与 15 分钟数据缓存，随时可能是最新的。
+  ds.account = ctx.storage.getJSON('unicom_account') || null;
+
   const family = ctx.widgetFamily || 'systemSmall';
   if (family === 'systemMedium') return liquidGlassWidget(buildMedium(title, ds, result.fromCache));
   if (family === 'systemLarge' || family === 'systemExtraLarge') return liquidGlassWidget(buildLarge(title, ds, result.fromCache));
