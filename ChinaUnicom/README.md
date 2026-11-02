@@ -6,16 +6,38 @@
 
 | 文件 | 作用 |
 | --- | --- |
-| `ChinaUnicom.yaml` | 主模块：小组件 + 联通 App 抓取（`m.client.10010.com`） |
-| `ChinaUnicom_Widget.js` | 两个模块共用的脚本（generic / http_request / http_response 三种角色） |
-| `ChinaUnicom.Mini.yaml` | 可选模块：微信小程序抓取（`mina.10010.com`），需与主模块一起安装 |
+| `ChinaUnicom.yaml` | 模块：小组件 + 联通 App 抓取 + 微信小程序抓取（已合并，无需再装小程序模块） |
+| `ChinaUnicom_Widget.js` | 脚本，被 `generic` / `http_request` / `http_response` 三种角色共用 |
 
-## 微信小程序抓取
+## 数据来源
 
-- 小程序首页的 `POST /wxapplet/weixinNew/sspbigball` 一次返回话费、流量、语音，字段与 App 接口同名（`feePersent` / `flowPersent` / `voicePersent` / `newUnit` / `dynamic*Title`），所以脚本直接复用了 App 端的解析逻辑。
-- 只做**响应被动解析**，不重放请求：不需要 openid、RSA 加密或任何登录凭据。打开小程序查一次，小组件就会更新。
-- 这个小模块会把 `mina.10010.com` 加进 MITM 列表。如果微信没有信任 Egern 的 CA，小程序可能打不开——此时不要安装小程序模块即可，主模块不受影响。
-- 覆盖范围仅限首页余量（话费/流量/语音）。流量/语音的**分项明细**在小程序里走 `mxx.client.10010.com`，需要「微营业厅」Cookie，暂未支持。`sspbalcbroadcast`（可用话费/本月消费/欠费/结转）目前只存档不展示。
+| 来源 | 域名 | 内容 |
+| --- | --- | --- |
+| 联通 App | `m.client.10010.com` | Cookie + `desmobiel`，用于主动查询 `queryUserInfoSeven` |
+| 小程序首页 | `mina.10010.com` | `sspbigball` 大球（话费/流量/语音）、`queryGoodsList` 手机号、`sspbalcbroadcast` 账户总览 |
+| 小程序余量页 | `mxx.client.10010.com` | 通用/其他流量明细、语音与短信余量（字段最全，含使用率、日租宝已用量） |
+| 小程序账户页 | `mina.10010.com` | 账户余额、本月实时话费、月初结转、欠费 |
+
+组件取值优先级：余量明细 > 首页大球；话费优先用「账户当前可用余额」。
+
+## 使用
+
+打开联通 App 的余量/套餐页，或微信「中国联通」小程序的「余量查询」页查询一次即可自动捕获，无需手动填写任何凭据。
+
+模块参数：
+
+| 参数 | 说明 |
+| --- | --- |
+| `cuCapture` | App 抓取开关（关闭后 App 侧不写入数据） |
+| `cuMiniCapture` | 小程序解析开关（关闭后不解析小程序响应） |
+| `cuCaptureNotice` | 捕获成功通知 |
+| `cuPlanNotice` | 套餐查询成功通知 |
+
+## 关于 MITM
+
+模块的 MITM 包含 `m.client.10010.com`、`mina.10010.com`、`mxx.client.10010.com` 三个域名。如果微信没有信任 Egern 的 CA，小程序页面可能加载失败——把 `cuMiniCapture` 关掉只是停止解析，若要让 MITM 也生效不了，需要自行从模块里移除 `mina` / `mxx` 两个域名。
+
+小程序部分只做**响应被动解析**：不重放请求，不需要 openid、RSA 加密或「微营业厅」Cookie。
 
 ## 致谢
 
