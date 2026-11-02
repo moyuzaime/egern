@@ -1011,11 +1011,14 @@ function buildSmall(title, ds, fromCache) {
           glass([
             { type: 'stack', direction: 'row', alignItems: 'center', gap: 3, children: [
               { type: 'image', src: 'sf-symbol:yensign.circle.fill', width: 10, height: 10, color: C.fee },
-              t('剩余话费', 8, 'medium', C.sub),
+              t(ds.account && ds.account.balance != null ? '账户余额' : '剩余话费', 8, 'medium', C.sub),
             ]},
             { type: 'stack', direction: 'row', alignItems: 'end', gap: 2, children: [
               t('¥', 10, 'semibold', C.fee),
               t(ds.fee.number, 18, 'bold', C.txt, { minScale: 0.4 }),
+              ...(ds.account && ds.account.monthCost != null
+                ? [t('本月 ' + Number(ds.account.monthCost).toFixed(2), 7, 'medium', C.sub, { minScale: 0.5 })]
+                : []),
             ]},
           ], { width: 0, flex: 1, height: 48, padding: [7, 7], gap: 4, borderRadius: 15 }),
         ],
@@ -1040,9 +1043,20 @@ function buildMedium(title, ds, fromCache) {
           height: 10,
           color: C.fee,
         },
-        t('话费', 9, 'medium', C.sub),
+        t(ds.account && ds.account.balance != null ? '余额' : '话费', 9, 'medium', C.sub),
         { type: 'spacer' },
-        t('¥' + ds.fee.number, 15, 'bold', C.txt, { minScale: 0.6 }),
+        {
+          type: 'stack',
+          direction: 'column',
+          alignItems: 'end',
+          gap: 0,
+          children: [
+            t('¥' + ds.fee.number, 15, 'bold', C.txt, { minScale: 0.6 }),
+            ...(ds.account && ds.account.monthCost != null
+              ? [t('本月 ' + Number(ds.account.monthCost).toFixed(2), 7, 'medium', C.sub, { minScale: 0.5 })]
+              : []),
+          ],
+        },
       ],
     },
   ], {
@@ -1234,7 +1248,10 @@ function buildLarge(title, ds, fromCache) {
                 ],
               },
               t('总量 ' + (total ? total.number + ' ' + total.unit : '--') +
-                '  ·  已用 ' + (usedFlow ? usedFlow.number + ' ' + usedFlow.unit : '--'), 9, 'medium', C.sub, { minScale: 0.55 }),
+                '  ·  已用 ' + (usedFlow ? usedFlow.number + ' ' + usedFlow.unit : '--') +
+                (ds.otherUsedMB != null
+                  ? '  ·  其他 ' + formatFlow(ds.otherUsedMB * 1024).number + ' ' + formatFlow(ds.otherUsedMB * 1024).unit
+                  : ''), 9, 'medium', C.sub, { minScale: 0.55 }),
             ],
           },
           {
@@ -1266,12 +1283,15 @@ function buildLarge(title, ds, fromCache) {
             children: [
               { type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children: [
                 { type: 'image', src: 'sf-symbol:yensign.circle.fill', width: 12, height: 12, color: C.fee },
-                t('剩余话费', 10, 'medium', C.sub),
+                t(ds.account && ds.account.balance != null ? '账户余额' : '剩余话费', 10, 'medium', C.sub),
               ]},
               { type: 'stack', direction: 'row', alignItems: 'end', gap: 2, children: [
                 t('¥' + ds.fee.number, 21, 'bold', C.txt, { minScale: 0.5 }),
                 t('元', 9, 'medium', C.sub),
               ]},
+              ...(ds.account && ds.account.monthCost != null
+                ? [t('本月 ¥' + Number(ds.account.monthCost).toFixed(2), 8, 'medium', C.sub, { minScale: 0.6 })]
+                : []),
             ],
           },
           {
@@ -1330,6 +1350,23 @@ function buildLarge(title, ds, fromCache) {
               t((fromCache ? '缓存数据 · ' : '最近更新 · ') + fmtTime(ds.updatedAt), 8, 'medium', C.sub),
               { type: 'spacer' },
               t(ds.captureDuration ? '凭据已保持 ' + ds.captureDuration : (fromCache ? '数据可能过期' : '定时保活中'), 8, 'medium', C.sub),
+              ...(ds.account && ds.account.balance != null
+                ? [{
+                    type: 'stack',
+                    direction: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    children: [
+                      { type: 'image', src: 'sf-symbol:wallet.pass.fill', width: 9, height: 9, color: C.fee },
+                      t('余额 ¥' + Number(ds.account.balance).toFixed(2), 8, 'semibold', C.sub),
+                      t('· 结转 ¥' + (ds.account.carryOver != null ? Number(ds.account.carryOver).toFixed(2) : '--'), 8, 'medium', C.sub),
+                      { type: 'spacer' },
+                      ds.account.owed != null && Number(ds.account.owed) > 0
+                        ? t('欠费 ¥' + Number(ds.account.owed).toFixed(2), 8, 'semibold', C.fee)
+                        : t('无欠费', 8, 'medium', C.sub),
+                    ],
+                  }]
+                : []),
             ],
           },
         ],
@@ -1444,7 +1481,8 @@ async function handleMiniResponse(ctx) {
   if (ctx.env && String(ctx.env.cuMiniCapture).toLowerCase() === 'false') return;
 
   const reqUrl = String((ctx.request && ctx.request.url) || '');
-  if (!reqUrl.includes(MINI_API_PATH)) return;
+  // mina：小程序自有接口；mxx：小程序里的「余量查询」webview（字段最全）。
+  if (!reqUrl.includes(MINI_API_PATH) && !reqUrl.includes('mxx.client.10010.com')) return;
 
   const res = ctx.response || {};
   if (Number(res.status) !== 200) return;
@@ -1457,7 +1495,72 @@ async function handleMiniResponse(ctx) {
   }
   if (!body || String(body.code) !== '0000') return;
 
-  const data = body.data;
+  // 小程序有些接口把字段放在响应根层（没有 data 包装），两种都要兼容。
+  const data = body.data && typeof body.data === 'object' ? body.data : body;
+
+  // ① 账户余额接口：curntbalancecust / canusefeecust
+  if (body.curntbalancecust != null || body.canusefeecust != null) {
+    try {
+      const num = (v) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      };
+      ctx.storage.setJSON('unicom_account', {
+        ts: Date.now(),
+        balance: num(body.curntbalancecust),
+        available: num(body.canusefeecust ?? body.canuseprecust),
+        monthCost: num(body.realfeecust ?? body.totalrealfee ?? body.allbillfee),
+        carryOver: num(body.carryForwardFromLastMonth ?? body.newCarryForwardFromLastMonth ?? body.carryOverArrears),
+        owed: num(body.allbowefeecust),
+        queryTime: body.queryTime ? String(body.queryTime) : '',
+        path: reqUrl.split('?')[0],
+      });
+      captureDebug('account captured: balance=' + body.curntbalancecust);
+    } catch (e) {
+      captureDebug('account parse failed: ' + e);
+    }
+    return;
+  }
+
+  // ② 余量查询接口：packageName + resources（flow/voice/sms）+ flowSumList
+  if (body.packageName && Array.isArray(body.resources)) {
+    try {
+      const num = (v) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      };
+      const pick = (type) => body.resources.find(r => String(r && r.type).toLowerCase() === type) || null;
+      const flow = pick('flow') || {};
+      const voice = pick('voice') || {};
+      const sms = pick('smslist') || {};
+      const detail = (Array.isArray(flow.details) && flow.details[0]) || {};
+      let otherUsedMB = 0;
+      for (const row of body.flowSumList || []) {
+        if (String(row && row.flowtype) === '3') otherUsedMB += num(row.xusedvalue) || 0;
+      }
+      const remainMB = num(flow.remainResource);
+      const usedMB = num(flow.userResource);
+      const totalMB = num(detail.total);
+      let percent = num(detail.usedPercent);
+      if (percent != null) percent = Math.min(1, Math.max(0, percent / 100));
+      else if (usedMB != null && totalMB) percent = Math.min(1, usedMB / totalMB);
+      ctx.storage.setJSON('unicom_flowdetail', {
+        ts: Date.now(),
+        packageName: String(body.packageName),
+        time: body.time ? String(body.time) : '',
+        remainMB, usedMB, totalMB, percent,
+        otherUsedMB,
+        voiceRemain: num(voice.remainResource),
+        smsRemain: num(sms.remainResource),
+        path: reqUrl.split('?')[0],
+      });
+      captureDebug('flow detail captured: pkg=' + body.packageName + '; remainMB=' + remainMB);
+    } catch (e) {
+      captureDebug('flow detail parse failed: ' + e);
+    }
+    return;
+  }
+
   if (!data || typeof data !== 'object') return;
 
   if (reqUrl.indexOf(MINI_SSP_BIGBALL) === 0 && data.feeResource && data.flowResource && data.voiceResource) {
@@ -1533,6 +1636,30 @@ async function handleWidget(ctx) {
     );
   }
   const ds = result.data;
+  // 账户余额 / 余量明细单独缓存（比大球数据更精确），渲染时实时读取。
+  ds.account = ctx.storage.getJSON('unicom_account') || null;
+  const fd = ctx.storage.getJSON('unicom_flowdetail') || null;
+  if (fd && fd.remainMB != null) {
+    const toKB = (mb) => (mb == null ? null : Math.round(Number(mb) * 1024));
+    const remainKB = toKB(fd.remainMB);
+    const display = formatFlow(remainKB);
+    ds.flow = { title: '通用流量', number: display.number, unit: display.unit };
+    ds.plan = Object.assign({}, ds.plan, {
+      remain: remainKB,
+      total: toKB(fd.totalMB),
+      used: toKB(fd.usedMB),
+      percent: fd.percent != null ? fd.percent : (ds.plan ? ds.plan.percent : null),
+    });
+    if (fd.voiceRemain != null) ds.voice = { title: '剩余语音', number: String(fd.voiceRemain), unit: '分钟' };
+    ds.packageName = fd.packageName;
+    ds.otherUsedMB = fd.otherUsedMB;
+    ds.detailTime = fd.time;
+  }
+  // 有账户余额时，话费数字用「账户当前可用余额」，比大球口径更准。
+  if (ds.account && ds.account.balance != null) {
+    ds.fee = { title: '账户余额', number: Number(ds.account.balance).toFixed(2), unit: '元' };
+  }
+
   const family = ctx.widgetFamily || 'systemSmall';
   if (family === 'systemMedium') return liquidGlassWidget(buildMedium(title, ds, result.fromCache));
   if (family === 'systemLarge' || family === 'systemExtraLarge') return liquidGlassWidget(buildLarge(title, ds, result.fromCache));
