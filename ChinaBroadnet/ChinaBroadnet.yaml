@@ -1,5 +1,5 @@
 name: 中国广电小组件
-description: 中国广电 话费 语音 流量小组件（App、微信、支付宝自动捕获）｜更新时间：2026-11-02 22:30（北京时间）｜优化版：保活失败退避+提醒、缓存过期时 2 分钟重渲染、历史采样 96 点、脚本更新间隔 21600 秒
+description: 中国广电 话费 语音 流量小组件（App、微信、支付宝自动捕获）｜更新时间：2026-11-02 22:33（北京时间）｜优化版：保活失败退避+提醒、缓存过期时 2 分钟重渲染、历史采样 96 点、脚本更新间隔 21600 秒
 author: wuhuhuuuu
 icon: https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/03CNSoft/ChinaBroadcastNetwork.png
 
@@ -65,6 +65,7 @@ scriptings:
         CB_KEEPALIVE: 'true'
         CB_KEEPALIVE_FORCE: 'true'
         cbKeepaliveInterval: '{{{cbKeepaliveInterval}}}'
+        cbDebug: '{{{cbDebug}}}'
 
   - schedule:
       name: china-broadnet-keepalive-schedule
@@ -75,6 +76,7 @@ scriptings:
       env:
         CB_KEEPALIVE: 'true'
         cbKeepaliveInterval: '{{{cbKeepaliveInterval}}}'
+        cbDebug: '{{{cbDebug}}}'
 
   - http_request:
       name: 中国广电 App / 微信 / 支付宝小程序自动捕获
