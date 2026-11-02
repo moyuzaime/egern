@@ -1065,7 +1065,6 @@ function heroFlowCard(ds, cardHeight, cardFlex, isMedium) {
         },
         t('流量主卡', 10, 'semibold', C.txt),
         { type: 'spacer' },
-        t(p != null ? Math.round((1 - p) * 100) + '% 剩余' : '实时套餐', 9, 'semibold', flowStyle.color),
       ],
     },
     flowContent,
@@ -1448,7 +1447,6 @@ function buildLarge(title, ds, fromCache) {
                   { type: 'image', src: 'sf-symbol:chart.pie.fill', width: 13, height: 13, color: C.flow },
                   t('剩余流量', 10, 'semibold', C.sub),
                   { type: 'spacer' },
-                  t(p != null ? Math.round((1 - p) * 100) + '% 剩余' : '套餐流量', 9, 'semibold', flowStyle.color),
                 ],
               },
               {
