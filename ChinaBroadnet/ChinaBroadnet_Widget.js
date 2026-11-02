@@ -6,6 +6,8 @@ const ALIPAY_API_URL = 'https://zfb.10099.com.cn/contact-web/api/busi/qryUserInf
 const SUPPORTED_API_URLS = [API_URL, MINI_API_URL, ALIPAY_API_URL];
 const BLOCKED_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryNeedPaperLess';
 const KEY = 'ChinaBroadnet';
+// 每 25 分钟最多一个采样点，96 个点约覆盖 24 小时，"今日流量"才有完整曲线（原来只留 24 个点）。
+const HISTORY_LIMIT = 96;
 
 const C = {
   // 低饱和环境渐变 + 统一中性色玻璃；主题色只用于图标、关键数字和进度。
@@ -27,22 +29,6 @@ const C = {
 
 // 测试版采用统一的清透磨砂玻璃，避免不同卡片各自铺色造成视觉杂乱。
 const transparentMode = true;
-
-function broadnetBackgroundGradient() {
-  if (transparentMode) return undefined;
-  return {
-    type: 'radial',
-    colors: [
-      { light: '#BFEAFF', dark: '#193B60' },
-      { light: '#E7D9FF', dark: '#3C2E63' },
-      { light: '#C8F7E6', dark: '#174D48' },
-    ],
-    stops: [0, 0.55, 1],
-    center: { x: 0.22, y: 0.12 },
-    startRadius: 0,
-    endRadius: 520,
-  };
-}
 
 function readRequestBody(ctx) {
   const req = ctx.request || {};
@@ -392,7 +378,7 @@ async function fetchData(ctx, access, data, preferredUrl) {
     if (targetUrl.startsWith(BLOCKED_API_URL)) continue;
     try {
       const resp = await ctx.http.post(targetUrl, {
-        timeout: 6000,
+        timeout: 4500,
         headers: {
           access,
           'Content-Type': 'application/json',
@@ -447,8 +433,10 @@ function saveHistory(ctx, flow) {
     if (!last || now - Number(last.ts) >= 25 * 60 * 1000 || Number(last.flowKB) !== n) {
       next.push({ ts: now, flowKB: n });
     }
-    const trimmed = next.slice(-24);
-    ctx.storage.setJSON(KEY + '.history', trimmed);
+    const trimmed = next.slice(-HISTORY_LIMIT);
+    if (JSON.stringify(trimmed) !== JSON.stringify(old)) {
+      ctx.storage.setJSON(KEY + '.history', trimmed);
+    }
     return trimmed;
   } catch (e) {
     return [];
@@ -456,6 +444,9 @@ function saveHistory(ctx, flow) {
 }
 
 async function loadData(ctx, forceRefresh) {
+  // 成功路径的响应结构/业务数值只在模块参数 cbDebug=true 时打印，默认不刷日志。
+  const debug = String((ctx.env && ctx.env.cbDebug) || '').toLowerCase() === 'true';
+  const debugLog = (...args) => { if (debug) console.log(...args); };
   // 关闭抓取时不再主动请求 qryUserInfo，仅展示最后一次成功缓存。
   if (ctx.env && String(ctx.env.cbCapture).toLowerCase() === 'false') {
     const cached = ctx.storage.getJSON(KEY + '.datasource') || null;
@@ -526,7 +517,7 @@ async function loadData(ctx, forceRefresh) {
     const responseUserKeys = responseUser && typeof responseUser === 'object'
       ? Object.keys(responseUser).filter(k => /^(voice|flow|flowUserd|flowAll|voiceAll|voiceUsed|fee|finBalance|packName)$/.test(k))
       : [];
-    console.log(
+    debugLog(
       '[ChinaBroadnet-Hark] API响应诊断[v20261024-1149]: ' +
       'status=' + String(result && result.status) +
       ' | ok=' + String(result && result.ok) +
@@ -669,7 +660,7 @@ async function loadData(ctx, forceRefresh) {
     }
 
     // 直接输出接口已确认的套餐字段，避免依赖递归扫描结果而漏掉字段。
-    console.log(
+    debugLog(
       '[ChinaBroadnet-Hark] 套餐字段探测: ' +
       'userData.voice=' + String(user.voice) +
       ', userData.flowUserd=' + String(user.flowUserd) +
@@ -834,15 +825,6 @@ function gaugeSvg(pct, color, w) {
     encodeURIComponent(
       `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${w} ${h}'>${body}</svg>`
     );
-}
-
-function historyDeltaText(history) {
-  const vals = (history || []).map(x => Number(x.flowKB)).filter(Number.isFinite);
-  if (vals.length < 2) return '采集中';
-  const delta = vals[vals.length - 1] - vals[vals.length - 2];
-  if (Math.abs(delta) < 1) return '余量基本稳定';
-  const f = formatFlow(Math.abs(delta));
-  return (delta < 0 ? '较上次减少 ' : '较上次增加 ') + f.number + ' ' + f.unit;
 }
 
 function flowStatus(pct) {
@@ -1056,80 +1038,6 @@ function header(title, ds, fromCache, mediumInset) {
       }),
     ],
   };
-}
-
-function feeCard(ds) {
-  const low = Number(ds.fee.number) < 10;
-  return glass([
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'center',
-      gap: 4,
-      children: [
-        {
-          type: 'image',
-          src: 'sf-symbol:yensign.circle.fill',
-          width: 11,
-          height: 11,
-          color: low ? '#C4475B' : C.fee,
-        },
-        t('剩余话费', 9, 'medium', C.sub),
-      ],
-    },
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'end',
-      gap: 2,
-      children: [
-        t('¥', 13, 'semibold', low ? '#C4475B' : C.fee),
-        t(ds.fee.number, 24, 'bold', low ? '#C4475B' : C.txt, {
-          minScale: 0.62,
-        }),
-      ],
-    },
-  ], {
-    alignItems: 'center',
-    padding: [7, 8],
-    borderRadius: 18,
-    height: 70,
-    gap: 5,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFCD9', dark: '#172638D9' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
-  });
-}
-function dataCard(icon, color, title, value, unit, detail) {
-  return glass([
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'center',
-      gap: 3,
-      children: [
-        { type: 'image', src: 'sf-symbol:' + icon, width: 10, height: 10, color },
-        t(title, 9, 'medium', C.sub),
-      ],
-    },
-    {
-      type: 'stack',
-      direction: 'row',
-      alignItems: 'end',
-      gap: 2,
-      children: [
-        t(value, 20, 'bold', C.txt, { minScale: 0.4 }),
-        t(unit, 9, 'semibold', C.sub),
-      ],
-    },
-    ...(detail ? [t(detail, 8, 'medium', C.sub, { minScale: 0.6 })] : []),
-  ], {
-    padding: [7, 8],
-    borderRadius: 18,
-    height: 70,
-    gap: 3,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFCD9', dark: '#172638D9' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
-  });
 }
 
 function buildSmall(title, ds, fromCache) {
@@ -1748,7 +1656,7 @@ export default async function(ctx) {
   try {
     const widget = await handleWidget(ctx || {});
     if (widget && widget.type === 'widget') return widget;
-    return buildError('中国广电', '组件返回内容异常，请刷新测试版模块');
+    return buildError('中国广电', '组件返回内容异常，请刷新模块');
   } catch (e) {
     return buildError('中国广电', '组件渲染异常：' + String(e && e.message ? e.message : e).slice(0, 80));
   }
