@@ -913,12 +913,14 @@ function trendStrip(ds) {
       alignItems: 'center',
       gap: 6,
       children: [
-        {
-          type: 'image',
-          src: historySvg(today.history, C.flow, 100, 30),
-          width: 72,
-          height: 22,
-        },
+        ...(used
+          ? [{
+              type: 'image',
+              src: historySvg(today.history, C.flow, 100, 30),
+              width: 72,
+              height: 22,
+            }]
+          : []),
         {
           type: 'stack',
           direction: 'column',
@@ -930,7 +932,7 @@ function trendStrip(ds) {
             t(today.label, 8, 'medium', C.sub, { minScale: 0.65 }),
           ],
         },
-        t(used ? used.number + ' ' + used.unit : '采集中', 9, 'bold', C.flow, { minScale: 0.7 }),
+        ...(used ? [t(used.number + ' ' + used.unit, 9, 'bold', C.flow, { minScale: 0.7 })] : []),
       ],
     },
   ], {
@@ -947,7 +949,8 @@ function historySvg(history, color, w, h) {
   const vals = (history || []).map(x => Number(x.flowKB)).filter(Number.isFinite).slice(-12);
   const baseline = h - 2;
   const empty = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${w} ${h}'><path d='M 2 ${baseline} H ${w-2}' stroke='${color}' stroke-opacity='.22' stroke-width='1.5' stroke-linecap='round' stroke-dasharray='3 4'/></svg>`;
-  if (!vals.length) return 'data:image/svg+xml,' + encodeURIComponent(empty);
+  // 只有一个采样点时会变成一根满高柱子（看起来像实心方块），直接退回虚线基线
+  if (vals.length < 2) return 'data:image/svg+xml,' + encodeURIComponent(empty);
 
   const max = Math.max(1, ...vals);
   const padX = Math.min(3, w * 0.025);
@@ -1557,15 +1560,17 @@ function buildLarge(title, ds, fromCache) {
               { type: 'image', src: 'sf-symbol:chart.bar.fill', width: 10, height: 10, color: C.flow },
               t('今日流量使用', 10, 'semibold', C.txt),
               { type: 'spacer' },
-              t(todayUsed ? todayUsed.number + ' ' + todayUsed.unit : '采集中', 10, 'bold', C.flow),
+              ...(todayUsed ? [t(todayUsed.number + ' ' + todayUsed.unit, 10, 'bold', C.flow)] : []),
             ],
           },
-          {
-            type: 'image',
-            src: historySvg(today.history.map(x => ({ flowKB: x.flowKB })), C.flow, 270, 38),
-            width: 270,
-            height: 38,
-          },
+          ...(todayUsed
+            ? [{
+                type: 'image',
+                src: historySvg(today.history.map(x => ({ flowKB: x.flowKB })), C.flow, 270, 38),
+                width: 270,
+                height: 38,
+              }]
+            : []),
           t(today.label, 8, 'medium', C.sub),
           {
             type: 'stack',
@@ -1574,7 +1579,7 @@ function buildLarge(title, ds, fromCache) {
             gap: 4,
             children: [
               { type: 'image', src: 'sf-symbol:clock', width: 9, height: 9, color: C.sub },
-              t((fromCache ? '缓存数据 · ' : '最近更新 · ') + fmtTime(ds.updatedAt), 8, 'medium', C.sub),
+              t(fromCache ? '缓存数据' : '实时数据', 8, 'medium', C.sub),
               { type: 'spacer' },
               t(ds.captureDuration ? '凭据已保持 ' + ds.captureDuration : (fromCache ? '数据可能过期' : '定时保活中'), 8, 'medium', C.sub),
             ],
