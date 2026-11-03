@@ -904,7 +904,8 @@ function flowStatus(pct) {
   const p = Number(pct);
   if (p >= 0.9) return { color: '#C4475B', label: '用量偏高' };
   if (p >= 0.7) return { color: C.fee, label: '注意余量' };
-  return { color: C.voice, label: '用量正常' };
+  // 用量正常与「无使用率数据」统一用蓝色，避免同一仪表盘出现两种主色
+  return { color: C.flow, label: '用量正常' };
 }
 
 function trendStrip(ds) {
