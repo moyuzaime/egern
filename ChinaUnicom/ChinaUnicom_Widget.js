@@ -643,7 +643,8 @@ async function loadData(ctx) {
     // 连续两次鉴权失败才提示，避免接口偶发异常时误报。
     cached.authFailed = Number(ctx.storage.get('unicom_authFail') || 0) >= 2;
     const ts = captureTsOf(ctx);
-    cached.captureDuration = ts > 0 ? formatDuration(Date.now() - ts) : '';
+    // 冻结在数据生成时刻：数据过期后「凭据保持」不再随时间增长
+    cached.captureDuration = ts > 0 ? formatDuration(Math.max(0, Number(cached.updatedAt || Date.now()) - ts)) : '';
     return cached;
   };
 
@@ -656,7 +657,7 @@ async function loadData(ctx) {
   const fresh = ctx.storage.getJSON('unicom_datasource') || null;
   if (fresh && Number(fresh.updatedAt || 0) > 0 && Date.now() - Number(fresh.updatedAt) < 45000) {
     const ts = captureTsOf(ctx);
-    fresh.captureDuration = ts > 0 ? formatDuration(Date.now() - ts) : '';
+    fresh.captureDuration = ts > 0 ? formatDuration(Math.max(0, Number(fresh.updatedAt || Date.now()) - ts)) : '';
     return { data: fresh, configured: true, error: null, fromCache: false };
   }
 

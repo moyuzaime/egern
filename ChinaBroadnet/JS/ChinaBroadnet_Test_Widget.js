@@ -473,7 +473,8 @@ async function loadData(ctx, options) {
     if (cached) {
       cached.stale = true;
       const ts = Number(ctx.storage.get(KEY + '.captureTime') || 0);
-      cached.captureDuration = ts > 0 ? formatDuration(Date.now() - ts) : '';
+      // 冻结在数据生成时刻：数据过期后「凭据保持」不再随时间增长
+      cached.captureDuration = ts > 0 ? formatDuration(Math.max(0, Number(cached.updatedAt || Date.now()) - ts)) : '';
     }
     return { configured: !!cached, data: cached, fromCache: true, captureDisabled: true };
   }
@@ -486,12 +487,16 @@ async function loadData(ctx, options) {
   const queriedCaptureTime = String(ctx.storage.get(KEY + '.queriedCaptureTime') || '');
   const cachedAt = Number(cachedData && cachedData.updatedAt || 0);
   const cacheAge = cachedAt > 0 ? Date.now() - cachedAt : Number.POSITIVE_INFINITY;
+  // 缓存数据冻结在数据生成时刻，避免数据过期后「凭据保持」还在增长
+  const cachedCaptureDuration = captureTs > 0
+    ? formatDuration(Math.max(0, (cachedAt > 0 ? cachedAt : Date.now()) - captureTs))
+    : '';
   const hasNewCapture = currentCaptureTime && currentCaptureTime !== queriedCaptureTime;
 
   // 15 分钟内且没有新捕获凭据时直接命中新鲜缓存；强制刷新时跳过缓存判断。
   if (!forceRefresh && cachedData && !hasNewCapture && cacheAge >= 0 && cacheAge < CACHE_TTL) {
     cachedData.stale = false;
-    cachedData.captureDuration = captureDuration;
+    cachedData.captureDuration = cachedCaptureDuration;
     return { configured: true, data: cachedData, fromCache: true, skipped: true };
   }
 
@@ -502,7 +507,7 @@ async function loadData(ctx, options) {
   if (!bypassThrottle && cachedData && !hasNewCapture && lastAttemptAt > 0 &&
       attemptAge >= 0 && attemptAge < 15000) {
     cachedData.stale = true;
-    cachedData.captureDuration = captureDuration;
+    cachedData.captureDuration = cachedCaptureDuration;
     return { configured: true, data: cachedData, fromCache: true, skipped: true };
   }
 
@@ -512,7 +517,7 @@ async function loadData(ctx, options) {
     const dataForRefresh = ctx.storage.getJSON(KEY + '.data');
     if (accessForRefresh && dataForRefresh != null) {
       cachedData.stale = true;
-      cachedData.captureDuration = captureDuration;
+      cachedData.captureDuration = cachedCaptureDuration;
       ctx.storage.set(KEY + '.lastAttemptAt', String(Date.now()));
       refreshNow(ctx, 'swr', { force: true, bypassThrottle: true }).catch(e => {
         console.log('[ChinaBroadnet-Hark] 后台静默刷新异常: ' + e);
