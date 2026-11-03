@@ -1006,7 +1006,7 @@ function header(title, ds, fromCache, mediumInset) {
       t(title, 'footnote', 'semibold', C.txt),
       { type: 'spacer' },
       t(`${when}${dur}${ds.authFailed ? ' · 凭据待更新' : ''}`, 9, 'medium', expired ? C.fee : C.sub, {
-        minScale: 0.8,
+        minScale: 0.6,
       }),
     ],
   };
@@ -1512,20 +1512,8 @@ function buildLarge(title, ds, fromCache) {
               t(expired ? '数据已过期' : (ds.captureDuration ? '凭据已保持 ' + ds.captureDuration : ''), 8, 'medium', expired ? C.fee : C.sub),
             ],
           },
-          ...(ds.account && ds.account.balance != null
-            ? [{
-                type: 'stack',
-                direction: 'row',
-                alignItems: 'center',
-                gap: 4,
-                children: [
-                  { type: 'image', src: 'sf-symbol:wallet.pass.fill', width: 9, height: 9, color: C.fee },
-                  { type: 'spacer' },
-                  ds.account.owed != null && Number(ds.account.owed) > 0
-                    ? t('欠费 ¥' + Number(ds.account.owed).toFixed(2), 8, 'semibold', C.fee)
-                    : t('无欠费', 8, 'medium', C.sub),
-                ],
-              }]
+          ...(ds.account && ds.account.owed != null && Number(ds.account.owed) > 0
+            ? [t('欠费 ¥' + Number(ds.account.owed).toFixed(2), 8, 'semibold', C.fee)]
             : []),
         ],
       },
