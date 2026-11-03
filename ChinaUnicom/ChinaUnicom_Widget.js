@@ -510,6 +510,25 @@ function formatDuration(ms) {
   return days + '天' + (remHours > 0 ? remHours + '小时' : '');
 }
 
+// 数据新旧的自然描述（用于「缓存 X 前」），与凭据保持的紧凑格式分开
+function ageText(ms) {
+  if (!Number.isFinite(ms) || ms < 0) return '刚刚';
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return '刚刚';
+  if (min < 60) return min + '分钟';
+  const hours = Math.floor(min / 60);
+  const restMin = min % 60;
+  if (hours < 24) return hours + '小时' + (restMin > 0 ? restMin + '分' : '');
+  const days = Math.floor(hours / 24);
+  const restHours = hours % 24;
+  return days + '天' + (restHours > 0 ? restHours + '小时' : '');
+}
+
+// 凭据保持时间：App 抓取的 captureTime 优先，只抓过小程序时用 miniTime 兜底
+function captureTsOf(ctx) {
+  return Number(ctx.storage.get('unicom_captureTime') || ctx.storage.get('unicom_miniTime') || 0);
+}
+
 function fmtTime(ts) {
   const d = new Date(ts);
   const p = n => String(n).padStart(2, '0');
@@ -623,7 +642,7 @@ async function loadData(ctx) {
     cached.stale = true;
     // 连续两次鉴权失败才提示，避免接口偶发异常时误报。
     cached.authFailed = Number(ctx.storage.get('unicom_authFail') || 0) >= 2;
-    const ts = Number(ctx.storage.get('unicom_captureTime') || 0);
+    const ts = captureTsOf(ctx);
     cached.captureDuration = ts > 0 ? formatDuration(Date.now() - ts) : '';
     return cached;
   };
@@ -636,12 +655,12 @@ async function loadData(ctx) {
   // 主屏 / 锁屏 / 画廊可能在同一轮里各自渲染一次，45 秒内复用同一份数据，避免重复打接口被风控。
   const fresh = ctx.storage.getJSON('unicom_datasource') || null;
   if (fresh && Number(fresh.updatedAt || 0) > 0 && Date.now() - Number(fresh.updatedAt) < 45000) {
-    const ts = Number(ctx.storage.get('unicom_captureTime') || 0);
+    const ts = captureTsOf(ctx);
     fresh.captureDuration = ts > 0 ? formatDuration(Date.now() - ts) : '';
     return { data: fresh, configured: true, error: null, fromCache: false };
   }
 
-  const captureTs = Number(ctx.storage.get('unicom_captureTime') || 0);
+  const captureTs = captureTsOf(ctx);
   const captureDuration = captureTs > 0 ? formatDuration(Date.now() - captureTs) : '';
   const cookie = ctx.storage.get('unicom_cookie') || '';
   const phone = ctx.storage.get('unicom_phone') || '';
@@ -964,6 +983,12 @@ function heroFlowCard(ds, cardHeight, cardFlex, isMedium) {
 
 function header(title, ds, fromCache, mediumInset) {
   const dur = ds.captureDuration ? ' · 凭据保持 ' + ds.captureDuration : '';
+  const staleView = Boolean(ds.stale);
+  const ageMs = ds.updatedAt ? Date.now() - Number(ds.updatedAt) : null;
+  const expired = staleView && ageMs != null && ageMs > 24 * 60 * 60 * 1000;
+  const when = staleView
+    ? '缓存 ' + (ageMs != null ? ageText(ageMs) + '前' : fmtTime(ds.updatedAt))
+    : '更新 ' + fmtTime(ds.updatedAt);
   return {
     type: 'stack',
     direction: 'row',
@@ -980,7 +1005,7 @@ function header(title, ds, fromCache, mediumInset) {
       },
       t(title, 'footnote', 'semibold', C.txt),
       { type: 'spacer' },
-      t(`${fromCache ? '缓存数据' : '更新'} ${fmtTime(ds.updatedAt)}${dur}${ds.authFailed ? ' · 凭据待更新' : ''}`, 9, 'medium', C.sub, {
+      t(`${when}${dur}${ds.authFailed ? ' · 凭据待更新' : ''}`, 9, 'medium', expired ? C.fee : C.sub, {
         minScale: 0.8,
       }),
     ],
@@ -988,6 +1013,9 @@ function header(title, ds, fromCache, mediumInset) {
 }
 
 function buildSmall(title, ds, fromCache) {
+  const staleView = Boolean(ds.stale);
+  const ageMs = ds.updatedAt ? Date.now() - Number(ds.updatedAt) : null;
+  const expired = staleView && ageMs != null && ageMs > 24 * 60 * 60 * 1000;
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const flowStyle = flowStatus(p);
   const remain = ds.flow.number + ' ' + ds.flow.unit;
@@ -1018,7 +1046,9 @@ function buildSmall(title, ds, fromCache) {
           },
           t(title, 12, 'semibold', C.txt),
           { type: 'spacer' },
-          t(`${fromCache ? '缓存 · ' : ''}${fmtTime(ds.updatedAt)}${ds.authFailed ? ' · 凭据待更新' : (ds.captureDuration ? ' · ' + ds.captureDuration : '')}`, 8, 'medium', C.sub, { minScale: 0.5 }),
+          t((staleView && ageMs != null ? '缓存 ' + ageText(ageMs) + '前' : fmtTime(ds.updatedAt)) +
+            (ds.authFailed ? ' · 凭据待更新' : (ds.captureDuration ? ' · ' + ds.captureDuration : '')),
+            8, 'medium', expired ? C.fee : C.sub, { minScale: 0.5 }),
         ],
       },
 
@@ -1284,6 +1314,9 @@ function todayFlowUsage(history) {
 }
 
 function buildLarge(title, ds, fromCache) {
+  const staleView = Boolean(ds.stale);
+  const ageMs = ds.updatedAt ? Date.now() - Number(ds.updatedAt) : null;
+  const expired = staleView && ageMs != null && ageMs > 24 * 60 * 60 * 1000;
   const plan = ds.plan || {};
   const total = plan.total != null ? formatFlow(plan.total) : null;
   const usedFlow = plan.used != null ? formatFlow(plan.used) : null;
@@ -1474,9 +1507,9 @@ function buildLarge(title, ds, fromCache) {
             gap: 4,
             children: [
               { type: 'image', src: 'sf-symbol:clock', width: 9, height: 9, color: C.sub },
-              t(fromCache ? '缓存数据' : '实时数据', 8, 'medium', C.sub),
+              t(staleView ? '缓存 ' + (ageMs != null ? ageText(ageMs) + '前' : '') : '实时数据', 8, 'medium', expired ? C.fee : C.sub),
               { type: 'spacer' },
-              t(ds.captureDuration ? '凭据已保持 ' + ds.captureDuration : (fromCache ? '数据可能过期' : ''), 8, 'medium', C.sub),
+              t(expired ? '数据已过期' : (ds.captureDuration ? '凭据已保持 ' + ds.captureDuration : ''), 8, 'medium', expired ? C.fee : C.sub),
             ],
           },
           ...(ds.account && ds.account.balance != null
@@ -1487,7 +1520,6 @@ function buildLarge(title, ds, fromCache) {
                 gap: 4,
                 children: [
                   { type: 'image', src: 'sf-symbol:wallet.pass.fill', width: 9, height: 9, color: C.fee },
-                  t('结转 ¥' + (ds.account.carryOver != null ? Number(ds.account.carryOver).toFixed(2) : '--'), 8, 'semibold', C.sub),
                   { type: 'spacer' },
                   ds.account.owed != null && Number(ds.account.owed) > 0
                     ? t('欠费 ¥' + Number(ds.account.owed).toFixed(2), 8, 'semibold', C.fee)
