@@ -1769,6 +1769,8 @@ function altWhen(ds) {
 }
 
 function altHeader(title, ds, size) {
+  const dur = ds.captureDuration ? ' · 凭据保持 ' + ds.captureDuration : '';
+  const auth = ds.authFailed ? ' · 凭据待更新' : '';
   return {
     type: 'stack',
     direction: 'row',
@@ -1778,7 +1780,7 @@ function altHeader(title, ds, size) {
       { type: 'image', src: 'sf-symbol:antenna.radiowaves.left.and.right', width: size, height: size, color: C.flow },
       t(title, size, 'semibold', C.txt),
       { type: 'spacer' },
-      t(altWhen(ds), 8, 'medium', C.sub, { minScale: 0.5 }),
+      t(altWhen(ds) + dur + auth, 8, 'medium', C.sub, { minScale: 0.5 }),
     ],
   };
 }
