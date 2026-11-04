@@ -2015,7 +2015,7 @@ function buildIos(family, title, ds) {
   if (voicePct != null) ringItems.push({ pct: voicePct, color: C.green, stroke: large ? 8 : 6 });
   if (!ringItems.length) ringItems.push({ pct: 0, color: C.flow, stroke: large ? 11 : 8 });
 
-  const ringSize = small ? 52 : (large ? 84 : 72);
+  const ringSize = small ? 52 : (large ? 72 : 68);
 
   const feeBlock = {
     type: 'stack', direction: 'column', alignItems: 'center', gap: 0,
@@ -2033,7 +2033,9 @@ function buildIos(family, title, ds) {
 
   const rowOpt = small
     ? { labelSize: 7, valueSize: 10, unitSize: 6.5, pctSize: 6.5, iconSize: 8 }
-    : (large ? { labelSize: 9.5, valueSize: 14, unitSize: 8, pctSize: 9 } : { labelSize: 8.5, valueSize: 12 });
+    : (large
+      ? { labelSize: 10, valueSize: 17, unitSize: 8.5, pctSize: 10, iconSize: 11 }
+      : { labelSize: 9, valueSize: 13, unitSize: 7.5, pctSize: 9, iconSize: 10 });
 
   const rows = [];
   if (!small) {
@@ -2091,9 +2093,10 @@ function buildIos(family, title, ds) {
           direction: 'row',
           alignItems: 'center',
           gap: large ? 14 : 10,
+          ...(large ? { flex: 1 } : {}),
           children: [
             ringCol,
-            { type: 'stack', direction: 'column', gap: large ? 9 : 6, flex: 1, children: rows },
+            { type: 'stack', direction: 'column', gap: large ? 10 : 7, flex: 1, children: rows },
           ],
         },
         altStrip(ds, !large),
