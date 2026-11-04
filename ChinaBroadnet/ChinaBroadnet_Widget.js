@@ -1775,39 +1775,6 @@ function altGauge(pct, color, w) {
   };
 }
 
-// 仪表盘版卡片
-function altCard(opts) {
-  const label = opts.label;
-  const icon = opts.icon;
-  const color = opts.color;
-  const value = opts.value;
-  const unit = opts.unit || '';
-  const pct = opts.pct;
-  const sub = opts.sub;
-  const gaugeW = opts.gaugeW || 40;
-  const children = [
-    {
-      type: 'stack', direction: 'row', alignItems: 'center', gap: 2,
-      children: [
-        { type: 'image', src: icon, width: 9, height: 9, color },
-        t(label, 7.5, 'medium', C.sub, { minScale: 0.55 }),
-      ],
-    },
-  ];
-  if (pct != null) children.push(altGauge(pct, color, gaugeW));
-  children.push({
-    type: 'stack', direction: 'row', alignItems: 'end', gap: 1,
-    children: [t(value, 13, 'bold', C.txt, { minScale: 0.45 })].concat(unit ? [t(unit, 7, 'medium', C.sub)] : []),
-  });
-  if (sub) children.push(t(sub, 6.5, 'medium', C.sub, { minScale: 0.55 }));
-  return {
-    type: 'stack', direction: 'column', alignItems: 'center', gap: 2,
-    flex: 1, padding: [6, 3], borderRadius: 12,
-    backgroundColor: { light: '#FFFFFFB8', dark: '#1E2C3C7A' },
-    children,
-  };
-}
-
 function altStrip(ds, compact) {
   const today = todayFlowUsage(ds.history);
   const used = today.value == null ? null : formatFlow(today.value);
@@ -1816,11 +1783,15 @@ function altStrip(ds, compact) {
   const avg = remain != null ? formatFlow(Math.round(remain / daysLeft)) : null;
   const enough = remain != null && today.value ? Math.max(0, Math.floor(remain / today.value)) : null;
   const children = [
-    { type: 'image', src: historySvg(today.history, C.flow, 90, 20), width: compact ? 44 : 54, height: 16 },
+    { type: 'image', src: historySvg(today.history, C.flow, 90, 20), width: compact ? 38 : 54, height: 16 },
     t('今日 ' + (used ? used.number + ' ' + used.unit : '—'), compact ? 7.5 : 8, 'medium', C.txt, { minScale: 0.55 }),
-    { type: 'spacer' },
   ];
-  if (avg) children.push(t('日均 ' + avg.number + ' ' + avg.unit, 7.5, 'medium', C.sub, { minScale: 0.55 }));
+  if (compact) {
+    children.push({ type: 'spacer' });
+    children.push(t(ds.voice.number + ' ' + ds.voice.unit + '语音', 7.5, 'medium', C.sub, { minScale: 0.5 }));
+  }
+  children.push({ type: 'spacer' });
+  if (avg && !compact) children.push(t('日均 ' + avg.number + ' ' + avg.unit, 7.5, 'medium', C.sub, { minScale: 0.55 }));
   if (enough != null) children.push(t('够用 ' + enough + ' 天 ✓', 7.5, 'semibold', C.green, { minScale: 0.55 }));
   return {
     type: 'stack',
@@ -1834,6 +1805,35 @@ function altStrip(ds, compact) {
   };
 }
 
+// 仪表盘版卡片（尺寸随布局档位变化）
+function altCard(opts) {
+  const gaugeW = opts.gaugeW || 40;
+  const valueSize = opts.valueSize || 13;
+  const labelSize = opts.labelSize || 7.5;
+  const pad = opts.pad || [6, 3];
+  const children = [
+    {
+      type: 'stack', direction: 'row', alignItems: 'center', gap: 2,
+      children: [
+        { type: 'image', src: opts.icon, width: 9, height: 9, color: opts.color },
+        t(opts.label, labelSize, 'medium', C.sub, { minScale: 0.55 }),
+      ],
+    },
+  ];
+  if (opts.pct != null) children.push(altGauge(opts.pct, opts.color, gaugeW));
+  children.push({
+    type: 'stack', direction: 'row', alignItems: 'end', gap: 1,
+    children: [t(opts.value, valueSize, 'bold', C.txt, { minScale: 0.45 })]
+      .concat(opts.unit ? [t(opts.unit, opts.unitSize || 7, 'medium', C.sub)] : []),
+  });
+  if (opts.sub) children.push(t(opts.sub, labelSize - 1 <= 0 ? 6.5 : 6.5, 'medium', C.sub, { minScale: 0.55 }));
+  return {
+    type: 'stack', direction: 'column', alignItems: 'center', gap: 2,
+    flex: 1, padding: pad, borderRadius: 12,
+    backgroundColor: { light: '#FFFFFFB8', dark: '#1E2C3C7A' },
+    children,
+  };
+}
 
 // 大号仪表盘版：今日趋势区
 function dashboardLower(ds) {
@@ -1856,11 +1856,11 @@ function dashboardLower(ds) {
           t(used ? used.number + ' ' + used.unit : '采集中', 10, 'bold', C.flow),
         ],
       },
-      { type: 'image', src: historySvg(today.history, C.flow, 260, 40), width: 260, height: 40 },
+      ...(used ? [{ type: 'image', src: historySvg(today.history, C.flow, 280, 46), width: 280, height: 46 }] : []),
       {
         type: 'stack', direction: 'row', alignItems: 'center', gap: 4,
         children: [
-          t('日均可用 ' + (avg ? avg.number + ' ' + avg.unit : '--'), 8, 'medium', C.sub, { minScale: 0.6 }),
+          t(avg ? '日均可用 ' + avg.number + ' ' + avg.unit : '今日数据采集中', 8, 'medium', C.sub, { minScale: 0.6 }),
           { type: 'spacer' },
           t(enough != null ? '预计够用 ' + enough + ' 天 ✓' : '', 8, 'semibold', C.green, { minScale: 0.6 }),
         ],
@@ -1884,7 +1884,7 @@ function dashAccount(ds) {
   return { type: 'stack', direction: 'row', alignItems: 'center', gap: 5, children };
 }
 
-function dashCards(title, ds) {
+function dashCards(ds, layout) {
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const remain = ds.plan && ds.plan.remain != null ? formatFlow(ds.plan.remain) : null;
   const today = todayFlowUsage(ds.history);
@@ -1897,14 +1897,23 @@ function dashCards(title, ds) {
     ? Math.max(0, Math.min(1, (Number(ds.plan.voiceTotal) - Number(ds.plan.voiceUsed || 0)) / Number(ds.plan.voiceTotal)))
     : null;
 
-  const feeCard = altCard({
+  const size = {
+    gaugeW: layout === 'large' ? 56 : (layout === 'small' ? 30 : 40),
+    valueSize: layout === 'large' ? 18 : 13,
+    unitSize: layout === 'large' ? 8 : 7,
+    labelSize: layout === 'large' ? 9.5 : 7.5,
+    pad: layout === 'large' ? [10, 4] : [6, 3],
+  };
+
+  const feeCard = altCard(Object.assign({}, size, {
     label: ds.fee.title || '剩余话费',
     icon: 'sf-symbol:yensign.circle.fill',
     color: C.fee,
     value: '¥' + ds.fee.number,
+    pct: null,
     sub: '本月剩 ' + daysLeft + ' 天',
-  });
-  const flowCard = altCard({
+  }));
+  const flowCard = altCard(Object.assign({}, size, {
     label: '剩余流量',
     icon: 'sf-symbol:wifi',
     color: C.flow,
@@ -1912,9 +1921,9 @@ function dashCards(title, ds) {
     unit: remain ? remain.unit : (ds.flow && ds.flow.number ? ds.flow.unit : ''),
     pct: p != null ? 1 - Math.max(0, Math.min(1, p)) : 0,
     sub: p != null ? Math.round((1 - Math.max(0, Math.min(1, p))) * 100) + '% 剩余' : '套餐用量',
-  });
+  }));
   const dirCard = ds.directional && ds.directional.remain
-    ? altCard({
+    ? altCard(Object.assign({}, size, {
         label: '定向流量',
         icon: 'sf-symbol:arrow.triangle.branch',
         color: C.cyan,
@@ -1922,8 +1931,8 @@ function dashCards(title, ds) {
         unit: ds.directional.remain.unit,
         pct: ds.directionalPct != null ? ds.directionalPct : 0,
         sub: ds.directionalPct != null ? Math.round(ds.directionalPct * 100) + '% 剩余' : '剩余',
-      })
-    : altCard({
+      }))
+    : altCard(Object.assign({}, size, {
         label: '今日流量',
         icon: 'sf-symbol:chart.bar.fill',
         color: C.cyan,
@@ -1933,8 +1942,8 @@ function dashCards(title, ds) {
         sub: dailyAllow != null
           ? '日均 ' + formatFlow(Math.round(dailyAllow)).number + ' ' + formatFlow(Math.round(dailyAllow)).unit
           : '今日已用',
-      });
-  const voiceCard = altCard({
+      }));
+  const voiceCard = altCard(Object.assign({}, size, {
     label: '剩余语音',
     icon: 'sf-symbol:phone.fill',
     color: C.green,
@@ -1944,32 +1953,40 @@ function dashCards(title, ds) {
     sub: ds.voice.number === '--' ? '暂无'
       : (Number(ds.voice.number) === 0 ? '未包含'
         : (voiceRemainPct != null ? Math.round(voiceRemainPct * 100) + '% 剩余' : '剩余')),
-  });
+  }));
   return [feeCard, flowCard, dirCard, voiceCard];
 }
 
 function buildDash(family, title, ds) {
   const small = family === 'systemSmall';
-  const cards = dashCards(title, ds);
-  const rows = small
-    ? [
-        { type: 'stack', direction: 'row', gap: 6, flex: 1, children: [cards[0], cards[1]] },
-        { type: 'stack', direction: 'row', gap: 6, flex: 1, children: [cards[2], cards[3]] },
-      ]
-    : [{ type: 'stack', direction: 'row', gap: 6, children: cards }];
   const large = family === 'systemLarge' || family === 'systemExtraLarge';
-  const account = large ? dashAccount(ds) : null;
+  const layout = small ? 'small' : (large ? 'large' : 'medium');
+  const cards = dashCards(ds, layout);
+  let body;
+  if (small) {
+    body = [
+      { type: 'stack', direction: 'row', gap: 6, flex: 1, children: [cards[0], cards[1]] },
+      altStrip(ds, true),
+    ];
+  } else if (large) {
+    const account = dashAccount(ds);
+    body = [
+      { type: 'stack', direction: 'row', gap: 7, flex: 1, children: cards },
+      dashboardLower(ds),
+      ...(account ? [account] : []),
+    ];
+  } else {
+    body = [
+      { type: 'stack', direction: 'row', gap: 6, children: cards },
+      altStrip(ds, false),
+    ];
+  }
   return {
     type: 'widget',
-    padding: small ? [12, 12] : [13, 14],
+    padding: small ? [11, 12] : (large ? [14, 16] : [13, 14]),
     gap: 7,
     backgroundColor: '#00000000',
-    children: [
-      altHeader(title, ds, 12),
-      ...rows,
-      ...(large ? [dashboardLower(ds)] : [altStrip(ds, small)]),
-      ...(account ? [account] : []),
-    ],
+    children: [altHeader(title, ds, 12), ...body],
   };
 }
 
