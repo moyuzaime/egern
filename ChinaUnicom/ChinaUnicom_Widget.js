@@ -635,6 +635,9 @@ function buildDataSource(ctx, parsed, raw, captureDuration) {
 
 async function loadData(ctx) {
   const captureDisabled = !!(ctx.env && String(ctx.env.cuCapture).toLowerCase() === 'false');
+  // 诊断日志：模块参数 cuDebug=true 时输出接口结构与关键字段，方便排查字段变化
+  const debug = String((ctx.env && ctx.env.cuDebug) || '').toLowerCase() === 'true';
+  const debugLog = (...args) => { if (debug) console.log(...args); };
   const readCache = () => {
     const cached = ctx.storage.getJSON('unicom_datasource') || null;
     if (!cached) return null;
@@ -684,7 +687,21 @@ async function loadData(ctx) {
     ctx.storage.set('unicom_lastFetchAt', String(Date.now()));
     ctx.storage.set('unicom_lastRenderFetched', '1');
     const raw = await fetchUnicomData(ctx, cookie, phone);
+    const keysOf = (o) => (o && typeof o === 'object' ? Object.keys(o).slice(0, 20).join(',') : String(o));
+    debugLog(
+      '[ChinaUnicom] API响应诊断: code=' + String(raw && raw.code) +
+      ' | topKeys=' + keysOf(raw) +
+      ' | feeKeys=' + keysOf(raw && raw.feeResource) +
+      ' | flowKeys=' + keysOf(raw && raw.flowResource) +
+      ' | voiceKeys=' + keysOf(raw && raw.voiceResource)
+    );
     const parsed = parseUnicomData(raw);
+    debugLog(
+      '[ChinaUnicom] 套餐字段探测: fee=' + (parsed.fee && parsed.fee.number) + (parsed.fee && parsed.fee.unit) +
+      ' | flow=' + (parsed.flow && parsed.flow.number) + (parsed.flow && parsed.flow.unit) +
+      ' | voice=' + (parsed.voice && parsed.voice.number) + (parsed.voice && parsed.voice.unit) +
+      ' | plan=' + JSON.stringify(parsed.plan || null)
+    );
     const { ds, flowDisplay } = buildDataSource(ctx, parsed, raw, captureDuration);
     ctx.storage.setJSON('unicom_datasource', ds);
     ctx.storage.delete('unicom_authFail');
@@ -1730,6 +1747,14 @@ async function handleMiniResponse(ctx) {
         flowResource: data.flowResource,
       });
       // buildDataSource 用的是原始资源对象里的 total/used 字段，小程序同样有。
+      if (String((ctx.env && ctx.env.cuDebug) || '').toLowerCase() === 'true') {
+        console.log(
+          '[ChinaUnicom] 小程序响应诊断: keys=' + Object.keys(data).slice(0, 20).join(',') +
+          ' | fee=' + JSON.stringify(data.feeResource || null) +
+          ' | flow=' + JSON.stringify(data.flowResource || null) +
+          ' | voice=' + JSON.stringify(data.voiceResource || null)
+        );
+      }
       const { ds, flowDisplay } = buildDataSource(ctx, parsed, data, '');
       ds.source = 'mini';
       ctx.storage.setJSON('unicom_datasource', ds);

@@ -55,6 +55,7 @@
 | `cuGeneralFlow` | `true` | 流量统计包含通用流量 |
 | `cuDirectionalFlow` | `true` | 流量统计包含定向流量，并显示定向余量 |
 | `cuUiStyle` | `classic` | 显示样式：`classic` / `dash` / `ios` |
+| `cuDebug` | `false` | 打印接口响应结构与关键字段（不含手机号 / 票据） |
 
 **中国广电**
 

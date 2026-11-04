@@ -1,5 +1,5 @@
 name: 中国联通小组件
-description: 打开中国联通 App 余量页或微信「余量查询」页查询一次即可自动读取｜更新时间：2026-11-04 21:10（北京时间）
+description: 打开中国联通 App 余量页或微信「余量查询」页查询一次即可自动读取｜更新时间：2026-11-04 21:15（北京时间）
 author: iBL3ND
 homepage: https://github.com/moyuzaime/egern/tree/main/ChinaUnicom
 icon: https://iili.io/nEuB6Jt.png
@@ -12,6 +12,7 @@ compat_arguments:
   cuGeneralFlow: 'true'
   cuDirectionalFlow: 'true'
   cuUiStyle: 'classic'
+  cuDebug: 'false'
 
 compat_arguments_schema:
   cuCapture:
@@ -50,6 +51,13 @@ compat_arguments_schema:
     options:
       - 'true'
       - 'false'
+  cuDebug:
+    name: 调试日志
+    description: 打开后会在脚本日志里打印接口响应结构与关键字段（不含手机号/票据），用于排查字段变化；平时保持关闭
+    default_value: 'false'
+    options:
+      - 'true'
+      - 'false'
   cuCaptureNotice:
     name: 数据捕获成功通知
     description: 捕获到 App 登录信息或小程序套餐数据时发送通知
@@ -74,6 +82,7 @@ scriptings:
       env:
         cuCapture: '{{{cuCapture}}}'
         cuCaptureNotice: '{{{cuCaptureNotice}}}'
+        cuDebug: '{{{cuDebug}}}'
         cuPlanNotice: '{{{cuPlanNotice}}}'
         cuMiniCapture: '{{{cuMiniCapture}}}'
         cuGeneralFlow: '{{{cuGeneralFlow}}}'
@@ -90,6 +99,7 @@ scriptings:
       env:
         cuCapture: '{{{cuCapture}}}'
         cuCaptureNotice: '{{{cuCaptureNotice}}}'
+        cuDebug: '{{{cuDebug}}}'
         cuPlanNotice: '{{{cuPlanNotice}}}'
 
   - http_response:
