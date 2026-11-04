@@ -2026,66 +2026,80 @@ function buildDash(family, title, ds) {
   };
 }
 
-function iosRow(label, icon, color, value, unit, pctText) {
+function iosRow(label, icon, color, value, unit, pctText, compact) {
+  const children = [
+    { type: 'image', src: icon, width: compact ? 9 : 10, height: compact ? 9 : 10, color },
+    ...(compact ? [] : [t(label, 8.5, 'medium', C.sub, { minScale: 0.6 })]),
+    { type: 'spacer' },
+    t(value, compact ? 10 : 12, 'bold', C.txt, { minScale: 0.45 }),
+  ];
+  if (unit) children.push(t(unit, compact ? 6.5 : 7, 'medium', C.sub));
+  if (pctText) children.push(t(pctText, compact ? 7 : 8, 'semibold', color, { minScale: 0.6 }));
   return {
     type: 'stack',
     direction: 'row',
     alignItems: 'center',
-    gap: 4,
-    children: [
-      { type: 'image', src: icon, width: 10, height: 10, color },
-      t(label, 8.5, 'medium', C.sub, { minScale: 0.6 }),
-      { type: 'spacer' },
-      t(value, 12, 'bold', C.txt, { minScale: 0.5 }),
-      ...(unit ? [t(unit, 7, 'medium', C.sub)] : []),
-      ...(pctText ? [t(pctText, 8, 'semibold', color, { minScale: 0.6 })] : []),
-    ],
+    gap: compact ? 3 : 4,
+    children,
   };
 }
 
 function buildIos(family, title, ds) {
   const small = family === 'systemSmall';
+  const large = family === 'systemLarge' || family === 'systemExtraLarge';
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const remainPct = p != null ? Math.max(0, Math.min(1, 1 - p)) : null;
-  const voiceRemain = ds.plan && ds.plan.voiceRemain != null ? ds.plan.voiceRemain : null;
-  const voiceTotal = ds.plan && ds.plan.voiceTotal != null ? ds.plan.voiceTotal : null;
+  const voiceRemain = ds.plan && ds.plan.voiceRemain != null ? Number(ds.plan.voiceRemain) : null;
+  const voiceTotal = ds.plan && ds.plan.voiceTotal != null ? Number(ds.plan.voiceTotal) : null;
   const voicePct = voiceRemain != null && voiceTotal ? Math.max(0, Math.min(1, voiceRemain / voiceTotal)) : null;
+
   const ringItems = [];
-  if (remainPct != null) ringItems.push({ pct: remainPct, color: C.flow, stroke: 9 });
-  if (ds.directional && ds.directional.remain) ringItems.push({ pct: 0.35, color: C.cyan, stroke: 7 });
-  if (voicePct != null) ringItems.push({ pct: voicePct, color: C.green, stroke: 7 });
-  if (!ringItems.length) ringItems.push({ pct: 0, color: C.flow, stroke: 9 });
-  const large = family === 'systemLarge' || family === 'systemExtraLarge';
-  const ringSize = small ? 74 : (large ? 118 : 96);
+  if (remainPct != null) ringItems.push({ pct: remainPct, color: C.flow, stroke: large ? 12 : 9 });
+  if (ds.directional && ds.directional.remain) {
+    ringItems.push({ pct: ds.directionalPct != null ? ds.directionalPct : 0, color: C.cyan, stroke: large ? 9 : 7 });
+  }
+  if (voicePct != null) ringItems.push({ pct: voicePct, color: C.green, stroke: large ? 9 : 7 });
+  if (!ringItems.length) ringItems.push({ pct: 0, color: C.flow, stroke: large ? 12 : 9 });
+
+  const ringSize = small ? 78 : (large ? 132 : 100);
+  const feeSize = small ? 13 : (large ? 22 : 17);
 
   const feeBlock = {
     type: 'stack', direction: 'column', alignItems: 'center', gap: 0,
     children: [
-      t('剩余话费', 7.5, 'medium', C.sub, { minScale: 0.6 }),
-      { type: 'stack', direction: 'row', alignItems: 'end', gap: 1,
-        children: [t('¥' + ds.fee.number, small ? 13 : 16, 'bold', C.txt, { minScale: 0.45 }), t('元', 7, 'medium', C.sub)] },
+      t('剩余话费', small ? 7 : (large ? 9 : 8), 'medium', C.sub, { minScale: 0.6 }),
+      {
+        type: 'stack', direction: 'row', alignItems: 'end', gap: 1,
+        children: [
+          t('¥' + ds.fee.number, feeSize, 'bold', C.txt, { minScale: 0.45 }),
+          t('元', 7, 'medium', C.sub),
+        ],
+      },
     ],
   };
 
   const rows = [
-    iosRow('剩余流量', 'sf-symbol:wifi', C.flow,
-      ds.flow.number, ds.flow.unit,
-      remainPct != null ? Math.round(remainPct * 100) + '%' : ''),
+    iosRow('剩余流量', 'sf-symbol:wifi', C.flow, ds.flow.number, ds.flow.unit,
+      remainPct != null ? Math.round(remainPct * 100) + '%' : '', small),
   ];
-  if (ds.directional && ds.directional.remain) {
-    rows.push(iosRow('定向流量', 'sf-symbol:arrow.triangle.branch', C.cyan,
-      ds.directional.remain.number, ds.directional.remain.unit, ''));
-  } else if (ds.otherUsedMB != null) {
-    const other = formatFlow(Math.round(ds.otherUsedMB * 1024));
-    rows.push(iosRow('其他流量', 'sf-symbol:chart.pie.fill', C.cyan, other.number, other.unit, '已用'));
+  if (!small) {
+    if (ds.directional && ds.directional.remain) {
+      rows.push(iosRow('定向流量', 'sf-symbol:arrow.triangle.branch', C.cyan,
+        ds.directional.remain.number, ds.directional.remain.unit,
+        ds.directionalPct != null ? Math.round(ds.directionalPct * 100) + '%' : '', false));
+    } else if (ds.otherUsedMB != null) {
+      const other = formatFlow(Math.round(ds.otherUsedMB * 1024));
+      rows.push(iosRow('其他流量', 'sf-symbol:chart.pie.fill', C.cyan, other.number, other.unit, '已用', false));
+    }
   }
-  rows.push(iosRow('剩余语音', 'sf-symbol:phone.fill', C.green,
-    ds.voice.number, ds.voice.unit,
-    voicePct != null ? Math.round(voicePct * 100) + '%' : ''));
+  rows.push(iosRow('剩余语音', 'sf-symbol:phone.fill', C.green, ds.voice.number, ds.voice.unit,
+    voicePct != null ? Math.round(voicePct * 100) + '%' : '', small));
+
+  const account = null;
 
   return {
     type: 'widget',
-    padding: small ? [12, 12] : [13, 14],
+    padding: small ? [12, 13] : (large ? [14, 16] : [13, 14]),
     gap: 7,
     backgroundColor: '#00000000',
     children: [
@@ -2094,7 +2108,7 @@ function buildIos(family, title, ds) {
         type: 'stack',
         direction: 'row',
         alignItems: 'center',
-        gap: small ? 6 : 12,
+        gap: small ? 8 : (large ? 16 : 12),
         children: [
           {
             type: 'stack', direction: 'column', alignItems: 'center', gap: 2,
@@ -2104,8 +2118,12 @@ function buildIos(family, title, ds) {
             ],
           },
           {
-            type: 'stack', direction: 'column', gap: 5, flex: 1,
-            children: [...rows, altStrip(ds, true)],
+            type: 'stack', direction: 'column', gap: small ? 6 : 8, flex: 1,
+            children: [
+              ...rows,
+              ...(small ? [] : [altStrip(ds, !large)]),
+              ...(account ? [account] : []),
+            ],
           },
         ],
       },
