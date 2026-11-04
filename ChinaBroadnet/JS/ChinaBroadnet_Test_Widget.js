@@ -1107,35 +1107,57 @@ function heroFlowCard(ds, cardHeight, cardFlex, isMedium) {
   });
 }
 
-function header(title, ds, fromCache, mediumInset) {
-  const dur = ds.captureDuration ? ' · 凭据保持 ' + ds.captureDuration : '';
+// 统一页头副标题：缓存/更新时间 + 凭据保持 + 凭据待更新（三种样式共用）
+function headerMeta(ds) {
   const staleView = Boolean(ds.stale);
   const ageMs = ds.updatedAt ? Date.now() - Number(ds.updatedAt) : null;
-  const expired = staleView && ageMs != null && ageMs > 24 * 60 * 60 * 1000;
   const when = staleView
     ? '缓存 ' + (ageMs != null ? ageText(ageMs) + '前' : fmtTime(ds.updatedAt))
     : '更新 ' + fmtTime(ds.updatedAt);
+  const dur = ds.captureDuration ? ' · 凭据保持 ' + ds.captureDuration : '';
+  const auth = ds.authFailed ? ' · 凭据待更新' : '';
+  return {
+    text: when + dur + auth,
+    expired: staleView && ageMs != null && ageMs > 24 * 60 * 60 * 1000,
+  };
+}
+
+function buildHeader(title, ds, opts) {
+  const o = opts || {};
+  const meta = headerMeta(ds);
+  const iconSize = o.iconSize || 13;
+  const titleSize = o.titleSize || 'footnote';
+  const metaEl = t(meta.text, o.metaSize || 9, 'medium', meta.expired ? C.fee : C.sub, { minScale: o.minScale || 0.55 });
+  const titleRow = {
+    type: 'stack',
+    direction: 'row',
+    alignItems: 'center',
+    gap: 5,
+    children: [
+      { type: 'image', src: 'sf-symbol:antenna.radiowaves.left.and.right', width: iconSize, height: iconSize, color: C.flow },
+      t(title, titleSize, 'semibold', C.txt),
+    ],
+  };
+  if (o.twoLine) {
+    return { type: 'stack', direction: 'column', alignItems: 'start', gap: 2, children: [titleRow, metaEl] };
+  }
   return {
     type: 'stack',
     direction: 'row',
     alignItems: 'center',
-    padding: mediumInset ? [4, 6] : 0,
     gap: 5,
     children: [
-      {
-        type: 'image',
-        src: 'sf-symbol:antenna.radiowaves.left.and.right',
-        width: 13,
-        height: 13,
-        color: C.flow,
-      },
-      t(title, 'footnote', 'semibold', C.txt),
+      { type: 'image', src: 'sf-symbol:antenna.radiowaves.left.and.right', width: iconSize, height: iconSize, color: C.flow },
+      t(title, titleSize, 'semibold', C.txt),
       { type: 'spacer' },
-      t(`${when}${dur}`, 9, 'medium', expired ? C.fee : C.sub, {
-        minScale: 0.55,
-      }),
+      metaEl,
     ],
   };
+}
+
+function header(title, ds, fromCache, mediumInset) {
+  const built = buildHeader(title, ds, { iconSize: 13, titleSize: 'footnote', metaSize: 9, minScale: 0.6 });
+  return mediumInset ? Object.assign(built, { padding: [4, 6] }) : built;
 }
 
 // 数据是缓存/过期时尽快重渲染，让后台刷新的结果尽快呈现；正常数据维持 15 分钟。
@@ -1166,24 +1188,7 @@ function buildSmall(title, ds, fromCache) {
     backgroundColor: '#00000000',
     refreshAfter: nextRefreshAfter(ds),
     children: [
-      {
-        type: 'stack',
-        direction: 'row',
-        alignItems: 'center',
-        gap: 5,
-        children: [
-          {
-            type: 'image',
-            src: 'sf-symbol:antenna.radiowaves.left.and.right',
-            width: 12,
-            height: 12,
-            color: C.flow,
-          },
-          t(title, 12, 'semibold', C.txt),
-          { type: 'spacer' },
-          t(`${staleView && ageMs != null ? '缓存 ' + ageText(ageMs) + '前' : fmtTime(ds.updatedAt)}${dur}`, 8, 'medium', expired ? C.fee : C.sub, { minScale: 0.45 }),
-        ],
-      },
+      buildHeader(title, ds, { iconSize: 12, titleSize: 12, metaSize: 7.5, twoLine: true }),
 
       {
         type: 'stack',
@@ -1730,21 +1735,14 @@ function altWhen(ds) {
   return '更新 ' + fmtTime(ds.updatedAt);
 }
 
-function altHeader(title, ds, size) {
-  const dur = ds.captureDuration ? ' · 凭据保持 ' + ds.captureDuration : '';
-  const auth = ds.authFailed ? ' · 凭据待更新' : '';
-  return {
-    type: 'stack',
-    direction: 'row',
-    alignItems: 'center',
-    gap: 5,
-    children: [
-      { type: 'image', src: 'sf-symbol:antenna.radiowaves.left.and.right', width: size, height: size, color: C.flow },
-      t(title, size, 'semibold', C.txt),
-      { type: 'spacer' },
-      t(altWhen(ds) + dur + auth, 8, 'medium', C.sub, { minScale: 0.5 }),
-    ],
-  };
+function altHeader(title, ds, size, small) {
+  return buildHeader(title, ds, {
+    iconSize: size,
+    titleSize: size,
+    metaSize: small ? 7.5 : 8,
+    twoLine: Boolean(small),
+    minScale: 0.5,
+  });
 }
 
 // 多层同心圆环（iOS 版）；items: [{pct, color, stroke}]
@@ -1989,7 +1987,7 @@ function buildDash(family, title, ds) {
     padding: small ? [11, 12] : (large ? [14, 16] : [13, 14]),
     gap: 7,
     backgroundColor: '#00000000',
-    children: [altHeader(title, ds, 12), ...body],
+    children: [altHeader(title, ds, 12, small), ...body],
   };
 }
 
@@ -2122,7 +2120,7 @@ function buildIos(family, title, ds) {
     padding: small ? [9, 11] : (large ? [14, 16] : [12, 14]),
     gap: small ? 4 : 7,
     backgroundColor: '#00000000',
-    children: [altHeader(title, ds, 12), ...body],
+    children: [altHeader(title, ds, 12, small), ...body],
   };
 }
 
