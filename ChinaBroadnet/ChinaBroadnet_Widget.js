@@ -2134,6 +2134,30 @@ function buildIos(family, title, ds) {
   };
 }
 
+async function handleManualRefresh(ctx) {
+  try {
+    await refreshNow(ctx, 'manual', { force: true, bypassThrottle: true });
+    const ds = ctx.storage.getJSON(KEY + '.datasource') || null;
+    if (typeof ctx.notify === 'function') {
+      if (ds && ds.flow && ds.fee) {
+        ctx.notify({
+          title: '中国广电数据已刷新',
+          body: '流量 ' + ds.flow.number + ' ' + ds.flow.unit + ' · 话费 ¥' + ds.fee.number,
+          sound: false,
+        });
+      } else {
+        ctx.notify({
+          title: '中国广电刷新失败',
+          body: '请打开中国广电 App 查询一次后再试',
+          sound: false,
+        });
+      }
+    }
+  } catch (e) {
+    console.log('[ChinaBroadnet-Hark] 手动刷新失败: ' + String((e && e.message) || e));
+  }
+}
+
 async function handleWidget(ctx) {
   const result = await loadData(ctx, { reason: 'render' });
 
@@ -2191,6 +2215,12 @@ async function handleWidget(ctx) {
 }
 
 export default async function(ctx) {
+  // 手动刷新脚本：在「工具 → 脚本」里运行「中国广电手动刷新」时强制查询一次
+  if (ctx && ctx.env && String(ctx.env.CB_MANUAL_REFRESH).toLowerCase() === 'true') {
+    await handleManualRefresh(ctx);
+    return;
+  }
+
   // 1. HTTP 抓包模式：自动捕获 access 与请求 payload
   if (ctx && ctx.request && ctx.request.url) {
     await capture(ctx);
