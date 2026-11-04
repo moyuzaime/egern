@@ -1,5 +1,5 @@
 name: 中国联通小组件
-description: 打开中国联通 App 余量页或微信「余量查询」页查询一次即可自动读取｜更新时间：2026-11-03 21:56（北京时间）
+description: 打开中国联通 App 余量页或微信「余量查询」页查询一次即可自动读取｜更新时间：2026-11-04 17:02（北京时间）
 author: iBL3ND
 homepage: https://github.com/moyuzaime/egern/tree/main/ChinaUnicom
 icon: https://iili.io/nEuB6Jt.png
@@ -11,6 +11,7 @@ compat_arguments:
   cuMiniCapture: 'true'
   cuGeneralFlow: 'true'
   cuDirectionalFlow: 'true'
+  cuUiStyle: 'classic'
 
 compat_arguments_schema:
   cuCapture:
@@ -27,6 +28,14 @@ compat_arguments_schema:
     options:
       - 'true'
       - 'false'
+  cuUiStyle:
+    name: 显示样式
+    description: classic = 当前样式；dash = 仪表盘版（四宫格卡片）；ios = iOS 风格（圆环 + 列表）
+    default_value: 'classic'
+    options:
+      - classic
+      - dash
+      - ios
   cuGeneralFlow:
     name: 显示通用流量
     description: 流量统计包含通用流量（关闭则只统计定向流量）
@@ -68,6 +77,7 @@ scriptings:
         cuPlanNotice: '{{{cuPlanNotice}}}'
         cuMiniCapture: '{{{cuMiniCapture}}}'
         cuGeneralFlow: '{{{cuGeneralFlow}}}'
+        cuUiStyle: '{{{cuUiStyle}}}'
         cuDirectionalFlow: '{{{cuDirectionalFlow}}}'
 
   - http_request:

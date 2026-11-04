@@ -1712,6 +1712,340 @@ function buildError(title, message) {
   };
 }
 
+/* ============ 备选 UI：仪表盘版 / iOS 版（uiStyle = dash / ios） ============ */
+
+function daysInMonthLeft() {
+  const now = new Date();
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return Math.max(1, last - now.getDate() + 1);
+}
+
+function altWhen(ds) {
+  const ageMs = ds.updatedAt ? Date.now() - Number(ds.updatedAt) : null;
+  if (ds.stale && ageMs != null) return '缓存 ' + ageText(ageMs) + '前';
+  return '更新 ' + fmtTime(ds.updatedAt);
+}
+
+function altHeader(title, ds, size) {
+  return {
+    type: 'stack',
+    direction: 'row',
+    alignItems: 'center',
+    gap: 5,
+    children: [
+      { type: 'image', src: 'sf-symbol:antenna.radiowaves.left.and.right', width: size, height: size, color: C.flow },
+      t(title, size, 'semibold', C.txt),
+      { type: 'spacer' },
+      t(altWhen(ds), 8, 'medium', C.sub, { minScale: 0.5 }),
+    ],
+  };
+}
+
+// 多层同心圆环（iOS 版）；items: [{pct, color, stroke}]
+function ringsSvg(items, size) {
+  const cx = size / 2;
+  const cy = size / 2;
+  let svg = '<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 ' + size + ' ' + size + '\'>';
+  let r = size / 2 - 4;
+  for (const it of items) {
+    const stroke = it.stroke || 8;
+    const c = 2 * Math.PI * r;
+    const p = Math.max(0, Math.min(1, Number(it.pct) || 0));
+    svg += '<circle cx=\'' + cx + '\' cy=\'' + cy + '\' r=\'' + r.toFixed(1) + '\' fill=\'none\' stroke=\'' + it.color +
+      '\' stroke-opacity=\'0.16\' stroke-width=\'' + stroke + '\'/>';
+    if (p > 0.001) {
+      svg += '<circle cx=\'' + cx + '\' cy=\'' + cy + '\' r=\'' + r.toFixed(1) + '\' fill=\'none\' stroke=\'' + it.color +
+        '\' stroke-width=\'' + stroke + '\' stroke-linecap=\'round\' stroke-dasharray=\'' + (c * p).toFixed(1) + ' ' + c.toFixed(1) +
+        '\' transform=\'rotate(-90 ' + cx + ' ' + cy + ')\'/>';
+    }
+    r -= stroke + 3;
+  }
+  svg += '</svg>';
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
+function altGauge(pct, color, w) {
+  return {
+    type: 'image',
+    src: gaugeSvg(pct == null ? 0 : Math.max(0, Math.min(1, pct)), color, w),
+    width: w,
+    height: Math.round(w / 2) + 6,
+  };
+}
+
+// 仪表盘版卡片
+function altCard(opts) {
+  const label = opts.label;
+  const icon = opts.icon;
+  const color = opts.color;
+  const value = opts.value;
+  const unit = opts.unit || '';
+  const pct = opts.pct;
+  const sub = opts.sub;
+  const gaugeW = opts.gaugeW || 40;
+  const children = [
+    {
+      type: 'stack', direction: 'row', alignItems: 'center', gap: 2,
+      children: [
+        { type: 'image', src: icon, width: 9, height: 9, color },
+        t(label, 7.5, 'medium', C.sub, { minScale: 0.55 }),
+      ],
+    },
+  ];
+  if (pct != null) children.push(altGauge(pct, color, gaugeW));
+  children.push({
+    type: 'stack', direction: 'row', alignItems: 'end', gap: 1,
+    children: [t(value, 13, 'bold', C.txt, { minScale: 0.45 })].concat(unit ? [t(unit, 7, 'medium', C.sub)] : []),
+  });
+  if (sub) children.push(t(sub, 6.5, 'medium', C.sub, { minScale: 0.55 }));
+  return {
+    type: 'stack', direction: 'column', alignItems: 'center', gap: 2,
+    flex: 1, padding: [6, 3], borderRadius: 12,
+    backgroundColor: { light: '#FFFFFFB8', dark: '#1E2C3C7A' },
+    children,
+  };
+}
+
+function altStrip(ds, compact) {
+  const today = todayFlowUsage(ds.history);
+  const used = today.value == null ? null : formatFlow(today.value);
+  const daysLeft = daysInMonthLeft();
+  const remain = ds.plan && ds.plan.remain != null ? ds.plan.remain : null;
+  const avg = remain != null ? formatFlow(Math.round(remain / daysLeft)) : null;
+  const enough = remain != null && today.value ? Math.max(0, Math.floor(remain / today.value)) : null;
+  const children = [
+    { type: 'image', src: historySvg(today.history, C.flow, 90, 20), width: compact ? 44 : 54, height: 16 },
+    t('今日 ' + (used ? used.number + ' ' + used.unit : '—'), compact ? 7.5 : 8, 'medium', C.txt, { minScale: 0.55 }),
+    { type: 'spacer' },
+  ];
+  if (avg) children.push(t('日均 ' + avg.number + ' ' + avg.unit, 7.5, 'medium', C.sub, { minScale: 0.55 }));
+  if (enough != null) children.push(t('够用 ' + enough + ' 天 ✓', 7.5, 'semibold', C.green, { minScale: 0.55 }));
+  return {
+    type: 'stack',
+    direction: 'row',
+    alignItems: 'center',
+    gap: 6,
+    padding: [3, 8],
+    borderRadius: 11,
+    backgroundColor: { light: '#FFFFFF80', dark: '#1E2C3C55' },
+    children,
+  };
+}
+
+
+// 大号仪表盘版：今日趋势区
+function dashboardLower(ds) {
+  const today = todayFlowUsage(ds.history);
+  const used = today.value == null ? null : formatFlow(today.value);
+  const daysLeft = daysInMonthLeft();
+  const remain = ds.plan && ds.plan.remain != null ? ds.plan.remain : null;
+  const avg = remain != null ? formatFlow(Math.round(remain / daysLeft)) : null;
+  const enough = remain != null && today.value ? Math.max(0, Math.floor(remain / today.value)) : null;
+  return {
+    type: 'stack', direction: 'column', gap: 4, padding: [7, 10], borderRadius: 12,
+    backgroundColor: { light: '#FFFFFF80', dark: '#1E2C3C55' },
+    children: [
+      {
+        type: 'stack', direction: 'row', alignItems: 'center', gap: 6,
+        children: [
+          { type: 'image', src: 'sf-symbol:chart.bar.fill', width: 10, height: 10, color: C.flow },
+          t('今日流量使用', 10, 'semibold', C.txt),
+          { type: 'spacer' },
+          t(used ? used.number + ' ' + used.unit : '采集中', 10, 'bold', C.flow),
+        ],
+      },
+      { type: 'image', src: historySvg(today.history, C.flow, 260, 40), width: 260, height: 40 },
+      {
+        type: 'stack', direction: 'row', alignItems: 'center', gap: 4,
+        children: [
+          t('日均可用 ' + (avg ? avg.number + ' ' + avg.unit : '--'), 8, 'medium', C.sub, { minScale: 0.6 }),
+          { type: 'spacer' },
+          t(enough != null ? '预计够用 ' + enough + ' 天 ✓' : '', 8, 'semibold', C.green, { minScale: 0.6 }),
+        ],
+      },
+    ],
+  };
+}
+
+// 大号仪表盘版：账户条
+function dashAccount(ds) {
+  if (!ds.account || ds.account.balance == null) return null;
+  const children = [
+    { type: 'image', src: 'sf-symbol:yensign.circle.fill', width: 9, height: 9, color: C.fee },
+    t('账户余额 ¥' + Number(ds.account.balance).toFixed(2), 8, 'semibold', C.sub, { minScale: 0.6 }),
+    { type: 'spacer' },
+  ];
+  if (ds.account.monthCost != null) children.push(t('本月 ¥' + Number(ds.account.monthCost).toFixed(2), 8, 'medium', C.sub, { minScale: 0.6 }));
+  children.push(ds.account.owed != null && Number(ds.account.owed) > 0
+    ? t('欠费 ¥' + Number(ds.account.owed).toFixed(2), 8, 'semibold', C.fee)
+    : t('无欠费', 8, 'medium', C.sub));
+  return { type: 'stack', direction: 'row', alignItems: 'center', gap: 5, children };
+}
+
+function dashCards(title, ds) {
+  const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
+  const remain = ds.plan && ds.plan.remain != null ? formatFlow(ds.plan.remain) : null;
+  const today = todayFlowUsage(ds.history);
+  const todayUsed = today.value == null ? null : formatFlow(today.value);
+  const daysLeft = daysInMonthLeft();
+
+  const feeCard = altCard({
+    label: ds.fee.title || '剩余话费',
+    icon: 'sf-symbol:yensign.circle.fill',
+    color: C.fee,
+    value: '¥' + ds.fee.number,
+    sub: '本月剩 ' + daysLeft + ' 天',
+  });
+  const flowCard = altCard({
+    label: '剩余流量',
+    icon: 'sf-symbol:wifi',
+    color: C.flow,
+    value: remain ? remain.number : '--',
+    unit: remain ? remain.unit : '',
+    pct: p != null ? 1 - p : null,
+    sub: p != null ? Math.round((1 - Math.max(0, Math.min(1, p))) * 100) + '% 剩余' : '套餐用量',
+  });
+  const dirCard = ds.directional && ds.directional.remain
+    ? altCard({
+        label: '定向流量',
+        icon: 'sf-symbol:arrow.triangle.branch',
+        color: C.cyan,
+        value: ds.directional.remain.number,
+        unit: ds.directional.remain.unit,
+        sub: '剩余',
+      })
+    : altCard({
+        label: '今日流量',
+        icon: 'sf-symbol:chart.bar.fill',
+        color: C.cyan,
+        value: todayUsed ? todayUsed.number : '--',
+        unit: todayUsed ? todayUsed.unit : '',
+        sub: '今日已用',
+      });
+  const voiceCard = altCard({
+    label: '剩余语音',
+    icon: 'sf-symbol:phone.fill',
+    color: C.green,
+    value: ds.voice.number,
+    unit: ds.voice.unit,
+    pct: null,
+    sub: ds.voice.number === '--' ? '暂无' : (Number(ds.voice.number) === 0 ? '未包含' : '剩余'),
+  });
+  return [feeCard, flowCard, dirCard, voiceCard];
+}
+
+function buildDash(family, title, ds) {
+  const small = family === 'systemSmall';
+  const cards = dashCards(title, ds);
+  const rows = small
+    ? [
+        { type: 'stack', direction: 'row', gap: 6, flex: 1, children: [cards[0], cards[1]] },
+        { type: 'stack', direction: 'row', gap: 6, flex: 1, children: [cards[2], cards[3]] },
+      ]
+    : [{ type: 'stack', direction: 'row', gap: 6, children: cards }];
+  const large = family === 'systemLarge' || family === 'systemExtraLarge';
+  const account = large ? dashAccount(ds) : null;
+  return {
+    type: 'widget',
+    padding: small ? [12, 12] : [13, 14],
+    gap: 7,
+    backgroundColor: '#00000000',
+    children: [
+      altHeader(title, ds, 12),
+      ...rows,
+      ...(large ? [dashboardLower(ds)] : [altStrip(ds, small)]),
+      ...(account ? [account] : []),
+    ],
+  };
+}
+
+function iosRow(label, icon, color, value, unit, pctText) {
+  return {
+    type: 'stack',
+    direction: 'row',
+    alignItems: 'center',
+    gap: 4,
+    children: [
+      { type: 'image', src: icon, width: 10, height: 10, color },
+      t(label, 8.5, 'medium', C.sub, { minScale: 0.6 }),
+      { type: 'spacer' },
+      t(value, 12, 'bold', C.txt, { minScale: 0.5 }),
+      ...(unit ? [t(unit, 7, 'medium', C.sub)] : []),
+      ...(pctText ? [t(pctText, 8, 'semibold', color, { minScale: 0.6 })] : []),
+    ],
+  };
+}
+
+function buildIos(family, title, ds) {
+  const small = family === 'systemSmall';
+  const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
+  const remainPct = p != null ? Math.max(0, Math.min(1, 1 - p)) : null;
+  const voiceRemain = ds.plan && ds.plan.voiceRemain != null ? ds.plan.voiceRemain : null;
+  const voiceTotal = ds.plan && ds.plan.voiceTotal != null ? ds.plan.voiceTotal : null;
+  const voicePct = voiceRemain != null && voiceTotal ? Math.max(0, Math.min(1, voiceRemain / voiceTotal)) : null;
+  const ringItems = [];
+  if (remainPct != null) ringItems.push({ pct: remainPct, color: C.flow, stroke: 9 });
+  if (ds.directional && ds.directional.remain) ringItems.push({ pct: 0.35, color: C.cyan, stroke: 7 });
+  if (voicePct != null) ringItems.push({ pct: voicePct, color: C.green, stroke: 7 });
+  if (!ringItems.length) ringItems.push({ pct: 0, color: C.flow, stroke: 9 });
+  const large = family === 'systemLarge' || family === 'systemExtraLarge';
+  const ringSize = small ? 74 : (large ? 118 : 96);
+
+  const feeBlock = {
+    type: 'stack', direction: 'column', alignItems: 'center', gap: 0,
+    children: [
+      t('剩余话费', 7.5, 'medium', C.sub, { minScale: 0.6 }),
+      { type: 'stack', direction: 'row', alignItems: 'end', gap: 1,
+        children: [t('¥' + ds.fee.number, small ? 13 : 16, 'bold', C.txt, { minScale: 0.45 }), t('元', 7, 'medium', C.sub)] },
+    ],
+  };
+
+  const rows = [
+    iosRow('剩余流量', 'sf-symbol:wifi', C.flow,
+      ds.flow.number, ds.flow.unit,
+      remainPct != null ? Math.round(remainPct * 100) + '%' : ''),
+  ];
+  if (ds.directional && ds.directional.remain) {
+    rows.push(iosRow('定向流量', 'sf-symbol:arrow.triangle.branch', C.cyan,
+      ds.directional.remain.number, ds.directional.remain.unit, ''));
+  } else if (ds.otherUsedMB != null) {
+    const other = formatFlow(Math.round(ds.otherUsedMB * 1024));
+    rows.push(iosRow('其他流量', 'sf-symbol:chart.pie.fill', C.cyan, other.number, other.unit, '已用'));
+  }
+  rows.push(iosRow('剩余语音', 'sf-symbol:phone.fill', C.green,
+    ds.voice.number, ds.voice.unit,
+    voicePct != null ? Math.round(voicePct * 100) + '%' : ''));
+
+  return {
+    type: 'widget',
+    padding: small ? [12, 12] : [13, 14],
+    gap: 7,
+    backgroundColor: '#00000000',
+    children: [
+      altHeader(title, ds, 12),
+      {
+        type: 'stack',
+        direction: 'row',
+        alignItems: 'center',
+        gap: small ? 6 : 12,
+        children: [
+          {
+            type: 'stack', direction: 'column', alignItems: 'center', gap: 2,
+            children: [
+              { type: 'image', src: ringsSvg(ringItems, ringSize), width: ringSize, height: ringSize },
+              feeBlock,
+            ],
+          },
+          {
+            type: 'stack', direction: 'column', gap: 5, flex: 1,
+            children: [...rows, altStrip(ds, true)],
+          },
+        ],
+      },
+    ],
+  };
+}
+
 async function handleWidget(ctx) {
   const result = await loadData(ctx, { reason: 'render' });
 
@@ -1731,16 +2065,24 @@ async function handleWidget(ctx) {
 
   const family = ctx.widgetFamily || 'systemSmall';
 
+  if (family.startsWith('accessory')) {
+    return buildLock('中国广电', result.data, family);
+  }
+
+  // 显示样式：classic = 当前样式，dash = 仪表盘版，ios = 圆环列表版
+  const uiStyle = String((ctx.env && ctx.env.cbUiStyle) || 'classic').toLowerCase();
+  if (uiStyle === 'dash' || uiStyle === 'ios') {
+    return uiStyle === 'dash'
+      ? buildDash(family, '中国广电', result.data)
+      : buildIos(family, '中国广电', result.data);
+  }
+
   if (family === 'systemMedium') {
     return liquidGlassWidget(buildMedium('中国广电', result.data, result.fromCache));
   }
 
   if (family === 'systemLarge' || family === 'systemExtraLarge') {
     return liquidGlassWidget(buildLarge('中国广电', result.data, result.fromCache));
-  }
-
-  if (family.startsWith('accessory')) {
-    return buildLock('中国广电', result.data, family);
   }
 
   return liquidGlassWidget(buildSmall('中国广电', result.data, result.fromCache));

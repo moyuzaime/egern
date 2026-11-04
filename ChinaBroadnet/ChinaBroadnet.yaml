@@ -1,5 +1,5 @@
 name: 中国广电小组件
-description: 打开中国广电 App、微信或支付宝小程序查询一次即可自动读取｜更新时间：2026-11-03 21:56（北京时间）
+description: 打开中国广电 App、微信或支付宝小程序查询一次即可自动读取｜更新时间：2026-11-04 17:02（北京时间）
 author: wuhuhuuuu
 icon: https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/03CNSoft/ChinaBroadcastNetwork.png
 
@@ -9,6 +9,7 @@ compat_arguments:
   cbPlanNotice: 'true'
   cbKeepaliveInterval: '15'
   cbDebug: 'false'
+  cbUiStyle: 'classic'
 
 compat_arguments_schema:
   cbCapture:
@@ -39,6 +40,14 @@ compat_arguments_schema:
     options:
       - 'true'
       - 'false'
+  cbUiStyle:
+    name: 显示样式
+    description: classic = 当前样式；dash = 仪表盘版（四宫格卡片）；ios = iOS 风格（圆环 + 列表）
+    default_value: 'classic'
+    options:
+      - classic
+      - dash
+      - ios
   cbKeepaliveInterval:
     name: 定时保活间隔
     description: 只输入数字，单位固定为分钟；例如 15 表示每 15 分钟保活一次。最小 15，最大 1440（24 小时）
@@ -65,6 +74,7 @@ scriptings:
         CB_KEEPALIVE: 'true'
         CB_KEEPALIVE_FORCE: 'true'
         cbKeepaliveInterval: '{{{cbKeepaliveInterval}}}'
+        cbUiStyle: '{{{cbUiStyle}}}'
         cbDebug: '{{{cbDebug}}}'
 
   - schedule:
