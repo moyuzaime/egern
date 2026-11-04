@@ -2304,8 +2304,8 @@ async function handleWidget(ctx) {
 export default async function(ctx) {
   if (ctx && ctx.response) { await handleMiniResponse(ctx); return; }
   if (ctx && ctx.request && ctx.request.url) { await handleCapture(ctx); return; }
-  // 手动刷新脚本：在「工具 → 脚本」里运行 china-unicom-refresh 时强制查询一次
-  if (ctx && ctx.env && String(ctx.env.CU_REFRESH).toLowerCase() === 'true') {
+  // 手动运行（脚本列表里没有 widgetFamily）时执行一次强制刷新，而不是渲染组件
+  if (ctx && !ctx.widgetFamily) {
     await handleManualRefresh(ctx);
     return;
   }

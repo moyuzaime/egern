@@ -2215,12 +2215,6 @@ async function handleWidget(ctx) {
 }
 
 export default async function(ctx) {
-  // 手动刷新脚本：在「工具 → 脚本」里运行「中国广电手动刷新」时强制查询一次
-  if (ctx && ctx.env && String(ctx.env.CB_MANUAL_REFRESH).toLowerCase() === 'true') {
-    await handleManualRefresh(ctx);
-    return;
-  }
-
   // 1. HTTP 抓包模式：自动捕获 access 与请求 payload
   if (ctx && ctx.request && ctx.request.url) {
     await capture(ctx);
@@ -2232,7 +2226,13 @@ export default async function(ctx) {
     return handleKeepAlive(ctx);
   }
 
-  // 3. Generic Widget 模式：渲染小组件 UI
+  // 3. 手动运行（脚本列表里没有 widgetFamily）：强制查询一次并通知
+  if (ctx && !ctx.widgetFamily) {
+    await handleManualRefresh(ctx);
+    return;
+  }
+
+  // 4. Generic Widget 模式：渲染小组件 UI
   try {
     const widget = await handleWidget(ctx || {});
     if (widget && widget.type === 'widget') return widget;
