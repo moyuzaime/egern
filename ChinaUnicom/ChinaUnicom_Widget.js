@@ -533,9 +533,10 @@ function fmtTime(ts) {
   return p(d.getHours()) + ':' + p(d.getMinutes());
 }
 
-function saveHistory(ctx, flow) {
+function saveHistory(ctx, flow, fallback) {
   try {
-    const old = ctx.storage.getJSON(KEY + '.history') || [];
+    const stored = ctx.storage.getJSON(KEY + '.history');
+    const old = Array.isArray(stored) && stored.length ? stored : (Array.isArray(fallback) ? fallback : []);
     if (flow == null || flow === '') return old;
     const n = Number(flow);
     if (!Number.isFinite(n)) return old;
@@ -2233,6 +2234,18 @@ async function handleWidget(ctx) {
   // 有账户余额时，话费数字用「账户当前可用余额」，比大球口径更准。
   if (ds.account && ds.account.balance != null) {
     ds.fee = { title: '账户余额', number: Number(ds.account.balance).toFixed(2), unit: '元' };
+  }
+
+  // 渲染时也补一个采样点（saveHistory 内部 25 分钟去重）：命中小程序/本地缓存
+  // 或没有 App 凭据时不会走网络请求，若不在这里记录，「今日流量」就永远停在旧值。
+  try {
+    const remainForHistory = ds.plan && ds.plan.remain != null ? ds.plan.remain : null;
+    if (remainForHistory != null) {
+      const hist = saveHistory(ctx, remainForHistory, Array.isArray(ds.history) ? ds.history : []);
+      if (Array.isArray(hist)) ds.history = hist;
+    }
+  } catch (e) {
+    // 采样失败不影响渲染
   }
 
   const family = ctx.widgetFamily || 'systemSmall';

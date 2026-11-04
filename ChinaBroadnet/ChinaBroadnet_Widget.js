@@ -433,9 +433,10 @@ function fmtTime(ts) {
   return p(d.getHours()) + ':' + p(d.getMinutes());
 }
 
-function saveHistory(ctx, flow) {
+function saveHistory(ctx, flow, fallback) {
   try {
-    const old = ctx.storage.getJSON(KEY + '.history') || [];
+    const stored = ctx.storage.getJSON(KEY + '.history');
+    const old = Array.isArray(stored) && stored.length ? stored : (Array.isArray(fallback) ? fallback : []);
     const n = Number(flow);
     if (!Number.isFinite(n)) return old;
 
@@ -2138,6 +2139,19 @@ async function handleWidget(ctx) {
       '中国广电',
       '查询失败，请重新打开 App 查询一次'
     );
+  }
+
+  // 渲染时也补一个采样点（saveHistory 内部 25 分钟去重）：命中小程序/本地缓存
+  // 或没有 App 凭据时不会走网络请求，若不在这里记录，「今日流量」就永远停在旧值。
+  try {
+    const data = result.data;
+    const remainForHistory = data.plan && data.plan.remain != null ? data.plan.remain : null;
+    if (remainForHistory != null) {
+      const hist = saveHistory(ctx, remainForHistory, Array.isArray(data.history) ? data.history : []);
+      if (Array.isArray(hist)) data.history = hist;
+    }
+  } catch (e) {
+    // 采样失败不影响渲染
   }
 
   const family = ctx.widgetFamily || 'systemSmall';
