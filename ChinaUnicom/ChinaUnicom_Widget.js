@@ -1828,10 +1828,6 @@ function altStrip(ds, compact) {
     { type: 'image', src: historySvg(today.history, C.flow, 90, 20), width: compact ? 38 : 54, height: 16 },
     t('今日 ' + (used ? used.number + ' ' + used.unit : '—'), compact ? 7.5 : 8, 'medium', C.txt, { minScale: 0.55 }),
   ];
-  if (compact) {
-    children.push({ type: 'spacer' });
-    children.push(t(ds.voice.number + ' ' + ds.voice.unit + '语音', 7.5, 'medium', C.sub, { minScale: 0.5 }));
-  }
   children.push({ type: 'spacer' });
   if (avg && !compact) children.push(t('日均 ' + avg.number + ' ' + avg.unit, 7.5, 'medium', C.sub, { minScale: 0.55 }));
   if (enough != null) children.push(t('够用 ' + enough + ' 天 ✓', 7.5, 'semibold', C.green, { minScale: 0.55 }));
@@ -1940,11 +1936,11 @@ function dashCards(ds, layout) {
     : null;
 
   const size = {
-    gaugeW: layout === 'large' ? 56 : (layout === 'small' ? 30 : 40),
-    valueSize: layout === 'large' ? 18 : 13,
-    unitSize: layout === 'large' ? 8 : 7,
-    labelSize: layout === 'large' ? 9.5 : 7.5,
-    pad: layout === 'large' ? [10, 4] : [6, 3],
+    gaugeW: layout === 'large' ? 56 : (layout === 'small' ? 24 : 40),
+    valueSize: layout === 'large' ? 18 : (layout === 'small' ? 11 : 13),
+    unitSize: layout === 'large' ? 8 : (layout === 'small' ? 6.5 : 7),
+    labelSize: layout === 'large' ? 9.5 : (layout === 'small' ? 6.8 : 7.5),
+    pad: layout === 'large' ? [10, 4] : (layout === 'small' ? [4, 2] : [6, 3]),
   };
 
   const feeCard = altCard(Object.assign({}, size, {
@@ -2007,15 +2003,13 @@ function buildDash(family, title, ds) {
   let body;
   if (small) {
     body = [
-      { type: 'stack', direction: 'row', gap: 6, flex: 1, children: [cards[0], cards[1]] },
+      { type: 'stack', direction: 'row', gap: 5, flex: 1, children: [cards[0], cards[1], cards[3]] },
       altStrip(ds, true),
     ];
   } else if (large) {
-    const account = dashAccount(ds);
     body = [
       { type: 'stack', direction: 'row', gap: 7, flex: 1, children: cards },
       dashboardLower(ds),
-      ...(account ? [account] : []),
     ];
   } else {
     body = [
