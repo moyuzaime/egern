@@ -652,9 +652,18 @@ async function loadData(ctx) {
     return { data: cached, configured: !!cached, error: null, fromCache: true };
   }
 
+  // 手动刷新识别：60 秒内再次渲染（下拉/点按刷新）且上一次渲染没有真正请求时，绕过缓存查询一次
+  const lastRenderAt = Number(ctx.storage.get('unicom_lastRenderAt') || 0);
+  const lastFetchAt = Number(ctx.storage.get('unicom_lastFetchAt') || 0);
+  const lastRenderFetched = ctx.storage.get('unicom_lastRenderFetched') === '1';
+  const manualRefresh = lastRenderAt > 0 && Date.now() - lastRenderAt < 60000
+    && !lastRenderFetched && Date.now() - lastFetchAt > 5000;
+  ctx.storage.set('unicom_lastRenderAt', String(Date.now()));
+  ctx.storage.set('unicom_lastRenderFetched', '0');
+
   // 主屏 / 锁屏 / 画廊可能在同一轮里各自渲染一次，45 秒内复用同一份数据，避免重复打接口被风控。
   const fresh = ctx.storage.getJSON('unicom_datasource') || null;
-  if (fresh && Number(fresh.updatedAt || 0) > 0 && Date.now() - Number(fresh.updatedAt) < 45000) {
+  if (!manualRefresh && fresh && Number(fresh.updatedAt || 0) > 0 && Date.now() - Number(fresh.updatedAt) < 45000) {
     const ts = captureTsOf(ctx);
     fresh.captureDuration = ts > 0 ? formatDuration(Math.max(0, Number(fresh.updatedAt || Date.now()) - ts)) : '';
     return { data: fresh, configured: true, error: null, fromCache: false };
@@ -672,6 +681,8 @@ async function loadData(ctx) {
   }
 
   try {
+    ctx.storage.set('unicom_lastFetchAt', String(Date.now()));
+    ctx.storage.set('unicom_lastRenderFetched', '1');
     const raw = await fetchUnicomData(ctx, cookie, phone);
     const parsed = parseUnicomData(raw);
     const { ds, flowDisplay } = buildDataSource(ctx, parsed, raw, captureDuration);

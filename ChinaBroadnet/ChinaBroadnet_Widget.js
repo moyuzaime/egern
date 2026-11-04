@@ -459,7 +459,15 @@ function saveHistory(ctx, flow, fallback) {
 async function loadData(ctx, options) {
   // 兼容旧调用：布尔值表示是否强制刷新；对象形式可附带 reason / bypassThrottle。
   const opts = typeof options === 'boolean' ? { forceRefresh: options } : (options || {});
-  const forceRefresh = !!opts.forceRefresh;
+  // 手动刷新识别：60 秒内再次渲染（下拉/点按刷新）且上一次渲染没有真正请求时，绕过缓存查询一次
+  const lastRenderAt = Number(ctx.storage.get(KEY + '.lastRenderAt') || 0);
+  const lastFetchAt = Number(ctx.storage.get(KEY + '.lastFetchAt') || 0);
+  const lastRenderFetched = ctx.storage.get(KEY + '.lastRenderFetched') === '1';
+  const manualRefresh = lastRenderAt > 0 && Date.now() - lastRenderAt < 60000
+    && !lastRenderFetched && Date.now() - lastFetchAt > 5000;
+  ctx.storage.set(KEY + '.lastRenderAt', String(Date.now()));
+  ctx.storage.set(KEY + '.lastRenderFetched', '0');
+  const forceRefresh = !!opts.forceRefresh || manualRefresh;
   const reason = opts.reason || 'render';
   const bypassThrottle = !!opts.bypassThrottle;
   // 成功路径的响应结构/业务数值只在模块参数 cbDebug=true 时打印，默认不刷日志。
@@ -530,6 +538,8 @@ async function loadData(ctx, options) {
   try {
     ctx.storage.set(KEY + '.lastAttemptCaptureTime', currentCaptureTime);
     ctx.storage.set(KEY + '.lastAttemptAt', String(Date.now()));
+    ctx.storage.set(KEY + '.lastFetchAt', String(Date.now()));
+    ctx.storage.set(KEY + '.lastRenderFetched', '1');
     ctx.storage.set(KEY + '.lastRefreshReason', reason);
     const result = await fetchData(ctx, access, data, url);
     // 仅记录响应结构与字段是否存在，不记录手机号、令牌或业务字段原值。
