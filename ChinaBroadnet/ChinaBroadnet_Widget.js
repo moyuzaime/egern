@@ -1980,6 +1980,7 @@ function buildDash(family, title, ds) {
   }
   return {
     type: 'widget',
+    refreshAfter: nextRefreshAfter(ds),
     padding: small ? [11, 12] : (large ? [14, 16] : [13, 14]),
     gap: 7,
     backgroundColor: '#00000000',
@@ -2113,6 +2114,7 @@ function buildIos(family, title, ds) {
 
   return {
     type: 'widget',
+    refreshAfter: nextRefreshAfter(ds),
     padding: small ? [9, 11] : (large ? [14, 16] : [12, 14]),
     gap: small ? 4 : 7,
     backgroundColor: '#00000000',
