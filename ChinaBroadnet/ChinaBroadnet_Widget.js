@@ -1748,7 +1748,10 @@ function ringsSvg(items, size) {
   const cx = size / 2;
   const cy = size / 2;
   let svg = '<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 ' + size + ' ' + size + '\'>';
-  let r = size / 2 - 4;
+  // 以最大描边为准留边，避免最外圈被 viewBox 裁掉
+  let maxStroke = 8;
+  for (const it of items) maxStroke = Math.max(maxStroke, it.stroke || 8);
+  let r = size / 2 - maxStroke / 2 - 1;
   for (const it of items) {
     const stroke = it.stroke || 8;
     const c = 2 * Math.PI * r;
@@ -2008,12 +2011,14 @@ function buildIos(family, title, ds) {
   const voicePct = voiceRemain != null && voiceTotal ? Math.max(0, Math.min(1, voiceRemain / voiceTotal)) : null;
 
   const ringItems = [];
-  if (remainPct != null) ringItems.push({ pct: remainPct, color: C.flow, stroke: large ? 11 : 8 });
+  const strokeMain = large ? 8 : (small ? 6 : 7);
+  const strokeSub = large ? 6 : (small ? 5 : 6);
+  if (remainPct != null) ringItems.push({ pct: remainPct, color: C.flow, stroke: strokeMain });
   if (ds.directional && ds.directional.remain) {
-    ringItems.push({ pct: ds.directionalPct != null ? ds.directionalPct : 0, color: C.cyan, stroke: large ? 8 : 6 });
+    ringItems.push({ pct: ds.directionalPct != null ? ds.directionalPct : 0, color: C.cyan, stroke: strokeSub });
   }
-  if (voicePct != null) ringItems.push({ pct: voicePct, color: C.green, stroke: large ? 8 : 6 });
-  if (!ringItems.length) ringItems.push({ pct: 0, color: C.flow, stroke: large ? 11 : 8 });
+  if (voicePct != null) ringItems.push({ pct: voicePct, color: C.green, stroke: strokeSub });
+  if (!ringItems.length) ringItems.push({ pct: 0, color: C.flow, stroke: strokeMain });
 
   const ringSize = small ? 52 : (large ? 72 : 68);
 
@@ -2099,8 +2104,7 @@ function buildIos(family, title, ds) {
             { type: 'stack', direction: 'column', gap: large ? 10 : 7, flex: 1, children: rows },
           ],
         },
-        altStrip(ds, !large),
-        ...(large ? [dashboardLower(ds)] : []),
+        ...(large ? [dashboardLower(ds)] : [altStrip(ds, false)]),
         ...(account ? [account] : []),
       ];
 
