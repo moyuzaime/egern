@@ -1989,11 +1989,11 @@ function buildDash(family, title, ds) {
 function iosRow(label, icon, color, value, unit, pctText, opt) {
   const o = opt || {};
   const children = [
-    { type: 'image', src: icon, width: o.iconSize || 10, height: o.iconSize || 10, color },
+    { type: 'image', src: icon, width: o.iconSize || 9, height: o.iconSize || 9, color },
+    t(label, o.labelSize || 8, 'medium', C.sub, { minScale: 0.6 }),
+    { type: 'spacer' },
+    t(value, o.valueSize || 11, 'bold', C.txt, { minScale: 0.45 }),
   ];
-  if (!o.hideLabel) children.push(t(label, o.labelSize || 8.5, 'medium', C.sub, { minScale: 0.6 }));
-  children.push({ type: 'spacer' });
-  children.push(t(value, o.valueSize || 12, 'bold', C.txt, { minScale: 0.45 }));
   if (unit) children.push(t(unit, o.unitSize || 7, 'medium', C.sub));
   if (pctText) children.push(t(pctText, o.pctSize || 8, 'semibold', color, { minScale: 0.6 }));
   return { type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children };
@@ -2009,36 +2009,39 @@ function buildIos(family, title, ds) {
   const voicePct = voiceRemain != null && voiceTotal ? Math.max(0, Math.min(1, voiceRemain / voiceTotal)) : null;
 
   const ringItems = [];
-  if (remainPct != null) ringItems.push({ pct: remainPct, color: C.flow, stroke: large ? 12 : (small ? 7 : 9) });
+  if (remainPct != null) ringItems.push({ pct: remainPct, color: C.flow, stroke: large ? 11 : 8 });
   if (ds.directional && ds.directional.remain) {
-    ringItems.push({ pct: ds.directionalPct != null ? ds.directionalPct : 0, color: C.cyan, stroke: large ? 9 : (small ? 6 : 7) });
+    ringItems.push({ pct: ds.directionalPct != null ? ds.directionalPct : 0, color: C.cyan, stroke: large ? 8 : 6 });
   }
-  if (voicePct != null) ringItems.push({ pct: voicePct, color: C.green, stroke: large ? 9 : (small ? 6 : 7) });
-  if (!ringItems.length) ringItems.push({ pct: 0, color: C.flow, stroke: large ? 12 : (small ? 7 : 9) });
+  if (voicePct != null) ringItems.push({ pct: voicePct, color: C.green, stroke: large ? 8 : 6 });
+  if (!ringItems.length) ringItems.push({ pct: 0, color: C.flow, stroke: large ? 11 : 8 });
 
-  const ringSize = small ? 64 : (large ? 124 : 96);
+  const ringSize = small ? 52 : (large ? 104 : 72);
+
   const feeBlock = {
     type: 'stack', direction: 'column', alignItems: 'center', gap: 0,
     children: [
-      t('剩余话费', small ? 7 : (large ? 9 : 8), 'medium', C.sub, { minScale: 0.6 }),
+      t('剩余话费', 7, 'medium', C.sub, { minScale: 0.6 }),
       {
         type: 'stack', direction: 'row', alignItems: 'end', gap: 1,
         children: [
-          t('¥' + ds.fee.number, small ? 12 : (large ? 22 : 17), 'bold', C.txt, { minScale: 0.45 }),
-          t('元', 7, 'medium', C.sub),
+          t('¥' + ds.fee.number, 12, 'bold', C.txt, { minScale: 0.45 }),
+          t('元', 6.5, 'medium', C.sub),
         ],
       },
     ],
   };
 
   const rowOpt = small
-    ? { labelSize: 7.5, valueSize: 10.5, unitSize: 6.5, pctSize: 6.8, iconSize: 9 }
-    : (large ? { labelSize: 9.5, valueSize: 14, unitSize: 8, pctSize: 9 } : {});
+    ? { labelSize: 7, valueSize: 10, unitSize: 6.5, pctSize: 6.5, iconSize: 8 }
+    : (large ? { labelSize: 9.5, valueSize: 14, unitSize: 8, pctSize: 9 } : { labelSize: 8.5, valueSize: 12 });
 
-  const rows = [
-    iosRow('剩余流量', 'sf-symbol:wifi', C.flow, ds.flow.number, ds.flow.unit,
-      remainPct != null ? Math.round(remainPct * 100) + '%' : '', rowOpt),
-  ];
+  const rows = [];
+  if (!small) {
+    rows.push(iosRow('剩余话费', 'sf-symbol:yensign.circle.fill', C.fee, '¥' + ds.fee.number, '元', '', rowOpt));
+  }
+  rows.push(iosRow('剩余流量', 'sf-symbol:wifi', C.flow, ds.flow.number, ds.flow.unit,
+    (!small && remainPct != null) ? Math.round(remainPct * 100) + '%' : '', rowOpt));
   if (!small) {
     if (ds.directional && ds.directional.remain) {
       rows.push(iosRow('定向流量', 'sf-symbol:arrow.triangle.branch', C.cyan,
@@ -2050,21 +2053,21 @@ function buildIos(family, title, ds) {
     }
   }
   rows.push(iosRow('剩余语音', 'sf-symbol:phone.fill', C.green, ds.voice.number, ds.voice.unit,
-    voicePct != null ? Math.round(voicePct * 100) + '%' : '', rowOpt));
+    (!small && voicePct != null) ? Math.round(voicePct * 100) + '%' : '', rowOpt));
 
   const ringCol = {
-    type: 'stack', direction: 'column', alignItems: 'center', gap: 2,
+    type: 'stack', direction: 'column', alignItems: 'center', gap: 1,
     children: [
       { type: 'image', src: ringsSvg(ringItems, ringSize), width: ringSize, height: ringSize },
-      feeBlock,
+      ...(small ? [feeBlock] : []),
     ],
   };
-  const account = large ? dashAccount(ds) : null;
 
+  const account = large ? dashAccount(ds) : null;
   const body = small
     ? [
         ringCol,
-        { type: 'stack', direction: 'column', gap: 5, children: rows },
+        { type: 'stack', direction: 'column', gap: 3, children: rows },
         altStrip(ds, true),
       ]
     : [
@@ -2072,20 +2075,21 @@ function buildIos(family, title, ds) {
           type: 'stack',
           direction: 'row',
           alignItems: 'center',
-          gap: large ? 16 : 12,
+          gap: large ? 14 : 10,
           children: [
             ringCol,
-            { type: 'stack', direction: 'column', gap: large ? 10 : 8, flex: 1, children: rows },
+            { type: 'stack', direction: 'column', gap: large ? 9 : 6, flex: 1, children: rows },
           ],
         },
-        altStrip(ds, false),
+        altStrip(ds, !large),
+        ...(large ? [dashboardLower(ds)] : []),
         ...(account ? [account] : []),
       ];
 
   return {
     type: 'widget',
-    padding: small ? [12, 13] : (large ? [14, 16] : [13, 14]),
-    gap: small ? 5 : 7,
+    padding: small ? [9, 11] : (large ? [14, 16] : [12, 14]),
+    gap: small ? 4 : 7,
     backgroundColor: '#00000000',
     children: [altHeader(title, ds, 12), ...body],
   };
