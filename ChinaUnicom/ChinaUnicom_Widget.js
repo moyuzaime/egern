@@ -2031,12 +2031,11 @@ function iosRow(label, icon, color, value, unit, pctText, opt) {
   const children = [
     { type: 'image', src: icon, width: o.iconSize || 9, height: o.iconSize || 9, color },
     t(label, o.labelSize || 8, 'medium', C.sub, { minScale: 0.6 }),
-    { type: 'spacer' },
     t(value, o.valueSize || 11, 'bold', C.txt, { minScale: 0.45 }),
   ];
   if (unit) children.push(t(unit, o.unitSize || 7, 'medium', C.sub));
   if (pctText) children.push(t(pctText, o.pctSize || 8, 'semibold', color, { minScale: 0.6 }));
-  return { type: 'stack', direction: 'row', alignItems: 'center', gap: 4, children };
+  return { type: 'stack', direction: 'row', alignItems: 'center', gap: 6, children };
 }
 
 function buildIos(family, title, ds) {
@@ -2056,7 +2055,7 @@ function buildIos(family, title, ds) {
   if (voicePct != null) ringItems.push({ pct: voicePct, color: C.green, stroke: large ? 8 : 6 });
   if (!ringItems.length) ringItems.push({ pct: 0, color: C.flow, stroke: large ? 11 : 8 });
 
-  const ringSize = small ? 52 : (large ? 104 : 72);
+  const ringSize = small ? 52 : (large ? 84 : 72);
 
   const feeBlock = {
     type: 'stack', direction: 'column', alignItems: 'center', gap: 0,
@@ -2104,11 +2103,27 @@ function buildIos(family, title, ds) {
   };
 
   const account = null;
+  const today = todayFlowUsage(ds.history);
+  const todayUsed = today.value == null ? null : formatFlow(today.value);
+  const remainRaw = ds.plan && ds.plan.remain != null ? ds.plan.remain : null;
+  const enough = remainRaw != null && today.value ? Math.max(0, Math.floor(remainRaw / today.value)) : null;
+
+  const smallRight = {
+    type: 'stack', direction: 'column', gap: 3, flex: 1,
+    children: [
+      { type: 'image', src: historySvg(today.history, C.flow, 80, 18), width: 50, height: 14 },
+      t('今日 ' + (todayUsed ? todayUsed.number + ' ' + todayUsed.unit : '—'), 7.5, 'medium', C.txt, { minScale: 0.5 }),
+      t(enough != null ? '预计 ' + enough + ' 天 ✓' : '预计 —', 7.5, 'semibold', C.green, { minScale: 0.5 }),
+    ],
+  };
+
   const body = small
     ? [
-        ringCol,
+        {
+          type: 'stack', direction: 'row', alignItems: 'center', gap: 8,
+          children: [ringCol, smallRight],
+        },
         { type: 'stack', direction: 'column', gap: 3, children: rows },
-        altStrip(ds, true),
       ]
     : [
         {
