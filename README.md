@@ -18,7 +18,7 @@ Egern 模块集合，主要用于整理和维护个人使用的 Egern 模块。
 | 版本 | 说明 | 模块 YAML | 脚本 JS |
 |---|---|---|---|
 | **正式版** | 日常使用版本 | [ChinaBroadnet.yaml](https://github.com/moyuzaime/egern/blob/main/ChinaBroadnet/ChinaBroadnet.yaml) · [Raw](https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet.yaml) | [ChinaBroadnet_Widget.js](https://github.com/moyuzaime/egern/blob/main/ChinaBroadnet/ChinaBroadnet_Widget.js) · [Raw](https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Widget.js) |
-| **测试版** | 新功能与界面验证；独立存储，不影响正式版 | [ChinaBroadnet_Test.yaml](https://github.com/moyuzaime/egern/blob/main/ChinaBroadnet/ChinaBroadnet_Test.yaml) · [Raw](https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Test.yaml) | [ChinaBroadnet_Test_Widget.js](https://github.com/moyuzaime/egern/blob/main/ChinaBroadnet/JS/ChinaBroadnet_Test_Widget.js) · [Raw](https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/JS/ChinaBroadnet_Test_Widget.js) |
+| **测试版** | 新功能与界面验证；与正式版共用同一份脚本，仅存储前缀不同（`cbStorageKey`） | [ChinaBroadnet_Test.yaml](https://github.com/moyuzaime/egern/blob/main/ChinaBroadnet/ChinaBroadnet_Test.yaml) · [Raw](https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Test.yaml) | 与正式版相同：[ChinaBroadnet_Widget.js](https://github.com/moyuzaime/egern/blob/main/ChinaBroadnet/ChinaBroadnet_Widget.js) |
 
 > 正式版和测试版请按需分别添加。测试版使用独立的数据存储和脚本入口，测试期间不会替换正式版。
 
@@ -53,7 +53,7 @@ Egern 模块集合，主要用于整理和维护个人使用的 Egern 模块。
     ├── ChinaBroadnet_Widget.js
     ├── ChinaBroadnet_Test.yaml
     └── JS/
-        └── ChinaBroadnet_Test_Widget.js
+        
 ```
 
 ### 说明

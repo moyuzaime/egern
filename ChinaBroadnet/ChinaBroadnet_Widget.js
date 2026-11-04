@@ -5,7 +5,8 @@ const MINI_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryUserInfo';
 const ALIPAY_API_URL = 'https://zfb.10099.com.cn/contact-web/api/busi/qryUserInfo';
 const SUPPORTED_API_URLS = [API_URL, MINI_API_URL, ALIPAY_API_URL];
 const BLOCKED_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryNeedPaperLess';
-const KEY = 'ChinaBroadnet';
+// 存储前缀可由 cbStorageKey 覆盖：测试版与正式版共用本脚本，仅前缀不同
+let KEY = 'ChinaBroadnet';
 // 每 25 分钟最多一个采样点，96 个点约覆盖 24 小时，"今日流量"才有完整曲线（原来只留 24 个点）。
 const HISTORY_LIMIT = 96;
 
@@ -28,7 +29,8 @@ const C = {
 };
 
 // 测试版采用统一的清透磨砂玻璃，避免不同卡片各自铺色造成视觉杂乱。
-const transparentMode = true;
+// 透明模式默认开启，可用模块参数 cbTransparent=false 切回不透明
+let transparentMode = true;
 
 function readRequestBody(ctx) {
   const req = ctx.request || {};
@@ -1398,36 +1400,41 @@ function buildMedium(title, ds, fromCache) {
 
 function todayFlowUsage(history) {
   const now = new Date();
-  const todayKey = now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate();
-  const today = (history || [])
-    .filter(x => {
-      const ts = Number(x.ts);
-      if (!Number.isFinite(ts)) return false;
-      const d = new Date(ts);
-      return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate() === todayKey;
-    })
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const all = (history || [])
+    .filter(x => Number.isFinite(Number(x.ts)) && Number.isFinite(Number(x.flowKB)))
     .sort((a, b) => Number(a.ts) - Number(b.ts));
+  const before = all.filter(x => Number(x.ts) < startOfDay);
+  const today = all.filter(x => Number(x.ts) >= startOfDay);
+  // 昨天最后一个采样点作为今天 00:00 的基线：跨天后第一次渲染就能算出今日用量
+  const baseline = before.length ? Number(before[before.length - 1].flowKB) : null;
 
-  if (today.length < 2) {
-    return { value: null, history: today, label: '今日数据采集中' };
+  if (!today.length) {
+    return {
+      value: null,
+      history: baseline != null ? [{ ts: startOfDay, flowKB: 0 }] : [],
+      label: '今日数据采集中',
+    };
   }
 
-  const first = Number(today[0].flowKB);
+  const first = baseline != null ? baseline : Number(today[0].flowKB);
   const last = Number(today[today.length - 1].flowKB);
-  if (!Number.isFinite(first) || !Number.isFinite(last)) {
+  if (!Number.isFinite(first) || !Number.isFinite(last) || (baseline == null && today.length < 2)) {
     return { value: null, history: today, label: '今日数据采集中' };
   }
 
   const value = Math.max(0, first - last);
+  const points = (baseline != null ? [{ ts: startOfDay, flowKB: first }] : []).concat(today).map(x => ({
+    ts: x.ts,
+    flowKB: Math.max(0, first - Number(x.flowKB)),
+  }));
   return {
     value,
-    history: today.map(x => ({
-      ts: x.ts,
-      flowKB: Math.max(0, first - Number(x.flowKB)),
-    })),
+    history: points,
     label: value < 1 ? '今日暂无明显消耗' : '按今日已记录余量变化估算',
   };
 }
+
 
 function buildLarge(title, ds, fromCache) {
   const staleView = Boolean(ds.stale);
@@ -2024,7 +2031,7 @@ function buildIos(family, title, ds) {
   if (voicePct != null) ringItems.push({ pct: voicePct, color: C.green, stroke: strokeSub });
   if (!ringItems.length) ringItems.push({ pct: 0, color: C.flow, stroke: strokeMain });
 
-  const ringSize = small ? 52 : (large ? 72 : 68);
+  const ringSize = small ? 60 : (large ? 72 : 68);
 
   const feeBlock = {
     type: 'stack', direction: 'column', alignItems: 'center', gap: 0,
@@ -2069,7 +2076,7 @@ function buildIos(family, title, ds) {
     type: 'stack', direction: 'column', alignItems: 'center', gap: 1,
     children: [
       { type: 'image', src: ringsSvg(ringItems, ringSize), width: ringSize, height: ringSize },
-      ...(small ? [feeBlock] : []),
+      ...(small ? [] : []),
     ],
   };
 
@@ -2082,6 +2089,7 @@ function buildIos(family, title, ds) {
   const smallRight = {
     type: 'stack', direction: 'column', gap: 3, flex: 1,
     children: [
+      iosRow('剩余话费', 'sf-symbol:yensign.circle.fill', C.fee, '¥' + ds.fee.number, '元', '', rowOpt),
       { type: 'image', src: historySvg(today.history, C.flow, 80, 18), width: 50, height: 14 },
       t('今日 ' + (todayUsed ? todayUsed.number + ' ' + todayUsed.unit : '—'), 7.5, 'medium', C.txt, { minScale: 0.5 }),
       t(enough != null ? '预计 ' + enough + ' 天 ✓' : '预计 —', 7.5, 'semibold', C.green, { minScale: 0.5 }),
@@ -2149,9 +2157,12 @@ async function handleWidget(ctx) {
   // 显示样式：classic = 当前样式，dash = 仪表盘版，ios = 圆环列表版
   const uiStyle = String((ctx.env && ctx.env.cbUiStyle) || 'classic').toLowerCase();
   if (uiStyle === 'dash' || uiStyle === 'ios') {
-    return uiStyle === 'dash'
+    const altWidget = uiStyle === 'dash'
       ? buildDash(family, '中国广电', result.data)
       : buildIos(family, '中国广电', result.data);
+    // 关闭透明模式时，备选 UI 也使用不透明底色
+    if (!transparentMode) altWidget.backgroundColor = { light: '#F4F7FB', dark: '#161B22' };
+    return altWidget;
   }
 
   if (family === 'systemMedium') {
@@ -2166,6 +2177,11 @@ async function handleWidget(ctx) {
 }
 
 export default async function(ctx) {
+  // 环境变量：cbStorageKey 区分正式版/测试版的存储前缀，cbTransparent 控制透明模式
+  if (ctx && ctx.env && ctx.env.cbStorageKey) KEY = String(ctx.env.cbStorageKey);
+  // 每次调用都重置，避免上次渲染的开关状态泄漏到下一次
+  transparentMode = !(ctx && ctx.env && String(ctx.env.cbTransparent).toLowerCase() === 'false');
+
   // 1. HTTP 抓包模式：自动捕获 access 与请求 payload
   if (ctx && ctx.request && ctx.request.url) {
     await capture(ctx);

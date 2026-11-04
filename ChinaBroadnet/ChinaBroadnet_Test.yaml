@@ -1,5 +1,5 @@
 name: 中国广电仪表盘测试版
-description: "仪表盘测试版（独立存储，不影响正式版）｜打开 App 或小程序查询一次｜更新时间：2026-11-04 19:40（北京时间）"
+description: "仪表盘测试版：与正式版共用同一份脚本，仅存储隔离（不影响正式版）｜打开 App 或小程序查询一次｜更新时间：2026-11-04 19:44（北京时间）"
 icon: https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/03CNSoft/ChinaBroadcastNetwork.png
 
 compat_arguments:
@@ -63,7 +63,7 @@ compat_arguments_schema:
 scriptings:
   - generic:
       name: china-broadnet-test
-      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/JS/ChinaBroadnet_Test_Widget.js
+      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Widget.js
       update_interval: 21600
       timeout: 20
       env:
@@ -72,34 +72,37 @@ scriptings:
         cbPlanNotice: '{{{cbPlanNotice}}}'
         cbTransparent: '{{{cbTransparent}}}'
         cbUiStyle: '{{{cbUiStyle}}}'
+        cbStorageKey: 'ChinaBroadnetHarkTest'
         cbDebug: '{{{cbDebug}}}'
 
   - generic:
       name: china-broadnet-test-keepalive
-      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/JS/ChinaBroadnet_Test_Widget.js
+      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Widget.js
       update_interval: 21600
       timeout: 20
       env:
         CB_KEEPALIVE: 'true'
         CB_KEEPALIVE_FORCE: 'true'
         cbKeepaliveInterval: '{{{cbKeepaliveInterval}}}'
+        cbStorageKey: 'ChinaBroadnetHarkTest'
         cbDebug: '{{{cbDebug}}}'
 
   - schedule:
       name: china-broadnet-test-keepalive-schedule
       cron: '* * * * *'
-      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/JS/ChinaBroadnet_Test_Widget.js
+      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Widget.js
       update_interval: 21600
       timeout: 15
       env:
         CB_KEEPALIVE: 'true'
         cbKeepaliveInterval: '{{{cbKeepaliveInterval}}}'
+        cbStorageKey: 'ChinaBroadnetHarkTest'
         cbDebug: '{{{cbDebug}}}'
 
   - http_request:
       name: 中国广电测试版 App / 微信 / 支付宝小程序自动捕获
       match: '^https://(?:app|wx|zfb)\.10099\.com\.cn/contact-web/api/busi/qryUserInfo'
-      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/JS/ChinaBroadnet_Test_Widget.js
+      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaBroadnet/ChinaBroadnet_Widget.js
       body_required: true
       max_size: 1048576
       timeout: 10
@@ -107,6 +110,7 @@ scriptings:
         cbCapture: '{{{cbCapture}}}'
         cbCaptureNotice: '{{{cbCaptureNotice}}}'
         cbPlanNotice: '{{{cbPlanNotice}}}'
+        cbStorageKey: 'ChinaBroadnetHarkTest'
         cbDebug: '{{{cbDebug}}}'
 
 mitm:
