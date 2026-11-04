@@ -1991,14 +1991,19 @@ function buildDash(family, title, ds) {
 
 function iosRow(label, icon, color, value, unit, pctText, opt) {
   const o = opt || {};
+  const col = (w, align, child) => ({
+    type: 'stack', direction: 'column', alignItems: align, width: w,
+    children: [child],
+  });
   const children = [
     { type: 'image', src: icon, width: o.iconSize || 9, height: o.iconSize || 9, color },
-    t(label, o.labelSize || 8, 'medium', C.sub, { minScale: 0.6 }),
-    t(value, o.valueSize || 11, 'bold', C.txt, { minScale: 0.45 }),
+    col(o.labelW || 46, 'start', t(label, o.labelSize || 8, 'medium', C.sub, { minScale: 0.6 })),
+    { type: 'spacer' },
+    col(o.valueW || 56, 'end', t(value, o.valueSize || 11, 'bold', C.txt, { minScale: 0.45, textAlign: 'right' })),
   ];
-  if (unit) children.push(t(unit, o.unitSize || 7, 'medium', C.sub));
-  if (pctText) children.push(t(pctText, o.pctSize || 8, 'semibold', color, { minScale: 0.6 }));
-  return { type: 'stack', direction: 'row', alignItems: 'center', gap: 6, children };
+  if (unit) children.push(col(o.unitW || 18, 'start', t(unit, o.unitSize || 7, 'medium', C.sub)));
+  if (pctText) children.push(col(o.pctW || 30, 'end', t(pctText, o.pctSize || 8, 'semibold', color, { minScale: 0.6, textAlign: 'right' })));
+  return { type: 'stack', direction: 'row', alignItems: 'center', gap: 3, children };
 }
 
 function buildIos(family, title, ds) {
@@ -2037,10 +2042,10 @@ function buildIos(family, title, ds) {
   };
 
   const rowOpt = small
-    ? { labelSize: 7, valueSize: 10, unitSize: 6.5, pctSize: 6.5, iconSize: 8 }
+    ? { labelSize: 7, valueSize: 10, unitSize: 6.5, iconSize: 8, labelW: 32, valueW: 40, unitW: 14 }
     : (large
-      ? { labelSize: 10, valueSize: 17, unitSize: 8.5, pctSize: 10, iconSize: 11 }
-      : { labelSize: 9, valueSize: 13, unitSize: 7.5, pctSize: 9, iconSize: 10 });
+      ? { labelSize: 10, valueSize: 17, unitSize: 8.5, pctSize: 10, iconSize: 11, labelW: 50, valueW: 72, unitW: 20, pctW: 32 }
+      : { labelSize: 9, valueSize: 13, unitSize: 7.5, pctSize: 9, iconSize: 10, labelW: 46, valueW: 64, unitW: 20, pctW: 34 });
 
   const rows = [];
   if (!small) {
