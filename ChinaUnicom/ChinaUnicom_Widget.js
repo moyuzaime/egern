@@ -494,8 +494,6 @@ const C = {
   glassShadow: { light: '#64748B06', dark: '#00000000' },
 };
 
-// 测试版采用统一的清透磨砂玻璃，避免不同卡片各自铺色造成视觉杂乱。
-const transparentMode = true;
 
 function formatDuration(ms) {
   if (!Number.isFinite(ms) || ms < 0) return '刚刚';
@@ -1600,9 +1598,7 @@ function buildLock(title, ds, family) {
 function liquidGlassWidget(widget) {
   if (!widget || widget.type !== 'widget') return widget;
   // 透明模式下根节点完全透明，避免系统底色覆盖壁纸；内容仍按各自颜色绘制。
-  widget.backgroundColor = transparentMode
-    ? '#00000000'
-    : { light: '#F4F7FB', dark: '#161B22' };
+  widget.backgroundColor = '#00000000';
   delete widget.glassContentPadding;
   return widget;
 }
@@ -1614,7 +1610,7 @@ function buildError(title, message) {
     refreshAfter: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
     padding: 14,
     gap: 6,
-    backgroundColor: transparentMode ? '#00000000' : { light: '#F4F7FB', dark: '#161B22' },
+    backgroundColor: '#00000000',
     children: [
       t(title, 'footnote', 'semibold'),
       { type: 'spacer' },

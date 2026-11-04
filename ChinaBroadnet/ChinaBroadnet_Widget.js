@@ -5,8 +5,7 @@ const MINI_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryUserInfo';
 const ALIPAY_API_URL = 'https://zfb.10099.com.cn/contact-web/api/busi/qryUserInfo';
 const SUPPORTED_API_URLS = [API_URL, MINI_API_URL, ALIPAY_API_URL];
 const BLOCKED_API_URL = 'https://wx.10099.com.cn/contact-web/api/busi/qryNeedPaperLess';
-// 存储前缀可由 cbStorageKey 覆盖：测试版与正式版共用本脚本，仅前缀不同
-let KEY = 'ChinaBroadnet';
+const KEY = 'ChinaBroadnet';
 // 每 25 分钟最多一个采样点，96 个点约覆盖 24 小时，"今日流量"才有完整曲线（原来只留 24 个点）。
 const HISTORY_LIMIT = 96;
 
@@ -28,9 +27,6 @@ const C = {
   glassShadow: { light: '#64748B06', dark: '#00000000' },
 };
 
-// 测试版采用统一的清透磨砂玻璃，避免不同卡片各自铺色造成视觉杂乱。
-// 透明模式默认开启，可用模块参数 cbTransparent=false 切回不透明
-let transparentMode = true;
 
 function readRequestBody(ctx) {
   const req = ctx.request || {};
@@ -961,8 +957,8 @@ function trendStrip(ds) {
     padding: [5, 8],
     borderRadius: 13,
     gap: 0,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFCD9', dark: '#172638D9' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
+    backgroundColor: { light: '#00000000', dark: '#00000000' },
+    borderColor: { light: '#00000000', dark: '#00000000' },
   });
 }
 
@@ -1096,8 +1092,8 @@ function heroFlowCard(ds, cardHeight, cardFlex, isMedium) {
     padding: [8, 10],
     borderRadius: 18,
     gap: 4,
-    backgroundColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#F8FAFCD9', dark: '#172638D9' },
-    borderColor: transparentMode ? { light: '#00000000', dark: '#00000000' } : { light: '#FFFFFFF2', dark: '#D7E7F0B0' },
+    backgroundColor: { light: '#00000000', dark: '#00000000' },
+    borderColor: { light: '#00000000', dark: '#00000000' },
     shadowColor: { light: '#52677A18', dark: '#00000028' },
     shadowRadius: 0,
     shadowOffset: { x: 0, y: 0 },
@@ -1695,9 +1691,7 @@ function buildLock(title, ds, family) {
 function liquidGlassWidget(widget) {
   if (!widget || widget.type !== 'widget') return widget;
   // 透明模式下根节点完全透明，避免系统底色覆盖壁纸；内容仍按各自颜色绘制。
-  widget.backgroundColor = transparentMode
-    ? '#00000000'
-    : { light: '#F4F7FB', dark: '#161B22' };
+  widget.backgroundColor = '#00000000';
   delete widget.glassContentPadding;
   return widget;
 }
@@ -1709,7 +1703,7 @@ function buildError(title, message) {
     refreshAfter: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
     padding: 14,
     gap: 6,
-    backgroundColor: transparentMode ? '#00000000' : { light: '#F4F7FB', dark: '#161B22' },
+    backgroundColor: '#00000000',
     children: [
       t(title, 'footnote', 'semibold'),
       { type: 'spacer' },
@@ -2160,8 +2154,6 @@ async function handleWidget(ctx) {
     const altWidget = uiStyle === 'dash'
       ? buildDash(family, '中国广电', result.data)
       : buildIos(family, '中国广电', result.data);
-    // 关闭透明模式时，备选 UI 也使用不透明底色
-    if (!transparentMode) altWidget.backgroundColor = { light: '#F4F7FB', dark: '#161B22' };
     return altWidget;
   }
 
@@ -2177,11 +2169,6 @@ async function handleWidget(ctx) {
 }
 
 export default async function(ctx) {
-  // 环境变量：cbStorageKey 区分正式版/测试版的存储前缀，cbTransparent 控制透明模式
-  if (ctx && ctx.env && ctx.env.cbStorageKey) KEY = String(ctx.env.cbStorageKey);
-  // 每次调用都重置，避免上次渲染的开关状态泄漏到下一次
-  transparentMode = !(ctx && ctx.env && String(ctx.env.cbTransparent).toLowerCase() === 'false');
-
   // 1. HTTP 抓包模式：自动捕获 access 与请求 payload
   if (ctx && ctx.request && ctx.request.url) {
     await capture(ctx);
