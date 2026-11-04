@@ -1,5 +1,5 @@
 name: 中国联通小组件
-description: 打开中国联通 App 余量页或微信「余量查询」页查询一次即可自动读取｜更新时间：2026-11-04 20:07（北京时间）
+description: 打开中国联通 App 余量页或微信「余量查询」页查询一次即可自动读取｜更新时间：2026-11-04 20:35（北京时间）
 author: iBL3ND
 homepage: https://github.com/moyuzaime/egern/tree/main/ChinaUnicom
 icon: https://iili.io/nEuB6Jt.png
@@ -79,6 +79,16 @@ scriptings:
         cuGeneralFlow: '{{{cuGeneralFlow}}}'
         cuUiStyle: '{{{cuUiStyle}}}'
         cuDirectionalFlow: '{{{cuDirectionalFlow}}}'
+
+  # 手动刷新：在「工具 → 脚本」中运行 china-unicom-refresh 即强制查询一次
+  - generic:
+      name: china-unicom-refresh
+      script_url: https://raw.githubusercontent.com/moyuzaime/egern/main/ChinaUnicom/ChinaUnicom_Widget.js
+      update_interval: 21600
+      timeout: 20
+      env:
+        CU_REFRESH: 'true'
+        cuCapture: '{{{cuCapture}}}'
 
   - http_request:
       name: 中国联通 App 请求侦察

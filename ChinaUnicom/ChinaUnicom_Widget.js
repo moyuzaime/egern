@@ -2179,6 +2179,37 @@ function buildIos(family, title, ds) {
   };
 }
 
+async function handleManualRefresh(ctx) {
+  try {
+    // 把缓存标记为过期，loadData 才会真正发起请求
+    const cached = ctx.storage.getJSON('unicom_datasource');
+    if (cached && typeof cached === 'object') {
+      cached.updatedAt = 0;
+      ctx.storage.setJSON('unicom_datasource', cached);
+    }
+    ctx.storage.set('unicom_lastRenderFetched', '1');
+    const res = await loadData(ctx);
+    const data = res && res.data;
+    if (typeof ctx.notify === 'function') {
+      if (data && data.flow && data.fee) {
+        ctx.notify({
+          title: '中国联通数据已刷新',
+          body: '流量 ' + data.flow.number + ' ' + data.flow.unit + ' · 话费 ¥' + data.fee.number,
+          sound: false,
+        });
+      } else {
+        ctx.notify({
+          title: '中国联通刷新失败',
+          body: '请打开中国联通 App 或小程序查询一次后再试',
+          sound: false,
+        });
+      }
+    }
+  } catch (e) {
+    console.log('[ChinaUnicom] 手动刷新失败: ' + String((e && e.message) || e));
+  }
+}
+
 async function handleWidget(ctx) {
   const title = '中国联通';
   const result = await loadData(ctx);
@@ -2273,6 +2304,11 @@ async function handleWidget(ctx) {
 export default async function(ctx) {
   if (ctx && ctx.response) { await handleMiniResponse(ctx); return; }
   if (ctx && ctx.request && ctx.request.url) { await handleCapture(ctx); return; }
+  // 手动刷新脚本：在「工具 → 脚本」里运行 china-unicom-refresh 时强制查询一次
+  if (ctx && ctx.env && String(ctx.env.CU_REFRESH).toLowerCase() === 'true') {
+    await handleManualRefresh(ctx);
+    return;
+  }
   try {
     const widget = await handleWidget(ctx || {});
     if (widget && widget.type === 'widget') return widget;

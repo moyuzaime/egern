@@ -7,7 +7,7 @@
 | 文件 | 作用 |
 | --- | --- |
 | `ChinaUnicom.yaml` | 模块：小组件 + 联通 App 抓取 + 微信小程序抓取（已合并，无需再装小程序模块） |
-| `ChinaUnicom_Widget.js` | 脚本，被 `generic` / `http_request` / `http_response` 三种角色共用 |
+| `ChinaUnicom_Widget.js` | 脚本，被 `generic`（组件、手动刷新）/ `http_request` / `http_response` 三种角色共用 |
 
 ## 数据来源
 
@@ -42,3 +42,7 @@
 ## 致谢
 
 小程序接口协议（RSA 加密的 `openid`、`sspbigball` 返回结构、请求头要求）由 **Testplayers** 在 [Cyborg2017/ha_unicom_bill#5](https://github.com/Cyborg2017/ha_unicom_bill/issues/5) 与 [Testplayers/unicom-mini-ha](https://github.com/Testplayers/unicom-mini-ha) 中完整逆向并公开；本项目仅参考其协议结论，代码为独立实现。
+
+## 手动刷新
+
+在 Egern「工具 → 脚本」中运行 `china-unicom-refresh`，会强制查询一次并弹出结果通知（不依赖组件刷新节奏）。
