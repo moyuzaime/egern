@@ -1948,9 +1948,9 @@ function dashCards(title, ds) {
     label: '剩余流量',
     icon: 'sf-symbol:wifi',
     color: C.flow,
-    value: remain ? remain.number : '--',
-    unit: remain ? remain.unit : '',
-    pct: p != null ? 1 - p : null,
+    value: remain ? remain.number : (ds.flow && ds.flow.number ? ds.flow.number : '--'),
+    unit: remain ? remain.unit : (ds.flow && ds.flow.number ? ds.flow.unit : ''),
+    pct: p != null ? 1 - Math.max(0, Math.min(1, p)) : 0,
     sub: p != null ? Math.round((1 - Math.max(0, Math.min(1, p))) * 100) + '% 剩余' : '套餐用量',
   });
   const dirCard = ds.directional && ds.directional.remain
@@ -1960,7 +1960,7 @@ function dashCards(title, ds) {
         color: C.cyan,
         value: ds.directional.remain.number,
         unit: ds.directional.remain.unit,
-        pct: ds.directionalPct != null ? ds.directionalPct : null,
+        pct: ds.directionalPct != null ? ds.directionalPct : 0,
         sub: ds.directionalPct != null ? Math.round(ds.directionalPct * 100) + '% 剩余' : '剩余',
       })
     : altCard({
@@ -1969,7 +1969,7 @@ function dashCards(title, ds) {
         color: C.cyan,
         value: todayUsed ? todayUsed.number : '--',
         unit: todayUsed ? todayUsed.unit : '',
-        pct: dailyPct,
+        pct: dailyPct != null ? dailyPct : 0,
         sub: dailyAllow != null
           ? '日均 ' + formatFlow(Math.round(dailyAllow)).number + ' ' + formatFlow(Math.round(dailyAllow)).unit
           : '今日已用',
@@ -1980,7 +1980,7 @@ function dashCards(title, ds) {
     color: C.green,
     value: ds.voice.number,
     unit: ds.voice.unit,
-    pct: voiceRemainPct,
+    pct: voiceRemainPct != null ? voiceRemainPct : 0,
     sub: ds.voice.number === '--' ? '暂无'
       : (Number(ds.voice.number) === 0 ? '未包含'
         : (voiceRemainPct != null ? Math.round(voiceRemainPct * 100) + '% 剩余' : '剩余')),
