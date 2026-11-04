@@ -2069,7 +2069,7 @@ function buildIos(family, title, ds) {
   if (voicePct != null) ringItems.push({ pct: voicePct, color: C.green, stroke: strokeSub });
   if (!ringItems.length) ringItems.push({ pct: 0, color: C.flow, stroke: strokeMain });
 
-  const ringSize = small ? 60 : (large ? 72 : 68);
+  const ringSize = small ? 56 : (large ? 72 : 68);
 
   const feeBlock = {
     type: 'stack', direction: 'column', alignItems: 'center', gap: 0,
@@ -2091,10 +2091,9 @@ function buildIos(family, title, ds) {
       ? { labelSize: 10, valueSize: 17, unitSize: 8.5, pctSize: 10, iconSize: 11, labelW: 50, valueW: 72, unitW: 20, pctW: 32 }
       : { labelSize: 9, valueSize: 13, unitSize: 7.5, pctSize: 9, iconSize: 10, labelW: 46, valueW: 64, unitW: 20, pctW: 34 });
 
-  const rows = [];
-  if (!small) {
-    rows.push(iosRow('剩余话费', 'sf-symbol:yensign.circle.fill', C.fee, '¥' + ds.fee.number, '元', '', rowOpt));
-  }
+  const rows = [
+    iosRow('剩余话费', 'sf-symbol:yensign.circle.fill', C.fee, '¥' + ds.fee.number, '元', '', rowOpt),
+  ];
   rows.push(iosRow('剩余流量', 'sf-symbol:wifi', C.flow, ds.flow.number, ds.flow.unit,
     (!small && remainPct != null) ? Math.round(remainPct * 100) + '%' : '', rowOpt));
   if (!small) {
@@ -2127,7 +2126,6 @@ function buildIos(family, title, ds) {
   const smallRight = {
     type: 'stack', direction: 'column', gap: 3, flex: 1,
     children: [
-      iosRow('剩余话费', 'sf-symbol:yensign.circle.fill', C.fee, '¥' + ds.fee.number, '元', '', rowOpt),
       { type: 'image', src: historySvg(today.history, C.flow, 80, 18), width: 50, height: 14 },
       t('今日 ' + (todayUsed ? todayUsed.number + ' ' + todayUsed.unit : '—'), 7.5, 'medium', C.txt, { minScale: 0.5 }),
       t(enough != null ? '预计 ' + enough + ' 天 ✓' : '预计 —', 7.5, 'semibold', C.green, { minScale: 0.5 }),
