@@ -1888,6 +1888,12 @@ function dashCards(title, ds) {
   const today = todayFlowUsage(ds.history);
   const todayUsed = today.value == null ? null : formatFlow(today.value);
   const daysLeft = daysInMonthLeft();
+  const remainRaw = ds.plan && ds.plan.remain != null ? ds.plan.remain : null;
+  const dailyAllow = remainRaw != null ? remainRaw / daysLeft : null;
+  const dailyPct = today.value && dailyAllow ? Math.max(0, Math.min(1, today.value / dailyAllow)) : null;
+  const voiceRemainPct = ds.plan && ds.plan.voiceTotal
+    ? Math.max(0, Math.min(1, (Number(ds.plan.voiceTotal) - Number(ds.plan.voiceUsed || 0)) / Number(ds.plan.voiceTotal)))
+    : null;
 
   const feeCard = altCard({
     label: ds.fee.title || '剩余话费',
@@ -1912,7 +1918,8 @@ function dashCards(title, ds) {
         color: C.cyan,
         value: ds.directional.remain.number,
         unit: ds.directional.remain.unit,
-        sub: '剩余',
+        pct: ds.directionalPct != null ? ds.directionalPct : null,
+        sub: ds.directionalPct != null ? Math.round(ds.directionalPct * 100) + '% 剩余' : '剩余',
       })
     : altCard({
         label: '今日流量',
@@ -1920,7 +1927,10 @@ function dashCards(title, ds) {
         color: C.cyan,
         value: todayUsed ? todayUsed.number : '--',
         unit: todayUsed ? todayUsed.unit : '',
-        sub: '今日已用',
+        pct: dailyPct,
+        sub: dailyAllow != null
+          ? '日均 ' + formatFlow(Math.round(dailyAllow)).number + ' ' + formatFlow(Math.round(dailyAllow)).unit
+          : '今日已用',
       });
   const voiceCard = altCard({
     label: '剩余语音',
@@ -1928,8 +1938,10 @@ function dashCards(title, ds) {
     color: C.green,
     value: ds.voice.number,
     unit: ds.voice.unit,
-    pct: null,
-    sub: ds.voice.number === '--' ? '暂无' : (Number(ds.voice.number) === 0 ? '未包含' : '剩余'),
+    pct: voiceRemainPct,
+    sub: ds.voice.number === '--' ? '暂无'
+      : (Number(ds.voice.number) === 0 ? '未包含'
+        : (voiceRemainPct != null ? Math.round(voiceRemainPct * 100) + '% 剩余' : '剩余')),
   });
   return [feeCard, flowCard, dirCard, voiceCard];
 }
