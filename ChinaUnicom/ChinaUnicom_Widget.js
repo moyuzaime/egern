@@ -984,6 +984,12 @@ function heroFlowCard(ds, cardHeight, cardFlex, isMedium) {
 }
 
 // 统一页头副标题：缓存/更新时间 + 凭据保持 + 凭据待更新（三种样式共用）
+// 缓存过期时尽快重渲染（2 分钟），新鲜数据维持 15 分钟
+function nextRefreshAfter(ds) {
+  const delay = ds && ds.stale ? 2 * 60 * 1000 : 15 * 60 * 1000;
+  return new Date(Date.now() + delay).toISOString();
+}
+
 function headerMeta(ds) {
   const staleView = Boolean(ds.stale);
   const ageMs = ds.updatedAt ? Date.now() - Number(ds.updatedAt) : null;
@@ -1037,9 +1043,6 @@ function header(title, ds, fromCache, mediumInset) {
 }
 
 function buildSmall(title, ds, fromCache) {
-  const staleView = Boolean(ds.stale);
-  const ageMs = ds.updatedAt ? Date.now() - Number(ds.updatedAt) : null;
-  const expired = staleView && ageMs != null && ageMs > 24 * 60 * 60 * 1000;
   const p = ds.plan && ds.plan.percent != null ? ds.plan.percent : null;
   const flowStyle = flowStatus(p);
   const remain = ds.flow.number + ' ' + ds.flow.unit;
@@ -1053,7 +1056,7 @@ function buildSmall(title, ds, fromCache) {
     padding: [13, 13],
     gap: 6,
     backgroundColor: '#00000000',
-    refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    refreshAfter: nextRefreshAfter(ds),
     children: [
       buildHeader(title, ds, { iconSize: 12, titleSize: 12, metaSize: 7.5, twoLine: true }),
 
@@ -1275,7 +1278,7 @@ function buildMedium(title, ds, fromCache) {
     padding: [12, 14],
     gap: 6,
     backgroundColor: { light: '#F4F7FB', dark: '#161B22' },
-    refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    refreshAfter: nextRefreshAfter(ds),
     children: [
       header(title, ds, fromCache, true),
       row,
@@ -1342,7 +1345,7 @@ function buildLarge(title, ds, fromCache) {
     padding: [16, 17],
     gap: 9,
     backgroundColor: '#00000000',
-    refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    refreshAfter: nextRefreshAfter(ds),
     children: [
       header(title, ds, fromCache),
       {
@@ -1531,6 +1534,8 @@ function buildLock(title, ds, family) {
   if (family === 'accessoryInline') {
     return {
       type: 'widget',
+
+      refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
       children: [
         {
           type: 'text',
@@ -1545,6 +1550,8 @@ function buildLock(title, ds, family) {
   if (family === 'accessoryCircular') {
     return {
       type: 'widget',
+
+      refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
       padding: 7,
       children: [
         { type: 'spacer' },
@@ -1572,6 +1579,8 @@ function buildLock(title, ds, family) {
 
   return {
     type: 'widget',
+
+    refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     padding: [3, 5],
     gap: 2,
     children: [
@@ -1596,6 +1605,8 @@ function liquidGlassWidget(widget) {
 function buildError(title, message) {
   return {
     type: 'widget',
+
+    refreshAfter: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
     padding: 14,
     gap: 6,
     backgroundColor: transparentMode ? '#00000000' : { light: '#F4F7FB', dark: '#161B22' },
@@ -1765,12 +1776,6 @@ function daysInMonthLeft() {
   return Math.max(1, last - now.getDate() + 1);
 }
 
-function altWhen(ds) {
-  const ageMs = ds.updatedAt ? Date.now() - Number(ds.updatedAt) : null;
-  if (ds.stale && ageMs != null) return '缓存 ' + ageText(ageMs) + '前';
-  return '更新 ' + fmtTime(ds.updatedAt);
-}
-
 function altHeader(title, ds, size, small) {
   return buildHeader(title, ds, {
     iconSize: size,
@@ -1863,7 +1868,7 @@ function altCard(opts) {
     children: [t(opts.value, valueSize, 'bold', C.txt, { minScale: 0.45 })]
       .concat(opts.unit ? [t(opts.unit, opts.unitSize || 7, 'medium', C.sub)] : []),
   });
-  if (opts.sub) children.push(t(opts.sub, labelSize - 1 <= 0 ? 6.5 : 6.5, 'medium', C.sub, { minScale: 0.55 }));
+  if (opts.sub) children.push(t(opts.sub, 6.5, 'medium', C.sub, { minScale: 0.55 }));
   return {
     type: 'stack', direction: 'column', alignItems: 'center', gap: 2,
     flex: 1, padding: pad, borderRadius: 12,
@@ -2018,7 +2023,8 @@ function buildDash(family, title, ds) {
   }
   return {
     type: 'widget',
-    refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+
+    refreshAfter: nextRefreshAfter(ds),
     padding: small ? [11, 12] : (large ? [14, 16] : [13, 14]),
     gap: 7,
     backgroundColor: '#00000000',
@@ -2152,7 +2158,8 @@ function buildIos(family, title, ds) {
 
   return {
     type: 'widget',
-    refreshAfter: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+
+    refreshAfter: nextRefreshAfter(ds),
     padding: small ? [9, 11] : (large ? [14, 16] : [12, 14]),
     gap: small ? 4 : 7,
     backgroundColor: '#00000000',
