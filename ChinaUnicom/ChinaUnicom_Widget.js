@@ -135,6 +135,20 @@ const MINI_API_PATH = '/wxapplet/weixinNew/';
 const MINI_API_BASE = 'https://mina.10010.com' + MINI_API_PATH;
 const MINI_SSP_BIGBALL = MINI_API_BASE + 'sspbigball';
 
+// 小程序会话属于 mina / mxx 自己的域，按域隔离无法用于 App 的 m.client.10010.com，
+// 因此单独保存一份「可原样重放」的请求凭据（完整 URL + 关键请求头 + 原始请求体）。
+const MINI_HOSTS = ['mina.10010.com', MINI_PROGRAM_HOST];
+const MINI_REQ_KEY = 'unicom_mini_req_';
+// 超过这个时间认为小程序会话已失效：不再重放，改为纯缓存展示。
+const MINI_REPLAY_TTL = 12 * 60 * 60 * 1000;
+// 可重放的接口：bigball 产出组件数据，detail 产出通用 / 定向明细。
+const MINI_REPLAY_KINDS = [
+  { kind: 'bigball', re: /mina\.10010\.com\/wxapplet\/weixinNew\/sspbigball/ },
+  { kind: 'detail', re: /mxx\.client\.10010\.com\/(?:servicequerybusiness|servicebusiness)\// },
+];
+// 重放时必须原样带回的请求头（值不落日志）。
+const MINI_REPLAY_HEADERS = ['cookie', 'user-agent', 'content-type', 'referer', 'origin'];
+
 
 /* =========================================================
  * 颜色
@@ -349,55 +363,149 @@ function captureDebug(message) {
   } catch (e) {}
 }
 
+
+/* =========================================================
+ * 小程序凭据与重放
+ *
+ * 微信小程序的会话（Cookie / openid / 密文 body）只属于 mina、mxx 两个域，
+ * 无法用于 App 的 m.client.10010.com。所以这里单独保存一份请求凭据：
+ * 完整 URL + 关键请求头 + 原始请求体；组件没有 App 凭据时按原样重放，
+ * 等价于用户又打开了一次小程序，也不需要自己实现 openid / RSA 签名。
+ * ========================================================= */
+
+function isMiniUrl(url) {
+  const s = String(url || '');
+  return MINI_HOSTS.some(host => s.indexOf(host) >= 0);
+}
+
+// 原始请求体：Egern 可能给字符串，也可能只给 Request-like 对象。
+async function readRawBody(req) {
+  const body = req && req.body;
+  if (typeof body === 'string') return body;
+  if (body && typeof body === 'object') {
+    try { return JSON.stringify(body); } catch (e) { return ''; }
+  }
+  try {
+    if (req && typeof req.text === 'function') {
+      const text = await req.text();
+      if (typeof text === 'string') return text;
+    }
+  } catch (e) {}
+  try {
+    if (req && typeof req.json === 'function') {
+      const json = await req.json();
+      if (json != null) return JSON.stringify(json);
+    }
+  } catch (e) {}
+  return '';
+}
+
+async function saveMiniRequests(ctx, req, safePath) {
+  const url = String(req.url || '');
+  const matched = MINI_REPLAY_KINDS.filter(entry => entry.re.test(url));
+  if (!matched.length) {
+    captureDebug('mini skip(not-replayable): path=' + safePath);
+    return;
+  }
+
+  const headers = {};
+  for (const name of MINI_REPLAY_HEADERS) {
+    const value = getRequestHeader(req.headers, name);
+    if (value) headers[name] = String(value);
+  }
+  const body = await readRawBody(req);
+  const method = String(req.method || 'GET').toUpperCase();
+
+  for (const entry of matched) {
+    ctx.storage.setJSON(MINI_REQ_KEY + entry.kind, {
+      ts: Date.now(),
+      method,
+      url,
+      headers,
+      body,
+    });
+  }
+  ctx.storage.set('unicom_miniTime', String(Date.now()));
+  // 只记录元数据：路径、方法、头名、体长度；绝不输出 Cookie 与密文内容。
+  captureDebug('mini saved: path=' + safePath +
+    '; kinds=' + matched.map(entry => entry.kind).join(',') +
+    '; method=' + method +
+    '; headerNames=' + Object.keys(headers).join(',') +
+    '; bodyLength=' + body.length);
+}
+
+function miniReplayReady(ctx) {
+  return MINI_REPLAY_KINDS.some(entry => {
+    const saved = ctx.storage.getJSON(MINI_REQ_KEY + entry.kind);
+    if (!saved || !saved.url) return false;
+    const age = Date.now() - Number(saved.ts || 0);
+    return Number.isFinite(age) && age >= 0 && age <= MINI_REPLAY_TTL;
+  });
+}
+
+// 重放一个已保存的小程序请求；解析成功返回 true。
+async function replayMiniRequest(ctx, kind) {
+  const saved = ctx.storage.getJSON(MINI_REQ_KEY + kind);
+  if (!saved || !saved.url) return false;
+  const age = Date.now() - Number(saved.ts || 0);
+  if (!Number.isFinite(age) || age < 0 || age > MINI_REPLAY_TTL) return false;
+
+  const options = {
+    timeout: 8000,
+    headers: Object.assign({}, saved.headers || {}),
+    credentials: 'omit',
+  };
+  const resp = saved.method === 'GET'
+    ? await ctx.http.get(saved.url, options)
+    : await ctx.http.post(saved.url, Object.assign({ body: saved.body || '' }, options));
+
+  if (!resp || resp.status !== 200) {
+    throw new Error('HTTP ' + (resp ? resp.status : 'no-response'));
+  }
+  const body = await resp.json();
+  return Boolean(applyMiniBody(ctx, saved.url, body));
+}
+
+// 依次重放：先取首页大球（产出 datasource），再补余量明细（字段最全）。
+async function replayMini(ctx) {
+  let parsedAny = false;
+  for (const entry of MINI_REPLAY_KINDS) {
+    try {
+      if (await replayMiniRequest(ctx, entry.kind)) parsedAny = true;
+    } catch (e) {
+      captureDebug('mini replay failed(' + entry.kind + '): ' + String((e && e.message) || e));
+    }
+  }
+  if (!parsedAny) return null;
+  const ds = ctx.storage.getJSON('unicom_datasource');
+  if (!ds) return null;
+  ds.stale = false;
+  return ds;
+}
+
+
 async function handleCapture(ctx) {
   const req = ctx.request || {};
   const url = String(req.url || '');
   // 日志只记录路径和布尔状态，绝不输出查询参数、手机号、Cookie 或 Token。
   const safePath = url.split('?')[0].split('#')[0];
+
+  // 小程序请求：只保存可原样重放的请求凭据，不参与 App 取数（Cookie 按域隔离）。
+  if (isMiniUrl(url)) {
+    if (ctx.env && String(ctx.env.cuMiniCapture).toLowerCase() === 'false') {
+      captureDebug('skip(disabled): cuMiniCapture=false; path=' + safePath);
+      return;
+    }
+    await saveMiniRequests(ctx, req, safePath);
+    return;
+  }
+
   if (ctx.env && String(ctx.env.cuCapture).toLowerCase() === 'false') {
     captureDebug('skip(disabled): cuCapture=false; path=' + safePath);
     return;
   }
-  const isAppRequest = url.includes(API_HOST);
-  const isMiniProgramRequest = url.includes(MINI_PROGRAM_HOST);
-  if (!isAppRequest && !isMiniProgramRequest) {
+  if (!url.includes(API_HOST)) {
     captureDebug('skip(host): host mismatch; path=' + safePath);
-    return;
-  }
-
-  // 微信小程序接口先只做脱敏侦察。未知请求结构不写入旧 App 凭据，也不尝试用旧接口解析。
-  if (isMiniProgramRequest) {
-    const method = String(req.method || 'unknown').toUpperCase();
-    const headers = req.headers || {};
-    let headerNames = [];
-    try {
-      if (typeof headers.keys === 'function') headerNames = Array.from(headers.keys());
-      else headerNames = Object.keys(headers);
-    } catch (e) {}
-    headerNames = headerNames.map(k => String(k).toLowerCase()).sort();
-    const body = req.body;
-    const bodyType = body === null || body === undefined ? 'empty' : typeof body;
-    let bodyLength = 0;
-    let bodyKeys = [];
-    try {
-      if (typeof body === 'string') {
-        bodyLength = body.length;
-        try {
-          const parsed = JSON.parse(body);
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) bodyKeys = Object.keys(parsed).sort();
-        } catch (e) {}
-      } else if (body && typeof body === 'object') {
-        bodyKeys = Object.keys(body).sort();
-        bodyLength = JSON.stringify(body).length;
-      }
-    } catch (e) {}
-    // Do not print request values. This diagnostic is intentionally metadata-only.
-    captureDebug('mini-program request: method=' + method +
-      '; path=' + safePath +
-      '; headerNames=' + headerNames.join(',') +
-      '; bodyType=' + bodyType +
-      '; bodyLength=' + bodyLength +
-      '; bodyKeys=' + bodyKeys.join(','));
     return;
   }
 
@@ -677,6 +785,21 @@ async function loadData(ctx) {
   const cookie = ctx.storage.get('unicom_cookie') || '';
   const phone = ctx.storage.get('unicom_phone') || '';
   if (!cookie || !phone) {
+    // 只有小程序凭据时：原样重放小程序请求取数（15 分钟一次），失败回落到缓存。
+    // 小程序会话与 App 会话互不通用，所以这条路径只在没有 App 凭据时启用。
+    const miniEnabled = !(ctx.env && String(ctx.env.cuMiniCapture).toLowerCase() === 'false');
+    if (miniEnabled && miniReplayReady(ctx) && Date.now() - lastFetchAt > 15 * 60 * 1000) {
+      ctx.storage.set('unicom_lastFetchAt', String(Date.now()));
+      ctx.storage.set('unicom_lastRenderFetched', '1');
+      const replayed = await replayMini(ctx);
+      if (replayed) {
+        const ts = captureTsOf(ctx);
+        replayed.captureDuration = ts > 0
+          ? formatDuration(Math.max(0, Number(replayed.updatedAt || Date.now()) - ts))
+          : '';
+        return { data: replayed, configured: true, error: null, fromCache: false };
+      }
+    }
     // 只做过微信小程序抓取（没有 App 凭据）时，直接用已缓存的小程序数据。
     const cached = readCache();
     if (cached) return { data: cached, configured: true, error: null, fromCache: true };
@@ -1667,25 +1790,12 @@ function buildError(title, message) {
  *   POST https://mina.10010.com/wxapplet/weixinNew/sspbigball
  *   -> {"code":"0000","data":{"feeResource":{...},"flowResource":{...},"voiceResource":{...}}}
  * 字段与 App 端同名（*Persent / newUnit / dynamic*Title），所以直接复用解析逻辑。
- * 这里只做被动解析：不重放请求，不需要 RSA 加密和 openid。
+ * 被动抓包与「原样重放」共用 applyMiniBody；两者都不需要自己实现 RSA 加密和 openid。
  * ========================================================= */
-async function handleMiniResponse(ctx) {
-  if (ctx.env && String(ctx.env.cuMiniCapture).toLowerCase() === 'false') return;
-
-  const reqUrl = String((ctx.request && ctx.request.url) || '');
-  // mina：小程序自有接口；mxx：小程序里的「余量查询」webview（字段最全）。
-  if (!reqUrl.includes(MINI_API_PATH) && !reqUrl.includes('mxx.client.10010.com')) return;
-
-  const res = ctx.response || {};
-  if (Number(res.status) !== 200) return;
-
-  let body = null;
-  try {
-    body = await res.json();
-  } catch (e) {
-    return;
-  }
-  if (!body || String(body.code) !== '0000') return;
+// 把小程序响应写进缓存。被动抓包与重放共用这一个解析器，避免两条路漂移。
+// 返回命中的数据类型：account / detail / bigball / phone / overview，未命中返回 ''。
+function applyMiniBody(ctx, reqUrl, body) {
+  if (!body || String(body.code) !== '0000') return '';
 
   // 小程序有些接口把字段放在响应根层（没有 data 包装），两种都要兼容。
   const data = body.data && typeof body.data === 'object' ? body.data : body;
@@ -1711,7 +1821,7 @@ async function handleMiniResponse(ctx) {
     } catch (e) {
       captureDebug('account parse failed: ' + e);
     }
-    return;
+    return 'account';
   }
 
   // ② 余量查询接口：packageName + resources（flow/voice/sms）+ flowSumList
@@ -1721,22 +1831,17 @@ async function handleMiniResponse(ctx) {
         const n = Number(v);
         return Number.isFinite(n) ? n : null;
       };
-      const pick = (type) => body.resources.find(r => String(r && r.type).toLowerCase() === type) || null;
-      const flow = pick('flow') || {};
-      const voice = pick('voice') || {};
-      const sms = pick('smslist') || {};
-      const detail = (Array.isArray(flow.details) && flow.details[0]) || {};
       const parsed = parseDetailFlow(body);
 
       ctx.storage.setJSON('unicom_flowdetail', Object.assign(parsed, { path: reqUrl.split('?')[0] }));
-      captureDebug('flow detail captured: pkg=' + body.packageName + '; remainMB=' + remainMB);
+      captureDebug('flow detail captured: pkg=' + body.packageName + '; remainMB=' + parsed.remainMB);
     } catch (e) {
       captureDebug('flow detail parse failed: ' + e);
     }
-    return;
+    return 'detail';
   }
 
-  if (!data || typeof data !== 'object') return;
+  if (!data || typeof data !== 'object') return '';
 
   if (reqUrl.indexOf(MINI_SSP_BIGBALL) === 0 && data.feeResource && data.flowResource && data.voiceResource) {
     try {
@@ -1775,7 +1880,7 @@ async function handleMiniResponse(ctx) {
     } catch (e) {
       captureDebug('mini parse failed: ' + e);
     }
-    return;
+    return 'bigball';
   }
 
   // 顺手保存手机号，方便诊断时区分账号（不参与取数）
@@ -1785,7 +1890,7 @@ async function handleMiniResponse(ctx) {
       const main = rows[0] && rows[0].mainNumber;
       if (main) ctx.storage.set('unicom_phone', String(main));
     } catch (e) {}
-    return;
+    return 'phone';
   }
 
   // 账户总览：可用话费 / 本月消费 / 欠费 / 结转（暂只存档，供后续展示）
@@ -1803,7 +1908,28 @@ async function handleMiniResponse(ctx) {
         });
       }
     } catch (e) {}
+    return 'overview';
   }
+  return '';
+}
+
+// 小程序响应钩子：只负责取响应体，解析交给 applyMiniBody（与重放共用）。
+async function handleMiniResponse(ctx) {
+  if (ctx.env && String(ctx.env.cuMiniCapture).toLowerCase() === 'false') return;
+
+  const reqUrl = String((ctx.request && ctx.request.url) || '');
+  if (!isMiniUrl(reqUrl)) return;
+
+  const res = ctx.response || {};
+  if (Number(res.status) !== 200) return;
+
+  let body = null;
+  try {
+    body = await res.json();
+  } catch (e) {
+    return;
+  }
+  applyMiniBody(ctx, reqUrl, body);
 }
 
 /* ============ 备选 UI：仪表盘版 / iOS 版（uiStyle = dash / ios） ============ */
