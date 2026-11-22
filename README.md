@@ -77,10 +77,41 @@
 │   ├── ChinaUnicom.yaml          # 联通模块
 │   ├── ChinaUnicom_Widget.js     # 联通脚本
 │   └── README.md                 # 联通模块说明
-└── ChinaBroadnet/
-    ├── ChinaBroadnet.yaml        # 广电模块
-    └── ChinaBroadnet_Widget.js   # 广电脚本
+├── ChinaBroadnet/
+│   ├── ChinaBroadnet.yaml        # 广电模块
+│   └── ChinaBroadnet_Widget.js   # 广电脚本
+└── test/
+    └── unicom-mini-replay.smoke.mjs  # 联通小程序抓取/重放冒烟测试
 ```
+
+## 测试
+
+冒烟测试不依赖 Egern、也不访问真实接口：用 mock 的 Egern 运行时（storage / http / notify / widgetFamily）驱动脚本。
+
+```bash
+node test/unicom-mini-replay.smoke.mjs
+```
+
+最近一次运行：**2026-11-22，8/8 通过**（Node v26.13.0，对应提交 `a561c8b`）。
+
+| 用例 | 结果 |
+|---|---|
+| 抓取小程序请求 → 保存可重放凭据（URL / method / body / cookie） | PASS |
+| 小程序响应被动解析 → 写入 datasource | PASS |
+| 无 App 凭据 → 重放小程序请求取数（原样带回 body 与 cookie） | PASS |
+| 重放失败 → 回落缓存仍可渲染，且不改写缓存 | PASS |
+| 有 App 凭据 → 走 App 接口，不重放小程序 | PASS |
+| 小程序凭据超过 12 小时 → 不重放 | PASS |
+| `cuMiniCapture=false` → 不抓取、不重放 | PASS |
+| 渲染矩阵：3 样式 × 4 尺寸 | PASS |
+
+> 这些验证覆盖代码路径与数据流，**不证明**联通接口一定接受重放；接口侧是否放行只能在真机上看（失败时组件回落缓存并显示「缓存 x 前」）。
+
+## 维护约定
+
+- 改动直接提交到 `main`，不开分支
+- 每次改动都会在模块 YAML 的 `description` 里写入「更新时间」（北京时间），安装 / 更新模块时在模块页即可看到本次改动的日期与时间
+- 改动后跑一次上面的冒烟测试，并把结果更新到「测试」小节
 
 ## 数据与隐私
 
